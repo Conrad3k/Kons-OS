@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.12.0 krok 1: usługa, kanał klientów, okienko „Dźwięk” w gui); PRZETESTOWANE na hoście (`test_dzwiek`, `fuzz_dzwiek`, `test_uevent`, `test_komunikat`), w systemie w QEMU bez karty (`t_dzwiek`: klatka, „brak karty”, wrogi klient, restart) i w QEMU z kartą Intel HD Audio (`scripts/test-dzwiek.sh`: dźwięk zapisany do pliku WAV). Prawdziwy głośnik X230 i IdeaPada — sprawdza właściciel. Krok 3 (dźwięk stref): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`, `test_dzwiek`) i w `test-dzwiek.sh` (strefa próbna gra ton, głośnik na pasku, wyciszenie sesji, złośliwy gość); Firefox w strefie (ALSA) — stanowisko i właściciel na sprzęcie. Krok 2: słuchawki (gniazdo z kontrolek karty — ZAIMPLEMENTOWANE, test na hoście nazw gniazd; QEMU gniazda nie udaje: sprawdza właściciel), osobna głośność głośników i słuchawek, klient Ustawienia — PRZETESTOWANE w `test-dzwiek.sh` (klawisze, Ustawienia → Dźwięk, pamięć głośności po nowym pulpicie); dźwięk ze stref — krok 3 |
-| **Pliki** | `src/dzwiek/main.c` (kanały, klienci i ich strumienie, mieszanie, stan), `karta.c` (węzeł odtwarzania: ALSA bez alsa-lib), `kontrolki.c` (wyjścia kodeka na 0 dB, nazwa karty do logu), `dzwiek.h`; `src/wspolne/k1_dzwiek.{h,c}` (format, tabela klientów `K1_DZW_KLIENCI`, liczenie pierścienia, mieszanie, głośność, próba), `k1_kom_dzwiek.c` (komunikaty); `src/nadzorca/dzwiek.c` (karta z sysfs i zdarzeń jądra, kanały klientów), `profile.c` (`KLATKA_DZWIEK`); `src/gui/dzwiek.c` (ikona na pasku, okienko „Dźwięk”, próba); `jadro/k1.config` (sekcja „0.12.0 Dźwięk”) |
-| **Decyzje** | ADR 0054 (plan 0.12.0: T1–T4, T7, T8; właściciel: D1 = A, D2 = B, D3 = A; krok 2: D4 = A, D5 = A; krok 3: D6 = A, T5, T6 = A) |
+| **Status** | ZAIMPLEMENTOWANE (0.12.0 krok 1: usługa, kanał klientów, okienko „Dźwięk” w gui); PRZETESTOWANE na hoście (`test_dzwiek`, `fuzz_dzwiek`, `test_uevent`, `test_komunikat`), w systemie w QEMU bez karty (`t_dzwiek`: klatka, „brak karty”, wrogi klient, restart) i w QEMU z kartą Intel HD Audio (`scripts/test-dzwiek.sh`: dźwięk zapisany do pliku WAV). Prawdziwy głośnik X230 i IdeaPada — sprawdza właściciel. Krok 3 (dźwięk stref): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`, `test_dzwiek`) i w `test-dzwiek.sh` (strefa próbna gra ton, głośnik na pasku, wyciszenie sesji, złośliwy gość); Firefox w strefie (ALSA) — stanowisko i właściciel na sprzęcie. Krok 2: słuchawki (gniazdo z kontrolek karty — ZAIMPLEMENTOWANE, test na hoście nazw gniazd; QEMU gniazda nie udaje: sprawdza właściciel), osobna głośność głośników i słuchawek, klient Ustawienia — PRZETESTOWANE w `test-dzwiek.sh` (klawisze, Ustawienia → Dźwięk, pamięć głośności po nowym pulpicie); dźwięk ze stref — krok 3; **0.12.3 krok 1** (ADR 0055, tor wysokiej jakości): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_dzw_tor` — pomiary, ogranicznik, dither, formaty karty; `test_virtio_dzwiek`, `fuzz_dzwiek`, `fuzz_virtio_dzwiek`), w systemie (`t_dzwiek`: pierścień F32) i w `test-dzwiek.sh` (karta QEMU — 16 bitów, przezroczystość próby, ton strefy w S32); 24 bity i odsłuch — właściciel na X230 i IdeaPadzie |
+| **Pliki** | `src/dzwiek/main.c` (kanały, klienci i ich strumienie, mieszanie, stan), `karta.c` (węzeł odtwarzania: ALSA bez alsa-lib), `kontrolki.c` (wyjścia kodeka na 0 dB, nazwa karty do logu), `dzwiek.h`; `src/wspolne/k1_dzwiek.{h,c}` (formaty pierścienia `K1_DZW_FORMATY`, tabela klientów `K1_DZW_KLIENCI`, liczenie pierścienia, próba), `k1_dzw_tor.{h,c}` (0.12.3: tor dźwięku — mieszanie, głośność, ogranicznik, dither, format karty), `k1_kom_dzwiek.c` (komunikaty); `src/nadzorca/dzwiek.c` (karta z sysfs i zdarzeń jądra, kanały klientów), `profile.c` (`KLATKA_DZWIEK`); `src/gui/dzwiek.c` (ikona na pasku, okienko „Dźwięk”, próba); `jadro/k1.config` (sekcja „0.12.0 Dźwięk”) |
+| **Decyzje** | ADR 0054 (plan 0.12.0: T1–T4, T7, T8; właściciel: D1 = A, D2 = B, D3 = A; krok 2: D4 = A, D5 = A; krok 3: D6 = A, T5, T6 = A); ADR 0055 (plan 0.12.3 krok 1: T1–T5, T8 — tor wysokiej jakości) |
 
 ## Cel
 Laptop gra dźwięk K1 i (od kroku 3) przeglądarki, a kartę dźwiękową — jak obraz — ma tylko jeden mały proces w klatce.
@@ -46,17 +46,24 @@ ADR 0054 pkt 1); swoje kopie zamyka od razu. Bez `open`, `socket`, `memfd_create
    strefy). Klientów naraz najwyżej 12. Nadzorca robi parę gniazd, końcówkę usługi wysyła w `DZWIEK_KLIENT` (wiersz, UID), gui swoją
    dostaje na fd 5 (`DZWIEK_KANAL`); ekran hasła — nie. Po restarcie usługi albo gui — kanał od nowa. Usługa od razu
    wysyła klientowi stan (`DZWIEK_STAN`: karta, głośność, wyciszenie, wyjście).
-4. **Strumień:** `DZWIEK_OTWORZ` + pierścień (16384 ramek, 64 KiB). Bez karty — od razu `DZWIEK_ODTWORZONO` a = 0, b = 1
-   (koniec). Z kartą usługa budzi kartę: HW_PARAMS (48 kHz, S16_LE, 2 kanały, okres 1024, 4 okresy), SW_PARAMS (start po
-   dwóch okresach), PREPARE. Klient pisze ramki i podaje ich liczbę (`DZWIEK_ZAPISANO`); co 1024 zabrane ramki (od kroku 3; wcześniej co 4096) dostaje
+4. **Strumień:** `DZWIEK_OTWORZ` (a = format pierścienia, 0.12.3: S16 albo F32) + pierścień (16384 ramek: 64 KiB S16,
+   128 KiB F32 — rozmiar musi się zgadzać z formatem). Bez karty — od razu `DZWIEK_ODTWORZONO` a = 0, b = 1
+   (koniec). Z kartą usługa budzi kartę: HW_PARAMS (48 kHz, 2 kanały, okres 1024, 4 okresy; format — od 0.12.3 pierwszy,
+   który karta przyjmie: S32_LE z 24 bitami (HD Audio: podformat MSBITS_24), z 20, S32_LE, S24_3LE, S16_LE; log „karta
+   gra 24 bity (4 bajty na próbkę)”), SW_PARAMS (start po dwóch okresach), PREPARE. Klient pisze ramki i podaje ich liczbę (`DZWIEK_ZAPISANO`); co 1024 zabrane ramki (od kroku 3; wcześniej co 4096) dostaje
    `DZWIEK_ODTWORZONO` z ich liczbą (tyle miejsca odzyskał). `DZWIEK_ZAMKNIJ` po odegraniu: strumień kończy się, gdy
    pierścień się opróżni (`ODTWORZONO` b = 1).
-5. **Mieszanie** — za każdym razem, gdy karta ma miejsce na okres (`poll` POLLOUT, `avail_min` = okres): z każdego
-   strumienia kopia do 1024 ramek, suma, głośność K1 (`k1_dzw_wzmocnienie`: sześcian, 50 % ≈ −18 dB; wyciszenie = 0),
-   obcięcie do 16 bitów, zapis okresu (`WRITEI_FRAMES`). Brakujące ramki strumienia to cisza; „niedobór” karty (EPIPE) →
+5. **Mieszanie (tor dźwięku, od 0.12.3 — ADR 0055)** — za każdym razem, gdy karta ma miejsce na okres (`poll` POLLOUT,
+   `avail_min` = okres): z każdego strumienia kopia do 1024 ramek, zamiana na liczby zmiennoprzecinkowe (S16 dokładnie;
+   F32 sprawdzone — NaN i nieskończoność → 0, ponad ±1,0 → ±1,0, liczone), suma (sesja strefy z głośnością sesji),
+   głośność K1 (`k1_dzw_wzmocnienie`: sześcian, 50 % = 0,125 ≈ −18 dB; wyciszenie = 0), **ogranicznik** (nigdy ponad pełną
+   skalę: łagodnie w dół do 1 ms przed głośną ramką, z powrotem 6 dB na 50 ms), zamiana na format karty z **ditherem**
+   TPDF (±1 krok; bez niego, gdy każda próbka okresu już jest pełnym krokiem — przezroczystość 100 % i cisza), zapis okresu
+   (`WRITEI_FRAMES`). Raz na minutę gry (gdy coś było): „ostatnia minuta: ogranicznik w N okresach, złe próbki od
+   klientów: M”. Brakujące ramki strumienia to cisza; „niedobór” karty (EPIPE) →
    PREPARE i dalej (licznik przerw w logu).
 6. **Cisza (T8):** bez strumieni karta gra ciszę jeszcze 5 s, potem DROP + HW_FREE (log: „cisza: karta uśpiona”, liczba
-   przerw i przyciętych próbek). Usypianie kodeka przez PM — decyzja kroku 2: **jeszcze nie** (niżej).
+   przerw, okresów z ogranicznikiem i złych próbek). Usypianie kodeka przez PM — decyzja kroku 2: **jeszcze nie** (niżej).
 7. **Słuchawki (krok 2):** wśród kontrolek karty usługa szuka gniazd słuchawek (`k1_dzw_gniazdo_sluchawek`: kontrolka karty
    typu tak/nie, „Headphone Jack”, „Front Headphone Jack”…, nigdy mikrofonu); są — trzyma kontrolki otwarte, prosi jądro
    o ich zdarzenia (SUBSCRIBE_EVENTS) i po każdym czyta gniazda od nowa. Coś w gnieździe — **wyjście „Słuchawki”**, puste —
@@ -76,7 +83,7 @@ Typy i pola: `k1_komunikat.h` (sekcja „0.12.0 step 1”), sprawdzanie: `k1_kom
 | `DZWIEK_KARTA` | nadzorca → usługa (+ fd) | a = węzeł (ODTWARZANIE / KONTROLKI), b = karta 0…31, c = urządzenie 0…31 (kontrolki: 0) |
 | `DZWIEK_KLIENT` | nadzorca → usługa (+ fd) | a = wiersz `K1_DZW_KLIENCI`, b = UID klienta, c = strefa (tylko klient `STREFA`, krok 3) |
 | `DZWIEK_BEZ_KARTY` | nadzorca → usługa | wszystko 0 |
-| `DZWIEK_OTWORZ` | klient → usługa (+ fd pierścienia) | wszystko 0 |
+| `DZWIEK_OTWORZ` | klient → usługa (+ fd pierścienia) | a = format pierścienia `K1_DZW_FORMAT_*` (0.12.3: 0 S16, 1 F32), reszta 0 |
 | `DZWIEK_ZAPISANO` | klient → usługa | a = nowe ramki 1…16384 |
 | `DZWIEK_ZAMKNIJ` | klient → usługa | a = 0 po odegraniu / 1 od razu |
 | `DZWIEK_GLOSNOSC` | klient sterujący → usługa | a = głośność 0…100, b = wyciszone 0/1, c = wyjście (krok 2; 0 — to, które gra), d = strefa (krok 3: głośność i wyciszenie jej sesji; wtedy c = 0) |
@@ -97,7 +104,8 @@ sesji — krok 3. Opis ekranu: „Wycisz”, „Głośność”, „Odtwórz pr�
 ## Dźwięk stref (krok 3, ADR 0054 pkt 13–16)
 Przeglądarka w strefie (Firefox, przez ALSA — T6 = A; `media.cubeb.backend` „alsa” w `strefy/przegladarka/k1.js`) gra do
 karty virtio-snd, którą udaje VMM strefy (`strefa.md`, urządzenie „dźwięk”). VMM jest klientem `STREFA`: kopiuje próbki
-z kolejki gościa do swojego pierścienia (ten sam format — nic nie przelicza), najwyżej 8192 ramek przed tym, co usługa
+z kolejki gościa do swojego pierścienia — od 0.12.3 F32: karta strefy ogłasza S16, S32 i FLOAT, VMM przelicza je bez
+straty, a Firefox nie musi już zamieniać dźwięku na 16 bitów w strefie (ADR 0055 pkt 6), najwyżej 8192 ramek przed tym, co usługa
 zagrała, a transfer oddaje gościowi dopiero, gdy jego ramki zostały zagrane (postęp `DZWIEK_ODTWORZONO` co 1024 ramki). Usługa miesza sesję z **głośnością sesji** (sześcian jak głośność K1, start 100 %, wyciszenie), na koniec
 głośność K1. Sesja **gra**, póki usługa brała jej ramki w ostatniej sekundzie (`K1_DZW_GRA_S`); stan sesji dostają klienci
 sterujący (`DZWIEK_SESJA`): gui pokazuje „Grają teraz” i mówi ekranowi, który rysuje głośnik na pasku okna sesji (D6: A,
@@ -135,5 +143,12 @@ zapisuje ją w skarbcu (`gui.md`) i daje każdej nowej usłudze.
   alsa-lib), głośnik na pasku w opisie ekranu, „Grają teraz” w okienku, kliknięcie głośnika — sesja wyciszona (w pliku
   przerwa), drugie — znów gra; gość złośliwy (`TRYB_DZWIEK_ZLY`: zły format — „nieobsługiwane”, prośba bez miejsca na
   odpowiedź — VMM kończy jego maszynę).
+- 0.12.3 krok 1 (ADR 0055): `test_dzw_tor` — pomiary planu z granicami (ton 1 kHz przy 100, 50, 10, 5 % do karty 16, 20
+  i 24 bitów: błąd, harmoniczne, średnia; najcichszy ton; przezroczystość; cisza), ogranicznik, próbki F32 wrogiego
+  klienta, bajty formatów karty, ten sam dither przy każdym przebiegu; `test_dzwiek` — formaty pierścienia, `DZWIEK_OTWORZ`
+  a; `test_virtio_dzwiek` — formaty gościa, ramki ich wielkości, próbki do `float`; `fuzz_dzwiek` — pierścień w obu
+  formatach z dowolnych bajtów, suma zawsze skończona, po ograniczniku nigdy ponad ±1,0; `t_dzwiek` — pierścień F32,
+  NEGATYWNY: pierścień 16 bitów zgłoszony jako F32 odrzucony; `test-dzwiek.sh` — karta QEMU przyjmuje tylko 16 bitów
+  (log), pierwsza próba w pliku WAV próbka w próbkę taka jak w programie, strefa gra ton w S32 (log VMM).
 - Na sprzęcie (właściciel): próba słychać na X230 i IdeaPadzie; log z nazwami karty i kodeka; krok 2 — klawisze (log
   wejścia: „z klawiszami głośności”), słuchawki w gnieździe (log „gniazdo słuchawek: …”, „wyjście: Słuchawki”).

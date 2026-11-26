@@ -177,9 +177,10 @@ POSREDNIK := $(sort $(wildcard src/posrednik/*.c))
 $(BIN)/posrednik: $(POSREDNIK) $(wildcard src/posrednik/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(POSREDNIK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-# 0.12.0 step 1 (ADR 0054): the sound service — ALSA without alsa-lib (sound/asound.h from build/naglowki); mixing, the
-# volume and a client's ring in src/wspolne/k1_dzwiek.c (host test: test_dzwiek, fuzzing: fuzz_dzwiek)
-DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c
+# 0.12.0 step 1 (ADR 0054): the sound service — ALSA without alsa-lib (sound/asound.h from build/naglowki); a client's ring
+# in src/wspolne/k1_dzwiek.c, the path (mixing, the volume, the limiter, the dither; 0.12.3, ADR 0055) in k1_dzw_tor.c
+# (host tests: test_dzwiek, test_dzw_tor; fuzzing: fuzz_dzwiek)
+DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c
 $(BIN)/dzwiek: $(DZWIEK) $(wildcard src/dzwiek/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(DZWIEK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -201,7 +202,7 @@ $(BIN)/siec: $(SIEC) $(wildcard src/siec/*.h) src/wspolne/k1_sha1.c src/wspolne/
 # 0.10.0 step 1 (ADR 0042): the VMM of a zone — one process per micro machine (host tests: test_virtio, test_strefa_start;
 # fuzzing: fuzz_virtq), its window drawn with a part of przybornik; gosc — /init of the test zone's image (it runs inside
 # the machine, not in K1; our flags all the same)
-STREFA := $(sort $(wildcard src/strefa/*.c)) src/wspolne/k1_pomiar.c
+STREFA := $(sort $(wildcard src/strefa/*.c)) src/wspolne/k1_pomiar.c src/wspolne/k1_dzwiek.c
 STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/grafika/k1_grafika.c \
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
@@ -257,8 +258,8 @@ $(GEN)/k1_czcionki_dane.c: $(OBJ)/czcionki | $(GEN)
 	$(OBJ)/czcionki $(CZCIONKI) > $@.tmp && mv $@.tmp $@
 
 TEST_SYS := $(sort $(wildcard testy/system/*.c))
-$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/wspolne/k1_sha1.c src/wspolne/k1_aes.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) src/wspolne/k1_nl.c src/wspolne/k1_sha1.c src/wspolne/k1_aes.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/wspolne/k1_sha1.c src/wspolne/k1_aes.c src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) src/wspolne/k1_nl.c src/wspolne/k1_sha1.c src/wspolne/k1_aes.c src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN) $(OBJ) $(GEN):
 	mkdir -p $@
@@ -284,8 +285,13 @@ $(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_st
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c
 
 # 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder's requests and messages
-$(OBJ)/test_dzwiek: testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c $(KOMUNIKAT) $(DOK_C) -lm
+$(OBJ)/test_dzwiek: testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c $(KOMUNIKAT) $(DOK_C) -lm
+
+# 0.12.3 step 1 (ADR 0055): the sound path — the measurements of the plan (noise, harmonics, the quietest tone), the
+# limiter, the dither, "przezroczystość", the card's formats
+$(OBJ)/test_dzw_tor: testy/host/test_dzw_tor.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzw_tor.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c -lm
 
 $(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)
@@ -533,7 +539,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -652,7 +658,7 @@ FUZZ_ZR_pliki_strefy := src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 FUZZ_DL_pliki_strefy := 200000
 FUZZ_ZR_schowek   := src/wspolne/k1_schowek.c
 FUZZ_DL_schowek   := 4096
-FUZZ_ZR_dzwiek    := src/wspolne/k1_dzwiek.c
+FUZZ_ZR_dzwiek    := src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c
 FUZZ_DL_dzwiek    := 4096
 FUZZ_ZR_virtio_dzwiek := src/strefa/dzwiek_prosby.c
 FUZZ_DL_virtio_dzwiek := 4096

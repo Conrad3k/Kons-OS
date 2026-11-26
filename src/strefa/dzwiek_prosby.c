@@ -1,4 +1,5 @@
-/* K1 strefa — the guest's sound card, its control requests (0.12.0 step 3; dzwiek.h). Pure: no system calls; tested on
+/* K1 strefa — the guest's sound card, its control requests and (0.12.3) its samples into floats (dzwiek.h). Pure: no
+ * system calls; tested on
  * the host (test_virtio_dzwiek) and fuzzed (fuzz_virtio_dzwiek). Everything here comes from the guest: each request is
  * copied out of its memory first (dzwiek.c), its length and every field checked, unknown requests answered "not
  * supported". Byte order: virtio is little endian, as the computers K1 runs on (x86-64) — read with memcpy (no alignment
@@ -21,6 +22,48 @@ static uint32_t le32(const uint8_t *p)
     return v;
 }
 
+#define X_FORMAT(n, ramka) { VIRTIO_SND_PCM_FMT_##n, ramka, #n },
+static const struct {
+    uint32_t format, ramka;
+    const char *nazwa;
+} formaty[] = { DZW_FORMATY(X_FORMAT) };
+#define FORMATY (sizeof formaty / sizeof formaty[0])
+
+uint32_t dzw_ramka(uint32_t format)
+{
+    for (size_t i = 0; i < FORMATY; i++)
+        if (formaty[i].format == format)
+            return formaty[i].ramka;
+    return 0;
+}
+
+const char *dzw_format_nazwa(uint32_t format)
+{
+    for (size_t i = 0; i < FORMATY; i++)
+        if (formaty[i].format == format)
+            return formaty[i].nazwa;
+    return "?";
+}
+
+void dzw_na_f32(float *cel, const uint8_t *zrodlo, uint32_t ramki, uint32_t format)
+{
+    for (size_t i = 0; i < (size_t)ramki * 2; i++) {
+        if (format == VIRTIO_SND_PCM_FMT_S16) {
+            int16_t v;
+            memcpy(&v, zrodlo + 2 * i, sizeof v);
+            cel[i] = (float)v * (1.0f / 32768.0f);
+        } else if (format == VIRTIO_SND_PCM_FMT_S32) {
+            int32_t v;
+            memcpy(&v, zrodlo + 4 * i, sizeof v);
+            cel[i] = (float)v * (1.0f / 2147483648.0f);
+        } else if (format == VIRTIO_SND_PCM_FMT_FLOAT) {
+            memcpy(&cel[i], zrodlo + 4 * i, sizeof cel[i]);
+        } else {
+            cel[i] = 0.0f;
+        }
+    }
+}
+
 static uint32_t naglowek(uint8_t *odp, uint32_t kod)
 {
     memcpy(odp, &kod, 4);
@@ -35,7 +78,8 @@ static uint32_t informacje(const uint8_t *req, uint32_t n, uint8_t *odp, uint32_
         le32(req + 12) < sizeof in || max < 4 + sizeof in)
         return naglowek(odp, VIRTIO_SND_S_BAD_MSG);
     memset(&in, 0, sizeof in);
-    in.formats = 1ull << VIRTIO_SND_PCM_FMT_S16;
+    for (size_t i = 0; i < FORMATY; i++)
+        in.formats |= 1ull << formaty[i].format;
     in.rates = 1ull << VIRTIO_SND_PCM_RATE_48000;
     in.direction = VIRTIO_SND_D_OUTPUT;
     in.channels_min = in.channels_max = 2;
@@ -44,7 +88,7 @@ static uint32_t informacje(const uint8_t *req, uint32_t n, uint8_t *odp, uint32_
     return 4 + sizeof in;
 }
 
-/* SET_PARAMS: only K1's format; the buffer a whole number of periods, each of whole frames. */
+/* SET_PARAMS: only a format of DZW_FORMATY at 48 kHz, stereo; the buffer a whole number of periods, each of whole frames. */
 static uint32_t parametry(struct dzw_strumien *s, const uint8_t *req, uint32_t n)
 {
     struct virtio_snd_pcm_set_params p;
@@ -55,13 +99,15 @@ static uint32_t parametry(struct dzw_strumien *s, const uint8_t *req, uint32_t n
         return VIRTIO_SND_S_BAD_MSG; /* not while it plays or is paused */
     if (p.features != 0 || p.padding != 0)
         return VIRTIO_SND_S_NOT_SUPP;
-    if (p.channels != 2 || p.format != VIRTIO_SND_PCM_FMT_S16 || p.rate != VIRTIO_SND_PCM_RATE_48000)
+    if (p.channels != 2 || dzw_ramka(p.format) == 0 || p.rate != VIRTIO_SND_PCM_RATE_48000)
         return VIRTIO_SND_S_NOT_SUPP;
-    if (p.period_bytes == 0 || p.period_bytes % 4 != 0 || p.period_bytes > DZW_DANE_MAKS ||
+    if (p.period_bytes == 0 || p.period_bytes % dzw_ramka(p.format) != 0 || p.period_bytes > DZW_DANE_MAKS ||
         p.buffer_bytes < p.period_bytes || p.buffer_bytes > DZW_BUFOR_MAKS || p.buffer_bytes % p.period_bytes != 0)
         return VIRTIO_SND_S_BAD_MSG;
     s->bufor = p.buffer_bytes;
     s->okres = p.period_bytes;
+    s->format = p.format;
+    s->ramka = dzw_ramka(p.format);
     s->stan = DZW_USTAWIONY;
     return VIRTIO_SND_S_OK;
 }
@@ -122,9 +168,9 @@ uint32_t dzw_prosba(struct dzw_strumien *s, const uint8_t *req, uint32_t n, uint
     }
 }
 
-uint32_t dzw_transfer(const uint8_t *naglowek_, uint32_t n_naglowka, uint64_t dane)
+uint32_t dzw_transfer(const uint8_t *naglowek_, uint32_t n_naglowka, uint64_t dane, uint32_t ramka)
 {
-    if (n_naglowka != sizeof(struct virtio_snd_pcm_xfer) || le32(naglowek_) != 0 || dane % 4 != 0 ||
+    if (n_naglowka != sizeof(struct virtio_snd_pcm_xfer) || le32(naglowek_) != 0 || ramka == 0 || dane % ramka != 0 ||
         dane > DZW_DANE_MAKS)
         return VIRTIO_SND_S_BAD_MSG;
     return VIRTIO_SND_S_OK;

@@ -11,6 +11,8 @@
  * mute of its own (D5: gui remembers them and gives them to every new service). Step 3: a zone's VMM is a client for
  * its guest (virtio-snd) — one per zone; each session has a volume and a mute of its own (DZWIEK_GLOSNOSC d), and the
  * steering clients hear which session plays (DZWIEK_SESJA: gui's list "Grają teraz", the speaker on its window's bar).
+ * 0.12.3 step 1 (ADR 0055): the path in floats (k1_dzw_tor.c) — a ring of S16 or F32 (DZWIEK_OTWORZ a), the sum, the
+ * volume, the limiter instead of clipping, the card's best format (karta.c: 24 bits when it takes them) with a dither.
  * Trust boundary: the clients are hostile (from step 3 a zone's VMM speaks for the guest): every message checked field by
  * field (k1_komunikat_sprawdz, sender UID), the frames counted by the service (k1_dzw_zapisano), the ring copied before
  * use. Sandbox: UID 111, no paths, seccomp: the base + the ALSA ioctls it uses (KLATKA_DZWIEK). The log: numbers and the
@@ -25,6 +27,7 @@
 #include <unistd.h>
 
 #include "dzwiek.h"
+#include "k1_dzw_tor.h"
 #include "k1_kanal.h"
 #include "k1_klatka.h"
 #include "k1_komunikat.h"
@@ -39,7 +42,8 @@
 struct klient {
     int fd, rodzaj, strefa;   /* strefa: the zone of a client STREFA (1..K1_STREFY_MAKS), else 0 */
     uid_t uid;
-    const int16_t *pierscien; /* mapped read only; NULL: no stream */
+    const uint8_t *pierscien; /* mapped read only; NULL: no stream */
+    int format;               /* K1_DZW_FORMAT_* of the ring (0.12.3) */
     struct k1_dzw_pierscien p;
     int zamyka;               /* ZAMKNIJ after what was written plays */
     int zerwany;              /* step 3: the card failed while it played — ZAPISANO already on its way is no broken rule */
@@ -57,7 +61,13 @@ static struct sesja {
     int gra, zgloszona;      /* it plays now; what the steering clients were told (-1: nothing yet) */
     double gral;             /* when frames of it were last taken */
 } sesje[K1_STREFY_MAKS + 1];
-static unsigned long przyciete;
+static struct k1_dzw_ogranicznik ogranicznik;
+static struct k1_dzw_dither dither;
+static unsigned long ograniczone, zle_probki;  /* periods the limiter lowered; F32 samples not finite or beyond ±1.0 */
+static struct {
+    double od;
+    unsigned long ograniczone, zle_probki;
+} minuta;                                       /* what the log said last (once a minute while it plays) */
 
 static double teraz(void)
 {
@@ -118,7 +128,7 @@ static void sesje_zglos(struct klient *nowy)
 static void zamknij_strumien(struct klient *k, int zglos)
 {
     if (k->pierscien != NULL)
-        munmap((void *)(uintptr_t)k->pierscien, K1_DZW_PIERSCIEN_BAJTY);
+        munmap((void *)(uintptr_t)k->pierscien, k1_dzw_pierscien_bajty(k->format));
     if (zglos && k->fd >= 0)
         wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_ODTWORZONO, 0, (int32_t)k->niezgloszone, 1, 0, 0, 0));
     k->pierscien = NULL;
@@ -136,34 +146,37 @@ static void usun_klienta(struct klient *k, const char *powod)
     k->fd = -1;
 }
 
-/* DZWIEK_OTWORZ: exactly the ring's size, sealed against shrinking and growing (a shrunk ring would end us with SIGBUS). */
-static int przyjmij_pierscien(struct klient *k, int fd)
+/* DZWIEK_OTWORZ: exactly the ring's size in its format, sealed against shrinking and growing (a shrunk ring would end us
+ * with SIGBUS). */
+static int przyjmij_pierscien(struct klient *k, int fd, int format)
 {
+    size_t bajty = k1_dzw_pierscien_bajty(format);
     struct stat st;
     int pieczecie = fcntl(fd, F_GET_SEALS);
     void *m;
     if (k->pierscien != NULL || fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) ||
-        (uint64_t)st.st_size != K1_DZW_PIERSCIEN_BAJTY || pieczecie < 0 ||
+        bajty == 0 || (uint64_t)st.st_size != bajty || pieczecie < 0 ||
         (pieczecie & (F_SEAL_SHRINK | F_SEAL_GROW)) != (F_SEAL_SHRINK | F_SEAL_GROW))
         return -1;
-    m = mmap(NULL, K1_DZW_PIERSCIEN_BAJTY, PROT_READ, MAP_SHARED, fd, 0);
+    m = mmap(NULL, bajty, PROT_READ, MAP_SHARED, fd, 0);
     if (m == MAP_FAILED)
         return -1;
     k->pierscien = m;
+    k->format = format;
     memset(&k->p, 0, sizeof k->p);
     return 0;
 }
 
-static void otworz(struct klient *k, int fd)
+static void otworz(struct klient *k, int fd, int format)
 {
-    if (fd < 0 || przyjmij_pierscien(k, fd) != 0) {
+    if (fd < 0 || przyjmij_pierscien(k, fd, format) != 0) {
         k->odrzucone++;
         k1_log(TAG, "klient %s: pierścień odrzucony", k1_dzw_klient_nazwa(k->rodzaj));
         wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_ODTWORZONO, 0, 0, 1, 0, 0, 0)); /* no stream: it ended at once */
     } else if (stan_karty != K1_DZW_KARTA_JEST || karta_obudz() != 0) {
         zamknij_strumien(k, 1); /* no card: the stream ends at once, the client hears it */
     } else {
-        k1_log(TAG, "klient %s: strumień otwarty", k1_dzw_klient_nazwa(k->rodzaj));
+        k1_log(TAG, "klient %s: strumień otwarty (%s)", k1_dzw_klient_nazwa(k->rodzaj), k1_dzw_format_nazwa(format));
     }
 }
 
@@ -175,7 +188,7 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
         if (k->pierscien != NULL)
             return -1; /* one stream per client */
         k->zerwany = 0;
-        otworz(k, fd);
+        otworz(k, fd, m->a);
         break;
     case K1_KOM_DZWIEK_ZAPISANO:
         if (k->pierscien == NULL && k->zerwany)
@@ -299,27 +312,25 @@ static void od_nadzorcy(void)
     }
 }
 
-/* One period of every stream, mixed, at K1's volume, to the card. */
-static void okres(void)
+/* Each stream's period into the sum (its session at its own volume). */
+static void zmieszaj(float *suma)
 {
-    static int32_t suma[K1_DZW_OKRES * K1_DZW_KANALY];
-    static int16_t kopia[K1_DZW_OKRES * K1_DZW_KANALY], wyj[K1_DZW_OKRES * K1_DZW_KANALY];
-    int r;
-    memset(suma, 0, sizeof suma);
+    static uint8_t kopia[K1_DZW_OKRES * K1_DZW_RAMKA_MAKS];
     for (int i = 0; i < KLIENCI_MAKS; i++) {
         struct klient *k = &klienci[i];
+        float wzm = 1.0f;
         uint32_t n;
         if (k->fd < 0 || k->pierscien == NULL)
             continue;
-        n = k1_dzw_pobierz(&k->p, k->pierscien, kopia, K1_DZW_OKRES); /* copied first: the client may write meanwhile */
-        if (k->strefa == 0) {
-            k1_dzw_dodaj(suma, kopia, n); /* missing frames are silence */
-        } else { /* step 3: a session at its own volume */
+        /* copied first: the client may write meanwhile; missing frames are silence */
+        n = k1_dzw_pobierz(&k->p, k->pierscien, k1_dzw_ramka_bajty(k->format), kopia, K1_DZW_OKRES);
+        if (k->strefa != 0) { /* step 3: a session at its own volume */
             struct sesja *z = &sesje[k->strefa];
-            k1_dzw_dodaj_wzm(suma, kopia, n, k1_dzw_wzmocnienie(z->glosnosc, z->wyciszona));
+            wzm = k1_dzw_wzmocnienie(z->glosnosc, z->wyciszona);
             if (n > 0)
                 z->gral = teraz();
         }
+        zle_probki += k1_dzw_dodaj(suma, kopia, k->format, n, wzm);
         k->niezgloszone += n;
         if (k->zamyka && k1_dzw_czeka(&k->p) == 0)
             zamknij_strumien(k, 1);
@@ -328,8 +339,19 @@ static void okres(void)
             k->niezgloszone = 0;
         }
     }
-    przyciete += k1_dzw_wyjscie(wyj, suma, K1_DZW_OKRES,
-                                k1_dzw_wzmocnienie(glosnosc[kontrolki_wyjscie()], wyciszone[kontrolki_wyjscie()]));
+}
+
+/* One period of every stream, mixed, at K1's volume, limited, in the card's format, to the card. */
+static void okres(void)
+{
+    static float suma[K1_DZW_OKRES * K1_DZW_KANALY];
+    static uint8_t wyj[K1_DZW_OKRES * K1_DZW_KANALY * KARTA_PROBKA_MAKS];
+    int w = kontrolki_wyjscie(), r;
+    memset(suma, 0, sizeof suma);
+    zmieszaj(suma);
+    k1_dzw_glosnosc(suma, K1_DZW_OKRES, k1_dzw_wzmocnienie(glosnosc[w], wyciszone[w]));
+    ograniczone += (unsigned long)k1_dzw_ogranicz(&ogranicznik, suma, K1_DZW_OKRES);
+    k1_dzw_na_karte(wyj, suma, K1_DZW_OKRES, karta_bajty(), karta_bity(), &dither);
     r = karta_zapisz(wyj);
     if (r < 0) {
         k1_log(TAG, "karta przestała grać");
@@ -341,6 +363,21 @@ static void okres(void)
             }
         stan_wszystkim();
     }
+}
+
+/* Once a minute while it plays: how often the limiter worked and how many samples of F32 rings were not valid — only
+ * when there were any (numbers only). */
+static void co_minute(void)
+{
+    double t = teraz();
+    if (t - minuta.od < 60.0)
+        return;
+    if (ograniczone != minuta.ograniczone || zle_probki != minuta.zle_probki)
+        k1_log(TAG, "ostatnia minuta: ogranicznik w %lu okresach, złe próbki od klientów: %lu",
+               ograniczone - minuta.ograniczone, zle_probki - minuta.zle_probki);
+    minuta.od = t;
+    minuta.ograniczone = ograniczone;
+    minuta.zle_probki = zle_probki;
 }
 
 static int strumienie(void)
@@ -361,16 +398,20 @@ static void graj(int miejsce)
         return;
     if (strumienie() == 0 && teraz() - cisza_od >= K1_DZW_CISZA_S) {
         karta_usypiaj();
-        k1_log(TAG, "cisza: karta uśpiona (przerwy w dźwięku: %lu, przycięte próbki: %lu)", karta_przerwy(), przyciete);
+        k1_log(TAG, "cisza: karta uśpiona (przerwy w dźwięku: %lu, ogranicznik w okresach: %lu, złe próbki: %lu)",
+               karta_przerwy(), ograniczone, zle_probki);
         gralo = 0;
         return;
     }
     if (!miejsce)
         return;
-    if (!gralo)
+    if (!gralo) {
         k1_log(TAG, "karta gra");
+        minuta.od = teraz();
+    }
     gralo = 1;
     okres();
+    co_minute();
 }
 
 int main(void)
@@ -380,7 +421,10 @@ int main(void)
         klienci[i].fd = -1;
     for (int nr = 0; nr <= K1_STREFY_MAKS; nr++)
         sesje[nr] = (struct sesja){ K1_DZW_SESJA_START, 0, 0, -1, 0 };
-    k1_log(TAG, "gotowa (48 kHz, 16 bitów, stereo; głośność %d%%)", glosnosc[K1_DZW_WYJSCIE_GLOSNIKI]);
+    k1_dzw_ogranicznik_start(&ogranicznik);
+    k1_dzw_dither_start(&dither);
+    k1_log(TAG, "gotowa (48 kHz, stereo, liczy w liczbach zmiennoprzecinkowych; głośność %d%%)",
+           glosnosc[K1_DZW_WYJSCIE_GLOSNIKI]);
     for (;;) {
         struct pollfd pfd[3 + KLIENCI_MAKS];
         int n = 0, kfd = karta_fd(), czas = -1;

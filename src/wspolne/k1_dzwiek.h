@@ -8,7 +8,8 @@
  * write the number of new frames (DZWIEK_ZAPISANO). The service never takes an index or a position from the client: it
  * counts the frames itself (struct k1_dzw_pierscien) and refuses more than the ring holds. It COPIES the frames out of the
  * ring before it mixes them (the client may change the ring at any time: then it only plays other noise). Samples are just
- * numbers: never in a log. One format everywhere (T3): 48 kHz, signed 16 bits, two channels interleaved, native order. */
+ * numbers: never in a log. 48 kHz, two channels interleaved, native order; since 0.12.3 (ADR 0055) a ring carries one of
+ * the formats of K1_DZW_FORMATY (DZWIEK_OTWORZ a) and the service computes in floats (k1_dzw_tor.h). */
 #ifndef K1_DZWIEK_H
 #define K1_DZWIEK_H
 
@@ -17,9 +18,10 @@
 
 #define K1_DZW_CZESTOTLIWOSC 48000
 #define K1_DZW_KANALY 2
-#define K1_DZW_RAMKA_BAJTY 4                /* one frame: left and right, int16 each */
-#define K1_DZW_PIERSCIEN 16384u             /* frames in a client's ring (0.34 s) */
-#define K1_DZW_PIERSCIEN_BAJTY (K1_DZW_PIERSCIEN * K1_DZW_RAMKA_BAJTY)
+#define K1_DZW_RAMKA_BAJTY 4                /* one frame of S16: left and right, int16 each */
+#define K1_DZW_RAMKA_MAKS 8                 /* the largest frame of K1_DZW_FORMATY (F32) */
+#define K1_DZW_PIERSCIEN 16384u             /* frames in a client's ring (0.34 s), in every format */
+#define K1_DZW_PIERSCIEN_BAJTY (K1_DZW_PIERSCIEN * K1_DZW_RAMKA_BAJTY) /* a ring of S16 */
 #define K1_DZW_OKRES 1024u                  /* the service mixes and writes the card by periods (21 ms) */
 #define K1_DZW_OKRESY 4u                    /* periods in the card's buffer (85 ms ahead at most) */
 #define K1_DZW_GLOSNOSC_MAKS 100            /* the volume 0..100 % */
@@ -41,6 +43,18 @@ enum k1_dzw_klient { K1_DZW_KLIENCI(K1_X_DZW_KLIENT) };
 enum { K1_DZW_KLIENCI_MAKS = 0 K1_DZW_KLIENCI(K1_X_DZW_LICZ) }; /* numbered 1..MAKS (checked in k1_dzwiek.c) */
 const char *k1_dzw_klient_nazwa(int nr); /* NULL outside 1..MAKS */
 int k1_dzw_klient_steruje(int nr);        /* 1: may steer (0 outside 1..MAKS) */
+
+/* The formats of a client's ring (0.12.3 step 1, ADR 0055; rule 5: a new one is a row) — DZWIEK_OTWORZ a.
+ * X(NAME, number, bytes of a frame, name in the log). */
+#define K1_DZW_FORMATY(X)                                                                                   \
+    X(S16, 0, 4, "16 bitów")        /* gui, Ustawienia, the test program: integers, as in 0.12.0 */        \
+    X(F32, 1, 8, "zmiennoprzecinkowy") /* a zone's VMM: floats, ±1.0 the full scale (the guest's S16, S32, FLOAT) */
+#define K1_X_DZW_FORMAT(n, nr, ...) K1_DZW_FORMAT_##n = nr,
+enum k1_dzw_format { K1_DZW_FORMATY(K1_X_DZW_FORMAT) };
+#define K1_DZW_FORMAT_MAKS 1
+uint32_t k1_dzw_ramka_bajty(int format);   /* bytes of one frame; 0 outside 0..MAKS */
+const char *k1_dzw_format_nazwa(int format); /* NULL outside 0..MAKS */
+size_t k1_dzw_pierscien_bajty(int format); /* K1_DZW_PIERSCIEN frames of it; 0 outside */
 
 /* DZWIEK_KARTA a: which node of the card comes with it */
 enum { K1_DZW_WEZEL_ODTWARZANIE = 1, K1_DZW_WEZEL_KONTROLKI = 2 };
@@ -75,20 +89,11 @@ struct k1_dzw_pierscien {
 int k1_dzw_zapisano(struct k1_dzw_pierscien *p, uint32_t ramki);
 /* Frames waiting to be taken (0..K1_DZW_PIERSCIEN). */
 uint32_t k1_dzw_czeka(const struct k1_dzw_pierscien *p);
-/* Copies up to `ile` waiting frames out of the ring `pamiec` (K1_DZW_PIERSCIEN frames) into `cel` and counts them taken;
- * returns how many. The copy wraps at the ring's end. */
-uint32_t k1_dzw_pobierz(struct k1_dzw_pierscien *p, const int16_t *pamiec, int16_t *cel, uint32_t ile);
+/* Copies up to `ile` waiting frames of `ramka` bytes each out of the ring `pamiec` (K1_DZW_PIERSCIEN frames) into `cel`
+ * and counts them taken; returns how many. The copy wraps at the ring's end. */
+uint32_t k1_dzw_pobierz(struct k1_dzw_pierscien *p, const uint8_t *pamiec, uint32_t ramka, uint8_t *cel, uint32_t ile);
 
-/* The gain of a volume 0..100 (a cube: the ear hears the loudness in steps of the power, ~ -18 dB at 50 %), 0..
- * K1_DZW_JEDEN (1.0; fine enough that every step of the volume is louder than the one before); muted: 0. */
-#define K1_DZW_JEDEN (1u << 24)
-uint32_t k1_dzw_wzmocnienie(int glosnosc, int wyciszone);
-/* Adds `ramki` frames of `probki` into the sum `suma` (2 × ramki values). */
-void k1_dzw_dodaj(int32_t *suma, const int16_t *probki, uint32_t ramki);
-/* The same at a gain (K1_DZW_JEDEN = 1.0; step 3: a session's volume) — never more than the samples themselves. */
-void k1_dzw_dodaj_wzm(int32_t *suma, const int16_t *probki, uint32_t ramki, uint32_t wzmocnienie);
-/* The sum × gain (K1_DZW_JEDEN = 1.0) clipped to 16 bits into `wyj`; returns how many samples were clipped. */
-uint32_t k1_dzw_wyjscie(int16_t *wyj, const int32_t *suma, uint32_t ramki, uint32_t wzmocnienie);
+/* Mixing, the volume, the limiter and the card's samples: k1_dzw_tor.h (0.12.3 step 1). */
 
 /* The sample "Odtwórz próbę" (D3: A — K1's only sound): two soft notes, 660 Hz then 880 Hz, K1_DZW_PROBA_RAMKI frames,
  * made in the program (no sound file). Writes frames od..od+ile-1 of it into `cel`; returns how many (0: past its end). */

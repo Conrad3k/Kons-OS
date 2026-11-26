@@ -73,11 +73,11 @@ static int pierscien(size_t n)
     return fd;
 }
 
-/* OTWORZ with this ring: 1 when the stream ended at once (ODTWORZONO a=0, b=1). */
-static int od_razu_koniec(int fd, int ring)
+/* OTWORZ with this ring in `format`: 1 when the stream ended at once (ODTWORZONO a=0, b=1). */
+static int od_razu_koniec(int fd, int ring, int format)
 {
     struct k1_komunikat k;
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 0, 0, 0, 0, 0, 0), ring);
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 0, format, 0, 0, 0, 0), ring);
     for (int i = 0; i < 10; i++)
         if (odbierz(fd, &k, 500) == 1 && k.typ == K1_KOM_DZWIEK_ODTWORZONO)
             return k.a == 0 && k.b == 1;
@@ -97,10 +97,17 @@ static int zamkniety(int fd, int s)
 static void wrogi_klient(long pid)
 {
     int fd = kanal(), ring = pierscien(K1_DZW_PIERSCIEN_BAJTY), maly = pierscien(4096), g = 0, r;
+    int f32 = pierscien(k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32));
     r = fd >= 0 ? stan(fd, 15, &g) : -1;
     check(r == K1_DZW_KARTA_BRAK, "dźwięk: usługa mówi programowi testowemu „brak karty”", "kanał %d, głośność %d", fd, g);
-    check(od_razu_koniec(fd, maly), "NEGATYWNY: pierścień innej wielkości — odrzucony, strumień od razu koniec", "4096 B");
-    check(od_razu_koniec(fd, ring), "dźwięk: bez karty strumień kończy się od razu (klient o tym wie)", "%u B",
+    check(od_razu_koniec(fd, maly, K1_DZW_FORMAT_S16), "NEGATYWNY: pierścień innej wielkości — odrzucony, strumień od razu koniec",
+          "4096 B");
+    check(od_razu_koniec(fd, ring, K1_DZW_FORMAT_F32),
+          "NEGATYWNY: pierścień 16 bitów zgłoszony jako zmiennoprzecinkowy (0.12.3) — za mały, odrzucony", "%u B",
+          K1_DZW_PIERSCIEN_BAJTY);
+    check(od_razu_koniec(fd, f32, K1_DZW_FORMAT_F32), "dźwięk: pierścień zmiennoprzecinkowy przyjęty; bez karty od razu koniec",
+          "%zu B", k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32));
+    check(od_razu_koniec(fd, ring, K1_DZW_FORMAT_S16), "dźwięk: bez karty strumień kończy się od razu (klient o tym wie)", "%u B",
           K1_DZW_PIERSCIEN_BAJTY);
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, 30, 0, 0, 0, 0), -1);
     r = stan(fd, 5, &g);
@@ -123,6 +130,7 @@ static void wrogi_klient(long pid)
         close(fd);
     close(ring);
     close(maly);
+    close(f32);
 }
 
 void t_dzwiek(void)

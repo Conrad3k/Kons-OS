@@ -240,8 +240,9 @@ enum k1_komunikat_typ {
                                     * service's end of the client's channel (the service checks that UID as the sender) */
     K1_KOM_DZWIEK_BEZ_KARTY = 6,   /* all 0: 5 s after the start there is no card with a playback device */
     /* a client → dzwiek (K1_KIER_DO_DZWIEKU): one stream at a time */
-    K1_KOM_DZWIEK_OTWORZ = 7,      /* all 0; + 1 fd: the ring, a memfd of exactly K1_DZW_PIERSCIEN_BAJTY sealed against
-                                    * shrinking and growing — a new stream (refused or no card: ODTWORZONO a=0, b=1) */
+    K1_KOM_DZWIEK_OTWORZ = 7,      /* a=the ring's format K1_DZW_FORMAT_* (0.12.3; 0: S16), b..e=0; + 1 fd: the ring, a memfd
+                                    * of exactly k1_dzw_pierscien_bajty(a) sealed against shrinking and growing — a new
+                                    * stream (refused or no card: ODTWORZONO a=0, b=1) */
     K1_KOM_DZWIEK_ZAPISANO = 8,    /* a=new frames 1..K1_DZW_PIERSCIEN written after the previous ones (more than the ring
                                     * holds, or no stream: the client loses its channel), b..e=0 */
     K1_KOM_DZWIEK_ZAMKNIJ = 9,     /* a=K1_DZW_PO_ODEGRANIU (the stream ends when what was written played) / K1_DZW_OD_RAZU,

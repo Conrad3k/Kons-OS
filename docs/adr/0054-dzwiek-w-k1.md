@@ -1,6 +1,7 @@
 # 0054. Dźwięk w K1: usługa dźwięku z wyłącznym prawem do karty, ALSA bez alsa-lib, kanał z pierścieniem
 
-- Status: Przyjęty, kroki 1–3 wdrożone (0.12.0)
+- Status: Przyjęty, kroki 1–3 wdrożone (0.12.0); pkt 3 (jeden format, głośność na liczbach całkowitych) zastąpiony
+  przez ADR 0055 (0.12.3)
 - Data: 2026-11-25
 - Dotyczy: SPEC §5 (usługi), §7 (klatki), niezmiennik 7 skilla (jeden właściciel zasobu — **rozszerza go o kartę
   dźwiękową**), ADR 0007 (klatki), ADR 0053 (0.12 = Dźwięk); plan `docs/archiwum/PLAN-0.12.0.txt` (T1–T4, T7, T8, D1–D3);
@@ -30,7 +31,8 @@ nie wydaje własnych dźwięków; jedyny to „Odtwórz próbę”).
    ELEM_WRITE, TLV_READ. Klatka dopuszcza dokładnie te numery (nie cały typ `'A'`/`'U'`): bez ELEM_ADD/REPLACE/REMOVE,
    TLV_WRITE, POWER, SYNC_PTR (mapowania stron stanu) i LINK. alsa-lib czyta pliki konfiguracji i ładuje wtyczki —
    w klatce bez ścieżek i tak by nie działała.
-3. **Jeden format (T3):** 48 kHz, 16 bitów ze znakiem, stereo; okres 1024 ramek, 4 okresy w buforze karty. Mieszanie
+3. [korekta: ADR 0055 — liczby zmiennoprzecinkowe w usłudze, ogranicznik, dither, najlepszy format karty, pierścień F32
+   strefy] **Jeden format (T3):** 48 kHz, 16 bitów ze znakiem, stereo; okres 1024 ramek, 4 okresy w buforze karty. Mieszanie
    strumieni klientów (suma 32-bitowa, obcięcie do 16 bitów) i **głośność programowa** w usłudze: krzywa sześcienna
    (50 % ≈ −18 dB), wzmocnienie z dokładnością 1/2²⁴ (każdy krok suwaka głośniejszy od poprzedniego). Sprzętowe wyjścia
    kodeka („Master”, „PCM”, „Speaker”, „Headphone”, „Front”, „Line Out”, „Bass Speaker” — po nazwach parsera HDA) usługa
