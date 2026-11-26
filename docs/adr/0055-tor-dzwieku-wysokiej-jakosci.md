@@ -1,6 +1,7 @@
 # 0055. Tor dźwięku wysokiej jakości: liczby zmiennoprzecinkowe w usłudze, ogranicznik, dither, 24 bity do karty, formaty strefy
 
-- Status: Przyjęty, krok 1 wdrożony (plan 0.12.3); kroki 2–4 (korektor, Kons Spatial Audio) dopiszą swoje punkty
+- Status: Przyjęty, krok 1 wdrożony (plan 0.12.3), krok 2 (korektor, pkt 9–13) wdrożony; kroki 3–4 (Kons Spatial Audio)
+  dopiszą swoje punkty
 - Data: 2026-11-26
 - Dotyczy: ADR 0054 pkt 3 (jeden format i głośność w usłudze — **zastąpiony** punktami 1–5 niżej), pkt 13–16 (dźwięk
   stref — formaty gościa, punkt 6); plan `docs/PLAN-0.12.3.txt` (krok 1, T1–T5, T8); opisy: `docs/komponenty/dzwiek.md`,
@@ -77,6 +78,35 @@ dithera.
    blisko zaleceń telewizji. Liczenie opóźnienia karty w `DZWIEK_ODTWORZONO` (np. `SNDRV_PCM_IOCTL_DELAY` — nowy numer
    w klatce) → „Później”, jeśli właściciel zobaczy rozjazd ust i głosu.
 
+9. **Korektor systemowy (krok 2; decyzje właściciela D1: A, D2: A z 2026-11-26).** Dziesięć pasm co oktawę (31,25 Hz ·
+   2ⁿ: 31 … 16 kHz; tabela `K1_KOR_PASMA`), każde −12…+12 dB co 0,5 dB — liczba całkowita półdecybeli (`int8_t` ±24).
+   Pasmo = filtr szczytowy (biquad z „Audio EQ Cookbook” R. Bristowa-Johnsona, Q = √2 — oktawa między punktami 3 dB);
+   w środku pasma dokładnie jego wzmocnienie (pomiar: 0,0000 dB od celu), trzy oktawy dalej najwyżej 0,13 dB. Osobne
+   ustawienie dla głośników i słuchawek; gra to wyjścia, które gra. Gotowe ustawienia — tabela `K1_KOR_GOTOWE` (Płaski,
+   Więcej basu, Wyraźny głos, Laptop, Słuchawki, Muzyka, Film); inne położenie — „Własne” (rozpoznawane po pasmach, bez
+   osobnego numeru w komunikacie). Kod: `src/wspolne/k1_korektor.c` (czysty), `src/dzwiek/korektor.c` (usługa).
+10. **Miejsce w torze i poziom.** Po sumie strumieni, przed głośnością K1 (i przyszłą sceną z kroku 3). Przed filtrami
+   poziom schodzi o najgłośniejszy punkt całej krzywej (siatka 241 punktów 20 Hz–20 kHz i środki pasm): korektor **nigdy
+   nie gra głośniej niż 100 %** — pomiar na gęstej siatce: najwyżej +0,028 dB dla 300 losowych ustawień, +0,007 dB dla
+   gotowych (ogranicznik z pkt 2 bierze resztę). Cięcia nie podnoszą poziomu (bez „wyrównania głośności”). Płaski
+   korektor nie liczy nic: przezroczystość z pkt 3 zostaje.
+11. **Liczby (T6, T2).** Filtry w `double` (31 Hz przy 48 kHz w `float` dodawałby szum), postać bezpośrednia I, pamięć
+   filtrów zerowana poniżej 10⁻³⁰ (bez liczb zdenormalizowanych po ciszy). Współczynniki raz po zmianie, nie na próbkę —
+   własnymi szeregami: sinus i cosinus (Taylor, |x| ≤ 4), eˣ (szereg x/16 i cztery kwadraty), pierwiastek (Newton); błąd
+   wobec libm < 10⁻¹² — bez libm, te same liczby na hoście, w fuzzerze i w K1. Koszt: 10 filtrów × 2 kanały × 48 000/s;
+   usługa loguje raz na minutę średni czas okresu i część rdzenia (cel: < 5 % rdzenia X230 — NIEPEWNE do logu właściciela).
+12. **Zmiana bez trzasku.** Nowe pasma (od klienta albo inne wyjście) przechodzą przez jeden okres (21 ms): stare i nowe
+   filtry liczą ten sam okres, wynik przechodzi liniowo z jednego w drugi. Nowe filtry zaczynają z pamięcią starych
+   (przeliczoną na nowy poziom) albo — po płaskim korektorze — z dwóch ostatnich ramek sumy jako wejścia i wyjścia każdego
+   pasma. Pomiar: ton 100 Hz przez Płaski → Więcej basu → Laptop → Płaski — największy krok między próbkami równy krokowi
+   samego tonu; po powrocie do płaskiego wyjście = wejście po jednym okresie.
+13. **Komunikaty i pamięć (T4).** Komunikaty 32 B wystarczają: `DZWIEK_KOREKTOR` (klient sterujący → usługa) i
+   `DZWIEK_KOREKTOR_STAN` (usługa → klienci sterujący): a = wyjście, b, c, d = dziesięć pasm po bajcie (cztery na pole,
+   nieużyte bajty 0) — jedna zmiana, jeden komunikat; memfd niepotrzebny. Klient niesterujący (strefa), który je wyśle,
+   traci kanał. Pamięć: gui w skarbcu, rekord „K1G2” (28 B: „K1G1” i po nim pasma obu wyjść; „K1G1” czytany dalej).
+   Okienko „Dźwięk” (D1: A) pokazuje nazwę ustawienia i otwiera Ustawienia na korektorze: `POKAZ_USTAWIENIA` (gui →
+   nadzorca) i `USTAWIENIA_MIEJSCE` (nadzorca → Ustawienia) z tabelą miejsc `K1_UST_MIEJSCA` (krok 4 dopisze scenę).
+
 ## Skutki
 - Cichy dźwięk bez „ziarna”, głośne nakładające się dźwięki bez trzasków; na kartach 24-bitowych szum toru 48 dB niżej.
 - Jeden strumień 16 bitów przy 100 % dalej przechodzi bez żadnej zmiany — pilnuje tego `test-dzwiek.sh` (plik WAV od QEMU
@@ -87,3 +117,6 @@ dithera.
 - Testy: `test_dzw_tor` (pomiary z tego ADR jako granice), `test_dzwiek` (formaty pierścienia, `DZWIEK_OTWORZ` a),
   `test_virtio_dzwiek` (formaty gościa, próbki do `float`), `t_dzwiek` (pierścień F32: zły rozmiar odrzucony),
   `test-dzwiek.sh` (karta QEMU — 16 bitów, przezroczystość, ton strefy w S32).
+- Krok 2: korektor — `test_korektor` (liczby z pkt 9–12 jako granice), `fuzz_korektor`, `test_dzwiek` (komunikaty,
+  „K1G2”), `t_dzwiek` (NEGATYWNE: pasmo ponad +12 dB, nieistniejące pasmo), `test-dzwiek.sh` (pasmo 1 kHz +12 dB:
+  w pliku WAV nuta 660 Hz −7,0 dB i 880 Hz −1,7 dB wobec próby bez korektora); RYZYKA R109.

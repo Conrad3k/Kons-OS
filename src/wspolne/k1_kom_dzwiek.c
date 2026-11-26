@@ -5,7 +5,17 @@
 #include "k1_kom_wew.h"
 
 #include "k1_dzwiek.h"
+#include "k1_korektor.h"
 #include "k1_uslugi.h"
+
+/* DZWIEK_KOREKTOR and its STAN (0.12.3 step 2): an output that exists, ten bands within ±12 dB, nothing in the unused
+ * bytes */
+static int korektor(const struct k1_komunikat *k)
+{
+    int32_t pola[3] = { k->b, k->c, k->d };
+    int8_t pasma[K1_KOR_PASMA_N];
+    return w(k->a, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS) && k1_kor_z_pol(pola, pasma) == 0 && k->e == 0;
+}
 
 static int do_dzwieku(const struct k1_komunikat *k)
 {
@@ -19,6 +29,8 @@ static int do_dzwieku(const struct k1_komunikat *k)
     case K1_KOM_DZWIEK_GLOSNOSC: /* d: a session (step 3) — then not an output */
         return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) &&
                w(k->d, 0, K1_STREFY_MAKS) && (k->d == 0 || k->c == K1_DZW_WYJSCIE_BRAK) && k->e == 0;
+    case K1_KOM_DZWIEK_KOREKTOR:
+        return korektor(k);
     default:
         return 0;
     }
@@ -37,6 +49,8 @@ static int od_dzwieku(const struct k1_komunikat *k)
     case K1_KOM_DZWIEK_SESJA: /* step 3 */
         return w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && w(k->c, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->d, 0, 1) &&
                k->e == 0;
+    case K1_KOM_DZWIEK_KOREKTOR_STAN:
+        return korektor(k);
     default:
         return 0;
     }
@@ -71,10 +85,12 @@ int k1_kom_sprawdz_dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek k
     case K1_KOM_DZWIEK_ZAPISANO:
     case K1_KOM_DZWIEK_ZAMKNIJ:
     case K1_KOM_DZWIEK_GLOSNOSC:
+    case K1_KOM_DZWIEK_KOREKTOR:
         return kier == K1_KIER_DO_DZWIEKU && do_dzwieku(k);
     case K1_KOM_DZWIEK_STAN:
     case K1_KOM_DZWIEK_ODTWORZONO:
     case K1_KOM_DZWIEK_SESJA:
+    case K1_KOM_DZWIEK_KOREKTOR_STAN:
         return kier == K1_KIER_OD_DZWIEKU && od_dzwieku(k);
     case K1_KOM_DZWIEK_KANAL:
         return kier == K1_KIER_OD_NADZORCY && zera(k, 0);

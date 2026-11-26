@@ -2,7 +2,7 @@
  * what a hostile client does: each 3 bytes a step — write N frames (ZAPISANO, any N the message allows) or take a period —
  * the ring itself filled with the input. The count may never say more waits than the ring holds, a take never gives more
  * than waits, and mixing and the output never overflow (UBSan). Step 2: the same bytes as the record gui remembers in
- * skarbiec (D5) — what is read is always within its ranges. 0.12.3 (ADR 0055): the ring in either format (F32: any
+ * skarbiec (D5; 0.12.3 step 2: K1G2 with the equalizer's bands) — what is read is always within its ranges. 0.12.3 (ADR 0055): the ring in either format (F32: any
  * bytes — NaN, infinities, huge numbers), the path in floats — the sum always a finite number, never beyond ±1.0 after
  * the limiter, the card's samples of any width within its bytes (ASan). */
 #include <stdlib.h>
@@ -27,8 +27,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     struct k1_dzw_zapamietane z;
     if (k1_dzw_zapamietane_czytaj(data, size, &z) == 0)
         for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++)
-            if (z.glosnosc[w] < 0 || z.glosnosc[w] > K1_DZW_GLOSNOSC_MAKS || (z.wyciszone[w] != 0 && z.wyciszone[w] != 1))
-                abort();
+            for (int i = -1; i < K1_KOR_PASMA_N; i++) /* 0.12.3 step 2: K1G2 — the equalizer's bands too */
+                if (i < 0 ? z.glosnosc[w] < 0 || z.glosnosc[w] > K1_DZW_GLOSNOSC_MAKS || (z.wyciszone[w] != 0 && z.wyciszone[w] != 1)
+                          : z.korektor[w][i] > K1_KOR_MAKS || z.korektor[w][i] < -K1_KOR_MAKS)
+                    abort();
     if (size < 4)
         return 0;
     memcpy(&p.zapisane, data, 4); /* any starting point: the counters wrap */

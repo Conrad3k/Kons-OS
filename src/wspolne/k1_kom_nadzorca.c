@@ -180,6 +180,10 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_BOK_ZAMKNIETE, K1_BOK_USTAWIENIA) && zera(k, 1);
     case K1_KOM_BATERIA_POKAZ:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_POKAZ_USTAWIENIA: /* 0.12.3 step 2 */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_UST_MIEJSCA_MAKS) && zera(k, 1);
+    case K1_KOM_USTAWIENIA_MIEJSCE:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_UST_MIEJSCA_MAKS) && zera(k, 1);
     case K1_KOM_SESJA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
     case K1_KOM_URUCHOM_STREFE:

@@ -55,6 +55,16 @@ void k1_dzwk_sesja(struct k1_dzw_polaczenie *k, int nr, int glosnosc, int wycisz
     wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, glosnosc, wyciszona != 0, 0, nr, 0));
 }
 
+void k1_dzwk_korektor(struct k1_dzw_polaczenie *k, int wyjscie, const int8_t pasma[K1_KOR_PASMA_N])
+{
+    int32_t f[3];
+    if (wyjscie < K1_DZW_WYJSCIE_GLOSNIKI || wyjscie > K1_DZW_WYJSCIE_MAKS)
+        return;
+    memcpy(k->korektor[wyjscie], pasma, K1_KOR_PASMA_N);
+    k1_kor_do_pol(pasma, f);
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, wyjscie, f[0], f[1], f[2], 0));
+}
+
 /* The sample into the ring as far as it is free; at its end: close after it plays. */
 static void dopisz(struct k1_dzw_polaczenie *k)
 {
@@ -143,6 +153,13 @@ int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
         } else if (m.typ == K1_KOM_DZWIEK_SESJA) { /* step 3 (numbers only: no session's name in the log) */
             k->sesje[m.a] = (struct k1_dzw_sesja){ m.b, m.c, m.d };
             r |= K1_DZWK_SESJE;
+        } else if (m.typ == K1_KOM_DZWIEK_KOREKTOR_STAN) { /* 0.12.3 step 2 (checked: k1_kom_dzwiek.c) */
+            int32_t f[3] = { m.b, m.c, m.d };
+            int8_t p[K1_KOR_PASMA_N];
+            if (k1_kor_z_pol(f, p) == 0 && memcmp(p, k->korektor[m.a], sizeof p) != 0) {
+                memcpy(k->korektor[m.a], p, sizeof p);
+                r |= K1_DZWK_KOREKTOR;
+            }
         } else if (m.typ == K1_KOM_DZWIEK_ODTWORZONO && k->gra) {
             k->wolne += (uint32_t)m.a;
             if (m.b) {

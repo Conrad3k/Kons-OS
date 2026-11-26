@@ -16,6 +16,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_korektor.h"
+
 #define K1_DZW_CZESTOTLIWOSC 48000
 #define K1_DZW_KANALY 2
 #define K1_DZW_RAMKA_BAJTY 4                /* one frame of S16: left and right, int16 each */
@@ -113,13 +115,18 @@ int k1_dzw_klawisz(unsigned kod, int wartosc, int *glosnosc, int *wyciszone);
 int k1_dzw_gniazdo_sluchawek(const char *nazwa);
 
 /* D5: the volume and the mute of each output, remembered by gui in skarbiec (its object K1_OB_GLOSNOSC):
- * "K1G1", then for the speakers and the headphones: the volume 0..100, muted 0/1. */
-#define K1_DZW_ZAPIS_BAJTY 8
+ * "K1G1", then for the speakers and the headphones: the volume 0..100, muted 0/1. 0.12.3 step 2: "K1G2" — the same and
+ * then the equalizer's ten bands of the speakers and of the headphones (half-decibels, two's complement, ±K1_KOR_MAKS);
+ * a record "K1G1" is still read (the equalizer flat). */
+#define K1_DZW_ZAPIS_G1_BAJTY 8
+#define K1_DZW_ZAPIS_BAJTY (8 + 2 * K1_KOR_PASMA_N)
 struct k1_dzw_zapamietane {
     int glosnosc[K1_DZW_WYJSCIE_MAKS + 1], wyciszone[K1_DZW_WYJSCIE_MAKS + 1]; /* by output; [BRAK] unused */
+    int8_t korektor[K1_DZW_WYJSCIE_MAKS + 1][K1_KOR_PASMA_N];                    /* 0.12.3 step 2 */
 };
 void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z);
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf); /* K1_DZW_ZAPIS_BAJTY */
-int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z); /* 0, or -1 (z unchanged) */
+int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z); /* 0, or -1 (z unchanged);
+                                                                                            * K1G1 or K1G2 */
 
 #endif

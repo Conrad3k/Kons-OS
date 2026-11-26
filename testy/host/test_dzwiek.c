@@ -97,6 +97,35 @@ static void proba(void)
     free(t);
 }
 
+/* 0.12.3 step 2: DZWIEK_KOREKTOR (a steering client → dzwiek) and its STAN; POKAZ_USTAWIENIA, USTAWIENIA_MIEJSCE */
+static void korektor_komunikaty(void)
+{
+    int8_t p[K1_KOR_PASMA_N];
+    int32_t f[3];
+    k1_kor_gotowe_pasma(K1_KOR_LAPTOP, p);
+    k1_kor_do_pol(p, f);
+    EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_SLUCHAWKI, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR_STAN, K1_DZW_WYJSCIE_SLUCHAWKI, f[0], f[1], f[2], 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR_STAN, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_BRAK, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* which output? */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, 25, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* +12.5 dB */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, 0, (int32_t)0x80000000u, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0x10000, 0), K1_KIER_DO_DZWIEKU)); /* band 10 */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 1), K1_KIER_DO_DZWIEKU));
+    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_DZWIEK_KOREKTOR, K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_POKAZ_USTAWIENIA, K1_UST_MIEJSCE_KOREKTOR, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_POKAZ_USTAWIENIA, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_POKAZ_USTAWIENIA, K1_UST_MIEJSCA_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_POKAZ_USTAWIENIA, K1_UST_MIEJSCE_KOREKTOR, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_POKAZ_USTAWIENIA, K1_UST_MIEJSCE_KOREKTOR, 1, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(ok(K(K1_KOM_USTAWIENIA_MIEJSCE, K1_UST_MIEJSCE_KOREKTOR, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_USTAWIENIA_MIEJSCE, K1_UST_MIEJSCE_KOREKTOR, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_USTAWIENIA_MIEJSCE, 2, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+}
+
 static void komunikaty(void)
 {
     EXPECT(ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_ODTWARZANIE, 0, 0, 0, 0), K1_KIER_STEROWANIE));
@@ -138,6 +167,7 @@ static void komunikaty(void)
     EXPECT(ok(K(K1_KOM_DZWIEK_KANAL, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KANAL, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(ok(K(K1_KOM_TEST_DZWIEK, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    korektor_komunikaty();
     EXPECT(!ok(k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 1, 0, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* obiekt: 0 */
     EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DZWIEK_OTWORZ, K1_KIER_DO_DZWIEKU) &&
            k1_komunikat_z_deskryptorem(K1_KOM_DZWIEK_KARTA, K1_KIER_STEROWANIE) &&
@@ -195,6 +225,23 @@ static void zapamietane(void)
     b[7] = 1;
     b[0] = 'X';
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    /* 0.12.3 step 2: K1G2 with the equalizer; K1G1 (0.12.0) still read, flat */
+    k1_kor_gotowe_pasma(K1_KOR_WIECEJ_BASU, z.korektor[K1_DZW_WYJSCIE_GLOSNIKI]);
+    k1_kor_gotowe_pasma(K1_KOR_LAPTOP, z.korektor[K1_DZW_WYJSCIE_SLUCHAWKI]);
+    EXPECT(k1_dzw_zapamietane_zapisz(&z, b) == 28 && memcmp(b, "K1G2", 4) == 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0 && c.glosnosc[1] == 35 && c.wyciszone[2] == 1 &&
+           memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0);
+    b[8 + 3] = 25; /* the speakers' band 3 at +12.5 dB */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[8 + 3] = (uint8_t)-25;
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[8 + 3] = 4;
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b - 1, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G1_BAJTY, &c) != 0); /* "K1G2" of 8 bytes */
+    memcpy(b, "K1G1", 4);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0); /* "K1G1" of 28 bytes */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G1_BAJTY, &c) == 0 && c.glosnosc[1] == 35 &&
+           k1_kor_plaski(c.korektor[1]) && k1_kor_plaski(c.korektor[2]));
 }
 
 /* Step 2: the volume of an output, the output in the state, the pill (the shell → ekran). */

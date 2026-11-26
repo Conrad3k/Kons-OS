@@ -1,11 +1,12 @@
 /* K1 dzwiek — the sound service: what its parts share (main.c the channels and the streams, karta.c the card's playback
- * node, kontrolki.c the card's controls). */
+ * node, kontrolki.c the card's controls, korektor.c the system equalizer — 0.12.3 step 2). */
 #ifndef K1_DZWIEK_USLUGA_H
 #define K1_DZWIEK_USLUGA_H
 
 #include <stdint.h>
 
 #include "k1_dzwiek.h"
+#include "k1_komunikat.h"
 
 #define TAG "K1-DZWIEK"
 #define FD_NADZORCA 3 /* from nadzorca, one way (its UID 0 checked): the card's nodes, the clients' channels */
@@ -31,5 +32,13 @@ void kontrolki_przyjmij(int fd);
 int kontrolki_fd(void);         /* for poll (POLLIN: an event of a control) while the card has a headphone jack, else -1 */
 int kontrolki_zdarzenia(void);  /* the events read, the jacks read again: 1 when the output changed */
 int kontrolki_wyjscie(void);    /* K1_DZW_WYJSCIE_GLOSNIKI or _SLUCHAWKI */
+
+/* korektor.c — the system equalizer (0.12.3 step 2, ADR 0055): ten bands of each output, on the sum before K1's volume. */
+void korektor_start(void);                         /* both outputs flat */
+struct k1_komunikat korektor_stan(int wyjscie);   /* DZWIEK_KOREKTOR_STAN of that output */
+int korektor_ustaw(const struct k1_komunikat *m, double t); /* DZWIEK_KOREKTOR: 1 changed, 0 the same, -1 refused */
+int korektor_zalegle(double t);                   /* the log's line it owes: ms until it says it, -1 none */
+void korektor_licz(float *suma, uint32_t ramki, int wyjscie); /* one period of the sum, the bands of `wyjscie` */
+void korektor_minuta(void);                       /* the log once a minute: the mean cost of a period (T6) */
 
 #endif

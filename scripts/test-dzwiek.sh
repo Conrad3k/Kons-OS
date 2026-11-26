@@ -16,6 +16,10 @@
 # przyjmuje tylko 16 bitów — log); pierwsza próba (100 %) jest w pliku próbka w próbkę taka jak w programie
 # („przezroczystość”, k1dzwiek.py); strefa próbna gra ton w 32 bitach — VMM przelicza je do pierścienia
 # zmiennoprzecinkowego.
+# 0.12.3 krok 2 (korektor, D1: A, D2: A): Ustawienia → Dźwięk → Korektor — dziesięć pasm, pasmo 1 kHz na +12 dB (usługa:
+# „Własne”, pulpit zapamiętuje), szósta próba z korektorem (w pliku: nuta 660 Hz o 7,0 dB, 880 Hz o 1,7 dB ciszej niż
+# piąta — krzywa liczona w k1dzwiek.py jak w k1_korektor.c), wiersz „Korektor” w okienku „Dźwięk” otwiera Ustawienia na
+# korektorze, „Płaski” — z powrotem płaski.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -147,6 +151,39 @@ q.sprawdz("pulpit zabity (program testowy, SIGKILL) i uruchomiony od nowa: gło�
 n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
 q.klik_w("Ustawienia", "Odtwórz próbę")
 q.sprawdz("próba z Ustawień po nowym pulpicie (45 %)", q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
+
+# ---- 0.12.3 step 2: the equalizer (D2: A — ten bands in Ustawienia → Dźwięk → Korektor; D1: A — the popover's row) ----
+q.klik_w("Ustawienia", "Korektor", "zakladka")
+q.sprawdz("Ustawienia → Dźwięk → Korektor: gotowe ustawienia i dziesięć pasm (głośniki, płaski — nowy pulpit dał "
+          "zapamiętany)", q.czekaj_na_element("Ustawienia", "Pasmo 1k", czas=30) and
+          q.element("Ustawienia", "Więcej basu") and q.element("Ustawienia", "Pasmo 16k") and
+          q.czekaj(r"K1-USTAWIENIA: korektor \(Głośniki\): Płaski", czas=30))
+q.zrzut("korektor", gdy=lambda w, h, px: True)
+n_kor, n_zap = q.ile(r"K1-DZWIEK: korektor \(Głośniki\): Własne"), q.ile(r"K1-GUI: dźwięk: głośność zapamiętana")
+e = q.element("Ustawienia", "Pasmo 1k")
+q.klik(e["x"] + e["w"] // 2, e["y"] + 10)  # the top of its track (the element reaches 10 px past it): +12 dB
+q.sprawdz("pasmo 1k na +12 dB: usługa gra korektor „Własne”, pulpit go zapamiętuje w skarbcu (K1G2)",
+          q.czekaj(r"K1-DZWIEK: korektor \(Głośniki\): Własne", od=n_kor, czas=30) and
+          q.czekaj(r"K1-USTAWIENIA: korektor \(Głośniki\): Własne", czas=30) and
+          q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", od=n_zap, czas=30))
+q.zrzut("korektor-1k", gdy=lambda w, h, px: True)
+q.klik_w("Ustawienia", "Głośność", "zakladka")
+n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
+q.klik_w("Ustawienia", "Odtwórz próbę")
+q.sprawdz("próba z korektorem (45 %, 1 kHz +12 dB) zagrana — w pliku nuty w proporcji krzywej korektora",
+          q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
+q.klik_w("Pasek górny", "Dźwięk")
+q.sprawdz("okienko „Dźwięk”: wiersz „Korektor” (D1: A)", q.czekaj_na_element(OK, "Korektor", czas=30))
+q.zrzut("okienko-korektor", gdy=lambda w, h, px: True)
+q.klik_w(OK, "Korektor")
+q.sprawdz("wiersz „Korektor” otwiera Ustawienia na korektorze (nadzorca), okienko się zamyka",
+          q.czekaj(r"K1-GUI: okienko dźwięku: Korektor", czas=30) and
+          q.czekaj(r"K1-NADZORCA: otwieram Ustawienia → Dźwięk → Korektor", czas=30) and
+          q.czekaj_na(lambda: q.element(OK) is None, czas=30) and
+          q.czekaj_na_element("Ustawienia", "Pasmo 1k", czas=30))
+n_kor = q.ile(r"K1-DZWIEK: korektor \(Głośniki\): Płaski")
+q.klik_w("Ustawienia", "Płaski")
+q.sprawdz("„Płaski”: korektor głośników znów płaski", q.czekaj(r"K1-DZWIEK: korektor \(Głośniki\): Płaski", od=n_kor, czas=30))
 
 # ---- 0.12.0 step 3: a zone plays (D6: A — the speaker on its bar, the list "Grają teraz"); the hostile one ----
 q.klik_w("Ustawienia", "Zamknij", "przycisk")  # the cue: the test program starts the test zone with a tone

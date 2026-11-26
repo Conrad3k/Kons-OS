@@ -152,10 +152,12 @@ void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
 
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf)
 {
-    memcpy(buf, "K1G1", 4);
+    memcpy(buf, "K1G2", 4);
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         buf[4 + 2 * (w - 1)] = (uint8_t)z->glosnosc[w];
         buf[5 + 2 * (w - 1)] = (uint8_t)(z->wyciszone[w] != 0);
+        for (int i = 0; i < K1_KOR_PASMA_N; i++)
+            buf[K1_DZW_ZAPIS_G1_BAJTY + K1_KOR_PASMA_N * (w - 1) + i] = (uint8_t)z->korektor[w][i];
     }
     return K1_DZW_ZAPIS_BAJTY;
 }
@@ -163,7 +165,8 @@ size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *bu
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z)
 {
     struct k1_dzw_zapamietane t;
-    if (n != K1_DZW_ZAPIS_BAJTY || memcmp(buf, "K1G1", 4) != 0)
+    int g2 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G2", 4) == 0;
+    if (!g2 && (n != K1_DZW_ZAPIS_G1_BAJTY || memcmp(buf, "K1G1", 4) != 0))
         return -1;
     memset(&t, 0, sizeof t);
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
@@ -172,6 +175,12 @@ int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapami
             return -1;
         t.glosnosc[w] = v;
         t.wyciszone[w] = m;
+        for (int i = 0; g2 && i < K1_KOR_PASMA_N; i++) {
+            int8_t p = (int8_t)buf[K1_DZW_ZAPIS_G1_BAJTY + K1_KOR_PASMA_N * (w - 1) + i];
+            if (p > K1_KOR_MAKS || p < -K1_KOR_MAKS)
+                return -1;
+            t.korektor[w][i] = p;
+        }
     }
     *z = t;
     return 0;

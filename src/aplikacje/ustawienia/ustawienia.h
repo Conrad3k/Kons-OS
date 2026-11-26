@@ -5,7 +5,8 @@
  * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1), wifi_haslo.c (joining one: 0.9.1 step 2),
  * przegladarka.c (Przeglądarka: the browser's sessions, 0.10.0 step 5),
  * aktualizacje.c (Aktualizacje: the version, A/B, the update from a stick — 0.10.5 step 1), dzwiek.c (Dźwięk: the output, the
- * volume, the sample — 0.12.0 step 2), informacje.c (Informacje: the system). */
+ * volume, the sample — 0.12.0 step 2), korektor.c (Dźwięk → Korektor — 0.12.3 step 2), informacje.c (Informacje: the
+ * system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -146,6 +147,13 @@ void dzwiek_dane(void);     /* what the sound service said */
 void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk); /* x < 0: not on its content; 1 = redraw */
 void dzwiek_pokazany(void); /* the section was opened (the tests: its state in the log) */
+void dzwiek_korektor_pokaz(void); /* 0.12.3 step 2: the section on its tab Korektor (nadzorca's USTAWIENIA_MIEJSCE) */
+
+/* korektor.c (0.12.3 step 2, D2: A): Dźwięk → Korektor — the ten bands of an output, the ready settings */
+struct k1_dzw_polaczenie;
+void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dzw_polaczenie *dz);
+int korektor_wskaznik(struct k1_dzw_polaczenie *dz, int rodzaj, int32_t x, int32_t y, int przycisk); /* 1 = redraw */
+void korektor_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened: the output playing now, its log line */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
