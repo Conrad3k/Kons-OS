@@ -305,18 +305,23 @@ static void lista_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
-/* 0.12.3 step 2 (D1: A): "Korektor" and the name of the setting of the output playing now, an arrow — to Ustawienia */
-static void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
+/* A row to Ustawienia (0.12.3 steps 2, 4): under the pointer its field, at its right `nazwa` and an arrow "›" */
+static void wiersz_do_ustawien(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, int najechany, const char *nazwa)
 {
-    const char *nazwa = k1_kor_nazwa(dz.korektor[dz.wyjscie]);
-    float sx = MARG + DZWIEK_OKIENKO_SZER - P - 4, sy = KOR_Y + KOR_H / 2;
-    if (hover == C_KOREKTOR)
-        k1_zaokraglony(o, MARG + 8, KOR_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 9, k1_kolor(m->najechanie, 255));
-    k1_tekst(o, K1_CZ_MALA, MARG + P, KOR_Y + 23, "Korektor", k1_kolor(m->tekst2, 255), 0);
-    k1_tekst(o, K1_CZ_MALA_MOCNA, (int32_t)sx - 10 - k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), KOR_Y + 23, nazwa,
+    float sx = MARG + DZWIEK_OKIENKO_SZER - P - 4, sy = (float)y + KOR_H / 2;
+    if (najechany)
+        k1_zaokraglony(o, MARG + 8, (float)y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 9, k1_kolor(m->najechanie, 255));
+    k1_tekst(o, K1_CZ_MALA_MOCNA, (int32_t)sx - 10 - k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), y + 23, nazwa,
              k1_kolor(m->tekst, 255), 0);
     k1_kreska(o, sx - 3, sy - 5, sx + 2, sy, 1.5f, k1_kolor(m->tekst2, 255));
     k1_kreska(o, sx + 2, sy, sx - 3, sy + 5, 1.5f, k1_kolor(m->tekst2, 255));
+}
+
+/* 0.12.3 step 2 (D1: A): "Korektor" and the name of the setting of the output playing now, an arrow — to Ustawienia */
+static void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    wiersz_do_ustawien(o, m, KOR_Y, hover == C_KOREKTOR, k1_kor_nazwa(dz.korektor[dz.wyjscie]));
+    k1_tekst(o, K1_CZ_MALA, MARG + P, KOR_Y + 23, "Korektor", k1_kolor(m->tekst2, 255), 0);
     k1_el(K1_EL_PRZYCISK, "Korektor", MARG + 8, KOR_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 0);
 }
 
@@ -324,17 +329,10 @@ static void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 static void przestrzen_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     const struct k1_prz_scena *s = &dz.scena[dz.wyjscie];
-    const char *nazwa = s->wlaczona ? k1_prz_nazwa(s) : "Wyłączony";
-    float sx = MARG + DZWIEK_OKIENKO_SZER - P - 4, sy = PRZ_Y + KOR_H / 2;
-    if (hover == C_PRZESTRZEN)
-        k1_zaokraglony(o, MARG + 8, PRZ_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 9, k1_kolor(m->najechanie, 255));
+    wiersz_do_ustawien(o, m, PRZ_Y, hover == C_PRZESTRZEN, s->wlaczona ? k1_prz_nazwa(s) : "Wyłączony");
     k1_przelacznik(o, m, MARG + P, PRZ_Y + 8, s->wlaczona, 0);
     k1_el(K1_EL_PRZYCISK, "Kons Spatial Audio", MARG + P - 4, PRZ_Y + 4, 44, 28, s->wlaczona ? K1_EL_WYBRANY : 0);
     k1_tekst(o, K1_CZ_MALA, MARG + P + 46, PRZ_Y + 23, "Kons Spatial Audio", k1_kolor(m->tekst2, 255), 0);
-    k1_tekst(o, K1_CZ_MALA_MOCNA, (int32_t)sx - 10 - k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), PRZ_Y + 23, nazwa,
-             k1_kolor(m->tekst, 255), 0);
-    k1_kreska(o, sx - 3, sy - 5, sx + 2, sy, 1.5f, k1_kolor(m->tekst2, 255));
-    k1_kreska(o, sx + 2, sy, sx - 3, sy + 5, 1.5f, k1_kolor(m->tekst2, 255));
     k1_el(K1_EL_PRZYCISK, "Scena", MARG + P + 44, PRZ_Y, DZWIEK_OKIENKO_SZER - 2 * P - 36, KOR_H, 0);
 }
 
