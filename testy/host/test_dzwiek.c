@@ -298,11 +298,11 @@ static void zapamietane(void)
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
     b[28 + 13 + 9] = 20;
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0);
-    memcpy(b, "K1G2", 4); /* step 2's record: 28 bytes, the scenes as at the start */
+    memcpy(b, "K1G2", 4); /* step 2's record: 28 bytes, the scenes as at the start (0.13.0: Koncert, switched on) */
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) == 0 && c.glosnosc[1] == 35 &&
-           memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0 && !c.scena[2].wlaczona &&
-           k1_prz_rozpoznaj(&c.scena[2]) == K1_PRZ_NATURALNY);
+           memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0 && c.scena[2].wlaczona &&
+           k1_prz_rozpoznaj(&c.scena[2]) == K1_PRZ_KONCERT && !c.wlasna[2].wlaczona);
     b[8 + 3] = 25; /* the speakers' band 3 at +12.5 dB */
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) != 0);
     b[8 + 3] = (uint8_t)-25;
@@ -313,7 +313,8 @@ static void zapamietane(void)
     memcpy(b, "K1G1", 4);
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) != 0); /* "K1G1" of 28 bytes */
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G1_BAJTY, &c) == 0 && c.glosnosc[1] == 35 &&
-           k1_kor_plaski(c.korektor[1]) && k1_kor_plaski(c.korektor[2]) && !c.scena[1].wlaczona);
+           k1_kor_plaski(c.korektor[1]) && k1_kor_plaski(c.korektor[2]) && c.scena[1].wlaczona &&
+           k1_prz_rozpoznaj(&c.scena[1]) == K1_PRZ_KONCERT);
 }
 
 /* Step 2: the volume of an output, the output in the state, the pill (the shell → ekran). */

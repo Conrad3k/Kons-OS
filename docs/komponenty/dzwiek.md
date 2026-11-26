@@ -83,8 +83,11 @@ Korektor systemowy zmienia barwę całego dźwięku K1: **dziesięć pasm** co o
 które gra; po podłączeniu słuchawek przechodzi sam). **Gotowe ustawienia** — tabela `K1_KOR_GOTOWE` (Płaski, Więcej basu,
 Wyraźny głos, Laptop, Słuchawki, Muzyka, Film); każde inne położenie suwaków to „Własne”. Liczenie (`src/wspolne/k1_korektor.c`,
 czyste): pasmo = filtr szczytowy (biquad, „Audio EQ Cookbook”, Q = √2 — oktawa) w liczbach `double`; przed filtrami poziom
-schodzi o najgłośniejszy punkt całej krzywej (siatka 20 Hz–20 kHz i środki pasm), więc korektor **nigdy nie gra głośniej
-niż 100 %** (ogranicznik z kroku 1 i tak zostaje na końcu toru). Współczynniki liczone raz po zmianie, własnymi szeregami
+dobiera poziom tak, żeby **głośność była taka jak bez korektora** (0.13.0, ADR 0055 pkt 21: średnia mocy po oktawach
+20 Hz–20 kHz ważona krzywą K z BS.1770 — jak LUFS; pasma podniesione grają głośniej, opuszczone ciszej, reszta prawie bez
+zmian); najgłośniejszy punkt krzywej (siatka, środki pasm, 20–24 kHz) najwyżej +6 dB ponad 100 % (`K1_DZW_ZAPAS`), resztę
+bierze ogranicznik z kroku 1 na końcu toru (do 0.13.0 poziom schodził o ten punkt: „Więcej basu” ściszało wszystko poza
+basem o 7 dB). Współczynniki liczone raz po zmianie, własnymi szeregami
 (sin, cos, eˣ, pierwiastek — bez libm, te same liczby na hoście, w fuzzerze i w K1). Zmiana (także wyjścia) przechodzi
 przez jeden okres: stare i nowe filtry na tym samym okresie, płynnie z jednych w drugie (bez trzasku); filtry startujące
 z płaskiego korektora zaczynają od dwóch ostatnich ramek sumy. Płaski korektor nie liczy nic — tor zostaje przezroczysty
@@ -109,8 +112,12 @@ przechodzi sama):
 - **głośniki** (D3: A) — szerszy dźwięk: boki głośniej niż środek (najwyżej 1,4 ×), łagodne krzyżowe wygaszanie samych boków
   (głos zostaje na swoim poziomie), kierunek
   za plecami odbity do przodu — bez „dźwięku z tyłu”, którego dwa małe głośniki nie zagrają.
-Scena **nigdy nie gra głośniej niż 100 %** (granica dźwięku mono i mocy dwóch kanałów bez związku na siatce częstotliwości —
-`k1_prz_moc`; ogranicznik zostaje na końcu toru). **Wyłączona nie liczy nic** — tor przezroczysty próbka w próbkę; trzyma
+Scena **zachowuje głośność** (0.13.0, ADR 0055 pkt 21: jak korektor — waga K, pół dźwięku takiego samego w obu kanałach,
+pół bez związku; gotowe sceny 0,00…−0,42 dB od dźwięku bez nich), a jej najgłośniejszy punkt (granica dźwięku mono i mocy
+dwóch kanałów bez związku na siatce częstotliwości — `k1_prz_moc`) najwyżej +6 dB ponad 100 %; ogranicznik zostaje na końcu
+toru. W słuchawkach środek pasma (to, co jest takie samo w obu kanałach — głos) gra od 0.13.0 z jednego źródła w kierunku
+pasma, a dwa źródła tylko boki: bez grzebienia, który znosił głos (−6,6 dB przy 1 kHz). **Na start** (właściciel,
+2026-11-26) gra **„Koncert” z basem na 4 %, włączony** — na obu wyjściach, dopóki pulpit nie da zapamiętanej sceny. **Wyłączona nie liczy nic** — tor przezroczysty próbka w próbkę; trzyma
 tylko kopię ostatniego okresu, od której zaczynają zwrotnice po włączeniu (bez stuknięcia). Każda zmiana (scena, wyjście,
 włączenie) przechodzi przez jeden okres płynnie. Liczenie czyste (`k1_przestrzen.c`, `k1_prz_licz.c`; w `double`, bez libm),
 usługa (`src/dzwiek/przestrzen.c`): scena od klienta sterującego (`DZWIEK_SCENA`) sprawdzona pole po polu, wszystkim klientom
@@ -232,5 +239,12 @@ zapisuje ją w skarbcu (`gui.md`) i daje każdej nowej usłudze.
   z lewej co najmniej 12 dB, Środek i Góra co najmniej 20 dB, każde pasmo wyżej; przeciągnięcie „Środka” → „Własna” (gui
   zapamiętuje), „Kino”, kafelek „Własna” — punkt wraca w to samo miejsce; okienko „Dźwięk”: przełącznik wyłącza scenę,
   wiersz „Scena” otwiera Ustawienia na scenie.
+- 0.13.0 (zgłoszenie właściciela, ADR 0055 pkt 21): `test_korektor` — waga K wobec libm (100 Hz −1,1 dB, 10 kHz +4,0
+  dB), każde gotowe ustawienie i każde pasmo samo tak samo głośne jak bez korektora (±0,02 dB; mocno podniesione pasmo —
+  szczyt w zapasie +6 dB), najgłośniejszy punkt najwyżej +6 dB (300 losowych ustawień, do 24 kHz); `test_przestrzen` —
+  start: Koncert z basem 4 %, włączony; słuchawki: ton mono bez grzebienia (−3…+4 dB, przedtem −6,6 dB przy 1 kHz); każda
+  gotowa scena tak samo głośna jak bez niej (szum różowy, waga K liczona w teście, ±0,5 dB); granica i ton w zapasie;
+  `test_dzwiek` — rekordy „K1G1”, „K1G2” dają Koncert włączony; `test-dzwiek.sh` — przełącznik w okienku domyślnie
+  włączony (wyłączany przed próbami), szósta próba w proporcji nowego poziomu, siódma: moc obu kanałów jak w piątej.
 - Na sprzęcie (właściciel): próba słychać na X230 i IdeaPadzie; log z nazwami karty i kodeka; krok 2 — klawisze (log
   wejścia: „z klawiszami głośności”), słuchawki w gnieździe (log „gniazdo słuchawek: …”, „wyjście: Słuchawki”).

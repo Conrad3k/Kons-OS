@@ -12,7 +12,8 @@ k1_dzw_proba (src/wspolne/k1_dzwiek.c, computed here in the same order: Python's
 the equalizer's curve says against the fifth (the same sample flat): its filters and the level before them computed here
 as in k1_korektor.c (660 Hz −7.0 dB, 880 Hz −1.7 dB). 0.12.3 step 3 (Kons Spatial Audio): the seventh sound is the
 sample at 45 % with every band of the speakers' scene on the left — the right channel at least 20 dB under the left, the
-left as loud as the fifth (a scene never louder than 100 %: ±1 dB). 0.12.3 step 4: the eighth sound is "Posłuchaj" through
+power of both channels as in the fifth (0.13.0, ADR 0055 point 21: a scene keeps the loudness, ±1.5 dB; until then the left
+as loud as the fifth — a scene never louder than 100 %). 0.12.3 step 4: the eighth sound is "Posłuchaj" through
 that scene — four parts, a noise in one band after another: the bass the same in both channels (the scene leaves it in the
 middle), the other three on the left (the right channel at least 20 dB under; Niski środek 12 dB — its slope below 120 Hz
 is bass), each higher than the one before (zero crossings); the zone's tone comes after it.
@@ -117,8 +118,9 @@ def przezroczystosc(s, a, z, wzor):
 
 
 def korektor_db(hz, pasmo_hz, pol):
-    """The equalizer of one band at `pol` half-decibels (k1_korektor.c: the Audio EQ Cookbook's peaking filter, Q = √2,
-    the level before it from the curve's loudest point on its grid) at `hz`: dB."""
+    """The equalizer of one band at `pol` half-decibels (k1_korektor.c: the Audio EQ Cookbook's peaking filter, Q = √2;
+    since 0.13.0 — ADR 0055 point 21 — the level before it keeps the K-weighted loudness of a pink sound on its grid, its
+    loudest point at most +6 dB, K1_DZW_ZAPAS) at `hz`: dB."""
     import math
     fs = CZESTOTLIWOSC
 
@@ -128,12 +130,18 @@ def korektor_db(hz, pasmo_hz, pol):
         c2 = 2 * c * c - 1
         return (b0 * b0 + b1 * b1 + b2 * b2 + 2 * (b0 * b1 + b1 * b2) * c + 2 * b0 * b2 * c2) / \
             (1 + a1 * a1 + a2 * a2 + 2 * (a1 + a1 * a2) * c + 2 * a2 * c2)
+    waga = ((1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585),
+            (1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621))  # BS.1770's K weighting at 48 kHz
     w0, a = 2 * math.pi * pasmo_hz / fs, 10 ** (pol / 2 / 40)
     al, c = math.sin(w0) / (2 * math.sqrt(2)), math.cos(w0)
     a0 = 1 + al / a
     f = ((1 + al * a) / a0, -2 * c / a0, (1 - al * a) / a0, -2 * c / a0, (1 - al / a) / a0)
-    m = max([moc(f, 20 * 1000 ** (k / 240)) for k in range(241)] + [moc(f, pasmo_hz), 1.0])
-    return 10 * math.log10(moc(f, hz) / m)
+    siatka = [20 * 1000 ** (k / 240) for k in range(241)]
+    m = max([moc(f, h) for h in siatka] + [moc(f, pasmo_hz)] + [moc(f, 20000 + 500 * k) for k in range(1, 9)])
+    wagi = [moc(waga[0], h) * moc(waga[1], h) for h in siatka]
+    wzm2 = sum(wagi) / sum(w * moc(f, h) for w, h in zip(wagi, siatka))
+    wzm2 = min(wzm2, 4.0 / m)  # K1_DZW_ZAPAS²
+    return 10 * math.log10(moc(f, hz) * wzm2)
 
 
 def rms(s):
@@ -202,8 +210,11 @@ def main():
             log = __import__("math").log10
             roznica, wobec = 20 * log(max(lewy_db[1], 1e-9) / max(prawy_db[1], 1e-9)), \
                 20 * log(max(lewy_db[1], 1e-9) / max(lewy_db[0], 1e-9))
-            sprawdz(f"scena z lewej (głośniki): nuta {hz} Hz — prawy kanał co najmniej 20 dB ciszej, lewy jak bez sceny",
-                    roznica >= 20.0 and abs(wobec) < 1.0, f"lewy − prawy {roznica:+.1f} dB, lewy wobec piątej {wobec:+.2f} dB")
+            # 0.13.0: the power of both channels as in the fifth (the right one's moved to the left)
+            moc = 10 * log((lewy_db[1] ** 2 + prawy_db[1] ** 2) / max(lewy_db[0] ** 2 + prawy_db[0] ** 2, 1e-18))
+            sprawdz(f"scena z lewej (głośniki): nuta {hz} Hz — prawy kanał co najmniej 20 dB ciszej, moc jak bez sceny",
+                    roznica >= 20.0 and abs(moc) < 1.5, f"lewy − prawy {roznica:+.1f} dB, lewy wobec piątej {wobec:+.2f} dB, "
+                    f"moc obu kanałów wobec piątej {moc:+.2f} dB")
     if len(d) >= 8:  # 0.12.3 step 4: "Posłuchaj" through the scene on the left, its four bands in quarters
         prawy, (a, z) = probki(sys.argv[1], 1), d[7]
         log, cz, ok_l, opis = __import__("math").log10, [], True, []

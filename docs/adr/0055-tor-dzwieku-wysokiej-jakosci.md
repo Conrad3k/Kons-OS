@@ -1,7 +1,9 @@
 # 0055. Tor dźwięku wysokiej jakości: liczby zmiennoprzecinkowe w usłudze, ogranicznik, dither, 24 bity do karty, formaty strefy
 
 - Status: Przyjęty, wdrożony w 0.12.3 (krok 1 — tor, pkt 1–8; krok 2 — korektor, pkt 9–13; krok 3 — Kons Spatial Audio,
-  silnik i gotowe sceny, pkt 14–19; krok 4 — scena do przeciągania, „Własna”, „Posłuchaj”, pkt 20)
+  silnik i gotowe sceny, pkt 14–19; krok 4 — scena do przeciągania, „Własna”, „Posłuchaj”, pkt 20); poprawka po zgłoszeniu
+  właściciela (2026-11-26, w kroku 1 planu 0.13.0): poziom, środek w słuchawkach i scena na start — pkt 21 (zastępuje
+  „nigdy głośniej niż 100 %” z pkt 10 i 17) [korekta: pkt 21]
 - Data: 2026-11-26
 - Dotyczy: ADR 0054 pkt 3 (jeden format i głośność w usłudze — **zastąpiony** punktami 1–5 niżej), pkt 13–16 (dźwięk
   stref — formaty gościa, punkt 6); plan `docs/archiwum/PLAN-0.12.3.txt` (krok 1, T1–T5, T8); opisy: `docs/komponenty/dzwiek.md`,
@@ -88,7 +90,8 @@ dithera.
 10. **Miejsce w torze i poziom.** Po sumie strumieni, przed głośnością K1 (i przyszłą sceną z kroku 3). Przed filtrami
    poziom schodzi o najgłośniejszy punkt całej krzywej (siatka 241 punktów 20 Hz–20 kHz i środki pasm): korektor **nigdy
    nie gra głośniej niż 100 %** — pomiar na gęstej siatce: najwyżej +0,028 dB dla 300 losowych ustawień, +0,007 dB dla
-   gotowych (ogranicznik z pkt 2 bierze resztę). Cięcia nie podnoszą poziomu (bez „wyrównania głośności”). Płaski
+   gotowych (ogranicznik z pkt 2 bierze resztę). Cięcia nie podnoszą poziomu (bez „wyrównania głośności”). [korekta: pkt 21 —
+   od 0.13.0 poziom zachowuje głośność; „Więcej basu” ściszało tu wszystko poza basem o 7 dB] Płaski
    korektor nie liczy nic: przezroczystość z pkt 3 zostaje.
 11. **Liczby (T6, T2).** Filtry w `double` (31 Hz przy 48 kHz w `float` dodawałby szum), postać bezpośrednia I, pamięć
    filtrów zerowana poniżej 10⁻³⁰ (bez liczb zdenormalizowanych po ciszy). Współczynniki raz po zmianie, nie na próbkę —
@@ -144,7 +147,7 @@ dithera.
    słuchawki −3,2…−5,4 dB — tam każde ucho słyszy oba źródła pasma, więc dźwięk mono byłby dwa razy głośniejszy, a
    ściszenie przywraca jego poziom. Pomiar: granica najwyżej +0,017 dB na gęstej siatce (gotowe i 100 losowych scen), ton
    w obu wejściach przez działającą scenę najwyżej −0,085 dB, szum bez związku najwyżej −1,2 dB mocy. Ogranicznik z pkt 2
-   zostaje na końcu toru.
+   zostaje na końcu toru. [korekta: pkt 21 — od 0.13.0 scena zachowuje głośność; to ściszenie robiło cały dźwięk dużo cichszym]
 18. **Liczby, koszt, przejścia (T6).** Liczenie w `double` (jak korektor), własne sin, cos, eˣ, pierwiastek (pkt 11), stan
    filtrów zerowany poniżej 10⁻³⁰. Scena po korektorze, przed głośnością K1; osobna dla każdego wyjścia, gra ta wyjścia,
    które gra. **Wyłączona nie liczy nic** (przezroczystość z pkt 3), trzyma tylko kopię ostatniego okresu: włączona po ciszy
@@ -182,6 +185,32 @@ dithera.
    najwyżej −11 dB (zbocza zwrotnic). Okienko „Dźwięk” na górnym pasku: wiersz pod „Korektor” — przełącznik Kons Spatial
    Audio (scena wyjścia, które gra) i nazwa sceny ze strzałką; reszta wiersza otwiera Ustawienia na scenie (nowy wiersz
    `K1_UST_MIEJSCA`: PRZESTRZEN).
+21. **Poprawka po zgłoszeniu właściciela (2026-11-26: „Kons Spatial Audio sprawia, że cały dźwięk jest dużo cichszy,
+   spłaszcza dźwięk”; „korektor niech też działa z Spatial”; „domyślnie jak Koncert, ale bas na 4 % odległości”).**
+   Pomiar przed poprawką (szum różowy, lewy i prawy kanał w 70 % ten sam): „Koncert” w słuchawkach −4,7 dB, na głośnikach
+   −3,4 dB; z korektorem „Więcej basu” razem −9,9 dB — korektor nie podnosił basu, tylko ściszał resztę o 7 dB, a scena
+   ściszała jeszcze raz. W słuchawkach ton taki sam w obu kanałach (głos) przy 1 kHz −6,6 dB: każde ucho słyszało go z dwóch
+   źródeł z różnym opóźnieniem i kopie się znosiły (grzebień) — to było „spłaszczenie”.
+   - **Głośność zachowana** (zamiast pkt 10 i 17 „nigdy głośniej niż 100 %”): korektor i scena dobierają poziom tak, żeby
+     głośność dźwięku podobnego do muzyki (szum różowy — średnia mocy po oktawach 20 Hz–20 kHz, ważona krzywą K z ITU-R
+     BS.1770, tą, którą mierzy LUFS: najniższe oktawy liczą się mniej, góra trochę bardziej; `k1_kor_waga`; w scenie pół
+     dźwięku takiego samego w obu kanałach, pół bez związku, odbicia mocą) była taka jak bez nich. Najgłośniejszy punkt
+     krzywej (dawna granica, w korektorze teraz też 20–24 kHz) może wyjść najwyżej **+6 dB ponad 100 %**
+     (`K1_DZW_ZAPAS` = 2,0); resztę bierze ogranicznik z pkt 2 — tylko przy głośnym nagraniu i dużej głośności K1, rzadko.
+     Pomiar po: każda gotowa scena 0,00…−0,42 dB od dźwięku bez niej (waga K), korektor: każde gotowe ustawienie ±0,005 dB,
+     „Więcej basu” — bas +4,6 dB, reszta −1,2…−1,5 dB (zamiast −7); pasmo 1 kHz +12 dB trafia w zapas: +6 dB przy 1 kHz,
+     reszta −6 dB (`test_korektor`, `test_przestrzen`, `test-dzwiek.sh`).
+   - **Słuchawki: środek z jednego źródła.** To, co jest takie samo w obu kanałach (M = (L+R)/2), gra z jednego źródła
+     w kierunku pasma (2·H(kierunek)), a dwa źródła pasma (±połowa szerokości) dostają tylko boki (S = (L−R)/2, jako różnica
+     ich dróg) — tak samo jak dawniej tam, gdzie oba źródła się zgadzają (niskie tony, szerokość 0), bez grzebienia na
+     głosie: ton mono w „Koncercie” bez odległości 300 Hz…3,4 kHz w granicach +1,9…+0,1 dB (przedtem −6,6 dB przy 1 kHz).
+     Dróg pasma najwyżej 12 (było 8); głośniki bez zmian (środek i tak zostawał nietknięty).
+   - **Korektor działa ze sceną** — działał i przedtem (najpierw korektor, potem scena), ale dwa ściszenia razem zjadały jego
+     efekt; po poprawce bas „Więcej basu” słychać tak samo ze sceną i bez niej (+4,6 dB przy 50 Hz w obu przypadkach).
+   - **Scena na start** (właściciel, 2026-11-26: „Koncert z basem 4 %, włączony”): wiersz „Koncert” w `K1_PRZ_SCENY` ma bas
+     na 4 % (`K1_PRZ_KONCERT_MIEJSCA`; inne pasma 70 % jak dawniej), a `k1_prz_scena_start` to Koncert **włączony** na
+     głośnikach i w słuchawkach — dla nowej instalacji i rekordów pulpitu bez scen („K1G1”, „K1G2”). Zapamiętana scena
+     („K1G3”, „K1G4”) zostaje; dawny „Koncert” (bas 70 %) jest teraz „Własna”. „Własna” na start dalej „jeszcze nie ma”.
 
 ## Skutki
 - Cichy dźwięk bez „ziarna”, głośne nakładające się dźwięki bez trzasków; na kartach 24-bitowych szum toru 48 dB niżej.

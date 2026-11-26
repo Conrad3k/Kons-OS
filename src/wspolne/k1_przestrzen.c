@@ -222,14 +222,32 @@ static void bez_zmian(struct k1_prz_ustawienie *u, int b, double g)
     droga(u, b, 1, 1, 0.0, 1.0, 1.0, g);
 }
 
-/* Headphones: each of the band's two sources at its direction — the delay and the shadow at each ear, the softer back. */
+/* One source at `kierunek` into ear `ucho`: its delay, the head's shadow, the softer back (headphones). */
+static void zrodlo_sluchawek(struct k1_prz_ustawienie *u, int b, int wejscie, int ucho, double kierunek, double g)
+{
+    double k = stopnie_w_zakres(kierunek), a = k < 0 ? -k : k;
+    double tyl = a > 90.0 ? 1.0 - (1.0 - TYL_MIN) * (a - 90.0) / 90.0 : 1.0;
+    droga(u, b, wejscie, ucho, k1_prz_opoznienie(k, ucho), alfa_cienia(kat_od_ucha(k, ucho)), tyl, g);
+}
+
+/* Headphones: the band's two sources at its direction ± half its width. 0.13.0 (the owner's report: "it flattens the
+ * sound"): what is the same in both channels (M = (L+R)/2: a voice, the middle of a song) comes from ONE source at the
+ * band's direction — from two sources each ear got it twice, late by a different delay, and the two copies cancelled
+ * (−6.6 dB at 1 kHz in Koncert: the comb that made a voice hollow); only the sides (S = (L−R)/2) come from the two
+ * sources, as their difference. Each ear: M·2·H(direction) + S·(H(left source) − H(right source)) — the same as two
+ * sources where they agree (the low tones, a width 0). */
 static void sluchawki(struct k1_prz_ustawienie *u, int b, const struct k1_prz_miejsce *m, double g)
 {
-    for (int z = 0; z < 2; z++) {
-        double k = stopnie_w_zakres(m->kierunek + (z ? 0.5 : -0.5) * m->szerokosc), a = k < 0 ? -k : k;
-        double tyl = a > 90.0 ? 1.0 - (1.0 - TYL_MIN) * (a - 90.0) / 90.0 : 1.0;
-        for (int e = 0; e < 2; e++)
-            droga(u, b, z, e, k1_prz_opoznienie(k, e), alfa_cienia(kat_od_ucha(k, e)), tyl, g);
+    double lewe = m->kierunek - 0.5 * m->szerokosc, prawe = m->kierunek + 0.5 * m->szerokosc;
+    for (int e = 0; e < 2; e++) {
+        zrodlo_sluchawek(u, b, 0, e, m->kierunek, g);
+        zrodlo_sluchawek(u, b, 1, e, m->kierunek, g);
+        if (m->szerokosc == 0)
+            continue;
+        zrodlo_sluchawek(u, b, 0, e, lewe, 0.5 * g);
+        zrodlo_sluchawek(u, b, 1, e, lewe, -0.5 * g);
+        zrodlo_sluchawek(u, b, 0, e, prawe, -0.5 * g);
+        zrodlo_sluchawek(u, b, 1, e, prawe, 0.5 * g);
     }
 }
 
@@ -338,9 +356,38 @@ double k1_prz_moc(const struct k1_prz_ustawienie *u, double hz, int ucho)
     return suma;
 }
 
+/* 0.13.0 (ADR 0055 point 21): the power a music-like sound has at `hz` in ear `ucho` against 1 without the scene — half the
+ * same in both inputs, half unrelated; the reflections add their power (they come late: unrelated to the sound). */
+static double glosnosc(const struct k1_prz_ustawienie *u, double hz, int ucho)
+{
+    double w = 2.0 * PI * hz / FS, lp, k = 1.0 - k1_kor_exp(-2.0 * PI * ODBICIA_HZ / FS), odb = 0.0, suma = 0.0;
+    struct zesp krok, l;
+    sin_cos(-w, &krok.im, &krok.re);
+    l.re = 1.0 - (1.0 - k) * krok.re;
+    l.im = -(1.0 - k) * krok.im;
+    lp = k / modul(l);
+    for (int t = 0; t < K1_PRZ_ODBICIA; t++)
+        if (odbicia[t].ucho == ucho)
+            odb += u->odb_g[t] * u->odb_g[t];
+    for (int b = 0; b < K1_PRZ_PASMA_N; b++) {
+        struct zesp z[2] = { { 0, 0 }, { 0, 0 } };
+        double jeden, dwa, r = u->odbicie[b] * lp;
+        for (int i = 0; i < u->drog[b]; i++)
+            if (u->d[b][i].ucho == ucho) {
+                struct zesp h = odpowiedz(&u->d[b][i], w);
+                z[u->d[b][i].zrodlo].re += h.re;
+                z[u->d[b][i].zrodlo].im += h.im;
+            }
+        jeden = (z[0].re + z[1].re) * (z[0].re + z[1].re) + (z[0].im + z[1].im) * (z[0].im + z[1].im) + r * r * odb;
+        dwa = z[0].re * z[0].re + z[0].im * z[0].im + z[1].re * z[1].re + z[1].im * z[1].im + 0.5 * r * r * odb;
+        suma += k1_prz_pasmo_moc(b, hz) * k1_kor_pierw(0.5 * (jeden + dwa)); /* the bands add up in amplitude */
+    }
+    return suma * suma;
+}
+
 void k1_prz_policz(struct k1_prz_ustawienie *u, const struct k1_prz_scena *s, int wyjscie)
 {
-    double maks = 1.0;
+    double maks = 0.0, srednia = 0.0, wagi = 0.0;
     memset(u, 0, sizeof *u);
     u->scena = *s;
     u->wzm = 1.0;
@@ -367,9 +414,17 @@ void k1_prz_policz(struct k1_prz_ustawienie *u, const struct k1_prz_scena *s, in
         for (int e = 0; e < 2; e++) {
             double m = k1_prz_moc(u, hz < 20.0 ? 20.0 : hz, e);
             maks = m > maks ? m : maks;
+            if (k < SIATKA) { /* the grid is even in octaves (a music-like, pink sound), K-weighted: its loudness */
+                srednia += k1_kor_waga(hz) * glosnosc(u, hz < 20.0 ? 20.0 : hz, e);
+                wagi += k1_kor_waga(hz);
+            }
         }
     }
-    u->wzm = 1.0 / maks;
+    /* 0.13.0 (ADR 0055 point 21, the owner's report: "the whole sound much quieter, flattened"): the loudness the sound
+     * had without the scene — up to K1_DZW_ZAPAS above 100 % at the loudest point, the limiter takes the rest */
+    u->wzm = k1_kor_pierw(wagi / srednia);
+    if (u->wzm * maks > K1_DZW_ZAPAS)
+        u->wzm = K1_DZW_ZAPAS / maks;
     for (int b = 0; b < K1_PRZ_PASMA_N; b++)
         for (int i = 0; i < u->drog[b]; i++)
             u->d[b][i].g *= u->wzm;

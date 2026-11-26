@@ -149,7 +149,8 @@ void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
     for (int w = K1_DZW_WYJSCIE_BRAK; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         z->glosnosc[w] = w != K1_DZW_WYJSCIE_BRAK ? K1_DZW_GLOSNOSC_START : 0;
         k1_prz_scena_start(&z->scena[w]);
-        k1_prz_scena_start(&z->wlasna[w]); /* off: none yet */
+        k1_prz_scena_start(&z->wlasna[w]);
+        z->wlasna[w].wlaczona = 0; /* off: none yet */
     }
 }
 

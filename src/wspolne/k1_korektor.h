@@ -4,9 +4,12 @@
  *
  * Ten bands an octave apart (31 Hz … 16 kHz, the table K1_KOR_PASMA), each −12…+12 dB in steps of 0.5 dB — kept as a
  * whole number of half-decibels (int8_t −24…24). Each band is a peaking filter (biquad, R. Bristow-Johnson's "Audio EQ
- * Cookbook": at its middle exactly its gain, Q = √2 — one octave wide). Before the filters the level comes down by the
- * loudest point of the whole curve (computed on a grid of 20 Hz … 20 kHz and at each band's middle), so the equalizer
- * never makes anything louder than 100 % of K1 (no clipping; the limiter of step 1 stays at the end of the path). A flat
+ * Cookbook": at its middle exactly its gain, Q = √2 — one octave wide). Before the filters a level keeps the loudness of
+ * the sound (0.13.0, ADR 0055 point 21: the curve's mean power over the octaves of 20 Hz … 20 kHz, K-weighted as LUFS
+ * measures — k1_kor_waga) — the bands
+ * raised are louder, those lowered quieter, the rest as before; the loudest point of the curve (also at each band's middle)
+ * goes at most K1_DZW_ZAPAS above 100 %, and the limiter of step 1 at the end of the path takes it (until 0.13.0 the level
+ * came down by that loudest point: "Więcej basu" made everything but the bass 7 dB quieter). A flat
  * equalizer (all bands 0) computes nothing: the path stays transparent sample for sample. A change of the settings crosses
  * from the old filters to the new ones over one period (no click).
  *
@@ -78,7 +81,7 @@ static inline int k1_kor_z_pol(const int32_t pola[3], int8_t pasma[K1_KOR_PASMA_
 struct k1_kor_filtr {
     double b0, b1, b2, a1, a2;
 };
-/* The filters of ten bands and the level before them (`wzm` ≤ 1). Computed once per change. */
+/* The filters of ten bands and the level before them (`wzm`, ADR 0055 point 21). Computed once per change. */
 struct k1_kor_ustawienie {
     int8_t pasma[K1_KOR_PASMA_N];
     int plaski;
@@ -104,6 +107,10 @@ void k1_kor_ustaw(struct k1_korektor *k, const int8_t pasma[K1_KOR_PASMA_N]);
 /* The equalizer on `ramki` ≤ K1_DZW_OKRES stereo frames of the sum, in place. Flat and no change: nothing at all.
  * Returns 1 when it computed anything (the service measures that time). */
 int k1_kor_licz(struct k1_korektor *k, float *suma, uint32_t ramki);
+
+/* 0.13.0 (ADR 0055 point 21): the K weighting of ITU-R BS.1770 at `hz` as a power ratio — how much a frequency counts in
+ * the loudness (the equalizer and Kons Spatial Audio keep it). */
+double k1_kor_waga(double hz);
 
 /* Our own functions (exported for the test): sine and cosine for |x| ≤ 4, e^x for |x| ≤ 8, the square root for x ≥ 0. */
 double k1_kor_sin(double x);

@@ -75,7 +75,7 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   (`DZWIEK_KOREKTOR_STAN`, zmiana z Ustawień — po tym, jak usługa ma już zapamiętane), daje każdej nowej usłudze
   (`DZWIEK_KOREKTOR`); log przy starcie „dźwięk: zapamiętany korektor — głośniki: …, słuchawki: …”. **Scena Kons Spatial
   Audio** (0.12.3 krok 3) tak samo: rekord „K1G3” (54 B: „K1G2” i po nim scena głośników i słuchawek, po 13 B — włączona,
-  kierunki, szerokości, odległości pasm; „K1G2” i „K1G1” czyta dalej — sceny wyłączone), `DZWIEK_SCENA_STAN` od usługi,
+  kierunki, szerokości, odległości pasm; „K1G2” i „K1G1” czyta dalej — sceny na start: od 0.13.0 „Koncert” z basem na 4 %, włączony; ADR 0055 pkt 21), `DZWIEK_SCENA_STAN` od usługi,
   `DZWIEK_SCENA` każdej nowej; log przy starcie „dźwięk: zapamiętana scena — głośniki: …, słuchawki: …”. **Krok 4**
   (D6: A): też „Własna” obu wyjść — rekord „K1G4” (80 B: „K1G3” i po nim „Własna” głośników i słuchawek po 13 B; włączona =
   jest), `DZWIEK_SCENA` z a = wyjście + 16 każdej nowej usłudze; w okienku pod „Korektor” wiersz 36 px: przełącznik Kons

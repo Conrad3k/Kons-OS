@@ -4,8 +4,10 @@
  * ±0.01 dB, each band's magnitude as k1_prz_pasmo_moc says; the head model: the delays of Brown and Duda (656 µs between
  * the ears for a source at the side), a source on the left — the left ear first by that much and louder at the top; the
  * bass stays where it is; the speakers: a band on the left louder in the left channel, a direction behind mirrored to the
- * front; the level: no scene louder than 100 % — the bound on a fine grid for every ready scene and 100 random ones, a
- * tone the same in both inputs and unrelated noise through the running scene; off — transparent, nothing computed; a
+ * front; the headphones' middle from one source (0.13.0): a tone the same in both inputs without a comb; the level (0.13.0,
+ * ADR 0055 point 21): every ready scene as loud as without it — a music-like pink noise K-weighted (BS.1770) within
+ * ±0.5 dB — and its loudest point at most K1_DZW_ZAPAS above 100 % (the bound on a fine grid for every ready scene and 100
+ * random ones, a tone the same in both inputs and unrelated noise through the running scene); the start: Koncert, on; off — transparent, nothing computed; a
  * change without a click, back to off exact after one period; the worst scenes on full-scale noise — finite, no
  * blow-up; silence leaves no denormal numbers. Step 4: "Posłuchaj" — the same every time, each band at its level, its
  * peaks within K1_PRZ_PROBA_SZCZYT, the other bands far below it, silence between, nothing after its end. The numbers are
@@ -63,10 +65,13 @@ static void tabele(void)
         EXPECT(s.wlaczona == 1 && k1_prz_poprawna(&s) && k1_prz_rozpoznaj(&s) == nr); /* each row differs */
         EXPECT(strcmp(k1_prz_nazwa(&s), k1_prz_scena_nazwa(nr)) == 0 && strlen(k1_prz_scena_opis(nr)) > 10);
     }
-    k1_prz_scena_start(&s);
-    EXPECT(!s.wlaczona && k1_prz_rozpoznaj(&s) == K1_PRZ_NATURALNY && strcmp(k1_prz_nazwa(&s), "Wyłączony") == 0);
+    k1_prz_scena_start(&s); /* 0.13.0, the owner's choice: Koncert (its bass at 4 %), on */
+    EXPECT(s.wlaczona && k1_prz_rozpoznaj(&s) == K1_PRZ_KONCERT && strcmp(k1_prz_nazwa(&s), "Koncert") == 0 &&
+           s.pasma[0].odleglosc == 4 && s.pasma[1].odleglosc == 70);
+    s.wlaczona = 0;
+    EXPECT(strcmp(k1_prz_nazwa(&s), "Wyłączony") == 0);
     k1_prz_scena_gotowa(K1_PRZ_SCEN, &t); /* outside the table: Naturalny, off */
-    EXPECT(!t.wlaczona && k1_prz_rowne(&s, &t));
+    EXPECT(!t.wlaczona && k1_prz_rozpoznaj(&t) == K1_PRZ_NATURALNY && k1_prz_rowne(&s, &t));
     k1_prz_scena_gotowa(K1_PRZ_GLOS, &t);
     t.wlaczona = 0;
     EXPECT(k1_prz_rowne(&s, &t)); /* off is off, wherever the bands are */
@@ -214,7 +219,7 @@ static void zrodlo_z_lewej(void)
     scena_wszedzie(&s, -90, 0, 0); /* the speakers (D3: A): a band on the left in the left channel */
     ton(&s, K1_DZW_WYJSCIE_GLOSNIKI, 1000.0, 0.5, 0.5, a);
     printf("głośniki, z lewej: 1 kHz lewy kanał głośniej o %.1f dB\n", db(a[0] / fmax(a[1], 1e-9)));
-    EXPECT(db(a[0] / fmax(a[1], 1e-9)) > 20.0 && a[0] <= 0.5 * 1.001);
+    EXPECT(db(a[0] / fmax(a[1], 1e-9)) > 20.0 && a[0] <= 0.5 * K1_DZW_ZAPAS);
     for (double hz = 300.0; hz < 5000.0; hz *= 2.0) { /* the widest ready scene on the speakers: the middle (a voice) stays
                                                        * within 3.5 dB — 1.2 of it Kino's distance of 20 % */
         k1_prz_scena_gotowa(K1_PRZ_KINO, &s);
@@ -222,6 +227,20 @@ static void zrodlo_z_lewej(void)
         printf("%s%.0f Hz %.1f dB (P %+.2f)", hz < 400.0 ? "głośniki, Kino, ton mono: " : ", ", hz, db(a[0] / 0.5),
                db(a[1] / a[0]));
         EXPECT(db(a[0] / 0.5) > -3.5 && fabs(db(a[0] / a[1])) < 1.0); /* the reflections alternate L and R */
+    }
+    printf("\n");
+    for (double hz = 300.0; hz < 5000.0; hz *= 1.5) { /* 0.13.0: the headphones' middle from one source — no comb */
+        double m = 0.0, n = 99.0;
+        k1_prz_scena_gotowa(K1_PRZ_KONCERT, &s);
+        for (int b = 1; b < K1_PRZ_PASMA_N; b++)
+            s.pasma[b].odleglosc = 0; /* no reflections: only the paths */
+        ton(&s, K1_DZW_WYJSCIE_SLUCHAWKI, hz, 0.5, 0.5, a);
+        m = fmax(m, db(a[0] / 0.5));
+        n = fmin(n, db(a[0] / 0.5));
+        if (hz < 400.0)
+            printf("słuchawki, Koncert bez odległości, ton mono:");
+        printf(" %.0f Hz %+.1f dB", hz, db(a[0] / 0.5));
+        EXPECT(db(a[0] / 0.5) > -3.0 && db(a[0] / 0.5) < 4.0); /* until 0.13.0: −6.6 dB at 1 kHz (two copies cancelled) */
     }
     printf("\n");
     scena_wszedzie(&s, 150, 60, 0); /* behind on the speakers: mirrored to the front (as at 30°) */
@@ -256,24 +275,25 @@ static void poziom(void)
             else
                 losowa(&s);
             k1_prz_policz(&u, &s, w);
-            EXPECT(u.wzm > 0.0 && u.wzm <= 1.0);
+            EXPECT(u.wzm > 0.0 && u.wzm <= 4.0);
             wzm_min = fmin(wzm_min, u.wzm);
             gorszy = fmax(gorszy, moc_maks(&u));
             if (i < K1_PRZ_SCEN)
                 printf("poziom: %s %s — %.1f dB\n", w == K1_DZW_WYJSCIE_SLUCHAWKI ? "słuchawki" : "głośniki",
                        k1_prz_scena_nazwa(i), db(u.wzm));
         }
-    printf("poziom: granica najwyżej %+.4f dB (gęsta siatka), najcichsza scena %.1f dB\n", db(gorszy), db(wzm_min));
-    EXPECT(gorszy < 1.002); /* +0.017 dB: the grid of k1_prz_policz is coarser than this one */
+    printf("poziom: granica najwyżej %+.4f dB (gęsta siatka; zapas %+.2f dB), najcichszy poziom %.1f dB\n", db(gorszy),
+           db(K1_DZW_ZAPAS), db(wzm_min));
+    EXPECT(gorszy < K1_DZW_ZAPAS * 1.002); /* +0.017 dB: the grid of k1_prz_policz is coarser than this one */
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_SLUCHAWKI; w++)
         for (int nr = 0; nr < K1_PRZ_SCEN; nr++)
-            for (double f = 60.0; f < 16000.0; f *= 2.3) { /* the same tone in both inputs: never louder */
+            for (double f = 60.0; f < 16000.0; f *= 2.3) { /* the same tone in both inputs: within the headroom */
                 k1_prz_scena_gotowa(nr, &s);
                 ton(&s, w, f, 0.5, 0.5, a);
                 ton_maks = fmax(ton_maks, fmax(a[0], a[1]) / 0.5);
             }
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_SLUCHAWKI; w++)
-        for (int nr = 0; nr < K1_PRZ_SCEN; nr++) { /* two unrelated noises: each ear's power not above the input's */
+        for (int nr = 0; nr < K1_PRZ_SCEN; nr++) { /* two unrelated noises: each ear's power within the headroom */
             double we = 0.0, wy[2] = { 0, 0 };
             uint32_t los = 12345;
             k1_prz_scena_gotowa(nr, &s);
@@ -293,8 +313,81 @@ static void poziom(void)
         }
     printf("poziom: ton w obu wejściach najwyżej %+.3f dB, szum bez związku najwyżej %+.2f dB mocy\n", db(ton_maks),
            10.0 * log10(szum_maks));
-    EXPECT(ton_maks < 1.001);
-    EXPECT(szum_maks < 1.03); /* the noise's own statistics: ±0.1 dB */
+    EXPECT(ton_maks < K1_DZW_ZAPAS * 1.001);
+    EXPECT(szum_maks < K1_DZW_ZAPAS * K1_DZW_ZAPAS * 1.03); /* the noise's own statistics: ±0.1 dB */
+}
+
+/* A biquad of the K weighting (BS.1770 at 48 kHz) running on doubles: what LUFS measures, here to check the loudness. */
+struct waga_k {
+    double s[2][2][2]; /* [channel][stage][state] */
+};
+static double waga_krok(struct waga_k *w, int k, double x)
+{
+    static const double b[2][3] = { { 1.53512485958697, -2.69169618940638, 1.19839281085285 }, { 1.0, -2.0, 1.0 } };
+    static const double a[2][2] = { { -1.69065929318241, 0.73248077421585 }, { -1.99004745483398, 0.99007225036621 } };
+    for (int j = 0; j < 2; j++) {
+        double *st = w->s[k][j], y = b[j][0] * x + st[0];
+        st[0] = b[j][1] * x - a[j][0] * y + st[1];
+        st[1] = b[j][2] * x - a[j][1] * y;
+        x = y;
+    }
+    return x;
+}
+
+/* A pink noise (Kellet's filter), the two channels half the same, half unrelated: music, roughly. */
+static void rozowy(double st[3][7], uint32_t *los, float *b, uint32_t n)
+{
+    for (uint32_t i = 0; i < n; i++) {
+        double w[3];
+        for (int k = 0; k < 3; k++) {
+            double *q = st[k], v;
+            *los ^= *los << 13, *los ^= *los >> 17, *los ^= *los << 5;
+            v = (double)*los / 4294967296.0 * 2.0 - 1.0;
+            q[0] = 0.99886 * q[0] + v * 0.0555179, q[1] = 0.99332 * q[1] + v * 0.0750759;
+            q[2] = 0.96900 * q[2] + v * 0.1538520, q[3] = 0.86650 * q[3] + v * 0.3104856;
+            q[4] = 0.55000 * q[4] + v * 0.5329522, q[5] = -0.7616 * q[5] - v * 0.0168980;
+            w[k] = (q[0] + q[1] + q[2] + q[3] + q[4] + q[5] + q[6] + v * 0.5362) * 0.02;
+            q[6] = v * 0.115926;
+        }
+        b[2 * i] = (float)(0.70710678 * (w[0] + w[1]));
+        b[2 * i + 1] = (float)(0.70710678 * (w[0] + w[2]));
+    }
+}
+
+/* 0.13.0 (ADR 0055 point 21, the owner's report "much quieter"): each ready scene keeps the loudness. */
+static void glosnosc(void)
+{
+    static float we[OKRES * 2];
+    double najgorzej = 0.0;
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_SLUCHAWKI; w++) {
+        printf("głośność (szum różowy, waga K): %s", w == K1_DZW_WYJSCIE_SLUCHAWKI ? "słuchawki" : "głośniki");
+        for (int nr = 0; nr < K1_PRZ_SCEN; nr++) {
+            struct k1_prz_scena s;
+            struct waga_k kw, kwy;
+            double st[3][7], e_we = 0.0, e_wy = 0.0, d;
+            uint32_t los = 777;
+            memset(st, 0, sizeof st), memset(&kw, 0, sizeof kw), memset(&kwy, 0, sizeof kwy);
+            k1_prz_scena_gotowa(nr, &s);
+            k1_prz_start(&p);
+            k1_prz_ustaw(&p, &s, w);
+            for (int okres = 0; okres < 400; okres++) {
+                rozowy(st, &los, we, OKRES);
+                memcpy(buf, we, sizeof buf);
+                k1_prz_licz(&p, buf, OKRES);
+                for (uint32_t i = 0; i < 2 * OKRES; i++) {
+                    double x = waga_krok(&kw, (int)(i & 1), we[i]), y = waga_krok(&kwy, (int)(i & 1), buf[i]);
+                    if (okres >= 20)
+                        e_we += x * x, e_wy += y * y;
+                }
+            }
+            d = 10.0 * log10(e_wy / e_we);
+            najgorzej = fmax(najgorzej, fabs(d));
+            printf(", %s %+.2f dB", k1_prz_scena_nazwa(nr), d);
+        }
+        printf("\n");
+    }
+    printf("głośność: każda gotowa scena najwyżej %.2f dB od dźwięku bez niej (do 0.13.0: −3…−5 dB)\n", najgorzej);
+    EXPECT(najgorzej < 0.5);
 }
 
 static void przezroczystosc(void)
@@ -317,7 +410,7 @@ static void przezroczystosc(void)
 static void zmiana(void)
 {
     struct k1_prz_scena s;
-    double faza = 0.0, skok = 0.0, krok = 0.5 * 2.0 * PI * 1000.0 / FS;
+    double faza = 0.0, skok = 0.0, krok = 0.5 * 2.0 * PI * 1000.0 / FS, amp = 0.5;
     float ost[2] = { 0, 0 };
     int wyj = K1_DZW_WYJSCIE_SLUCHAWKI, dokladne = 1;
     k1_prz_start(&p);
@@ -335,13 +428,16 @@ static void zmiana(void)
         k1_prz_licz(&p, buf, OKRES);
         for (uint32_t i = 0; i < 2 * OKRES; i++) {
             skok = fmax(skok, fabs(buf[i] - ost[i & 1]));
+            amp = fmax(amp, fabs(buf[i]));
             ost[i & 1] = buf[i];
         }
         if (okres > 40)
             dokladne &= memcmp(kopia, buf, sizeof buf) == 0;
     }
-    printf("zmiana sceny: największy krok %.4f (krok tonu %.4f)\n", skok, krok);
-    EXPECT(skok <= krok * 1.05);
+    /* 0.13.0: a scene keeps the loudness, so a tone may come out louder than 0.5 — its own step grows with it */
+    printf("zmiana sceny: największy krok %.4f (krok tonu %.4f przy największej amplitudzie %.3f)\n", skok,
+           krok * amp / 0.5, amp);
+    EXPECT(skok <= krok * amp / 0.5 * 1.05);
     EXPECT(dokladne && !p.zasilone);
 }
 
@@ -441,6 +537,7 @@ int main(void)
     glowa();
     zrodlo_z_lewej();
     poziom();
+    glosnosc();
     przezroczystosc();
     zmiana();
     najgorsze();

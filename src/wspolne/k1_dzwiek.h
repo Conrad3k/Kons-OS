@@ -32,6 +32,10 @@
 #define K1_DZW_KROK 5                       /* step 2: one press of a volume key (%) */
 #define K1_DZW_KARTA_NR_MAKS 31             /* the kernel's card and device numbers (SNDRV_CARDS = 32) */
 #define K1_DZW_CISZA_S 5                    /* after this many seconds without a stream the card stops (T8) */
+/* 0.13.0 (the owner's report, ADR 0055 point 21): the equalizer and Kons Spatial Audio keep the loudness of the sound
+ * (its mean power over the octaves, as of music) instead of bounding every point by 100 % — the peaks they lift go at most
+ * this much above it (+6 dB), and the limiter at the end of the path takes them. */
+#define K1_DZW_ZAPAS 2.0
 
 /* Who may be a client of the sound service — one table (rule 5; step 3 adds the zones).
  * X(NAME, number 1.., name in the log, 1: may steer — set the volume and the mute of all K1). */

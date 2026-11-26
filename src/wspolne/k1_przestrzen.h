@@ -11,11 +11,14 @@
  * it, and spread it sounds weak.
  *   - Headphones: a model of the head (C. P. Brown, R. O. Duda 1998, a sphere of 8.75 cm): the delay between the ears
  *     (up to 656 µs) and the head's shadow (a filter of the far ear's highs) for each source, a softer top for a source
- *     behind (the delay alone does not tell the front from the back).
+ *     behind (the delay alone does not tell the front from the back). Since 0.13.0 the band's middle (L+R) comes from
+ *     one source at its direction and only its sides (L−R) from the two: no comb on a voice.
  *   - The speakers of a laptop (D3: A): a wider stereo (the middle and the sides, a gentle cross-cancellation), a
  *     direction behind is mirrored to the front — two small speakers do not play "from behind".
- * A scene never makes anything louder than 100 % of K1: a sound the same in both channels at any frequency, and the power
- * of two unrelated channels, are bounded by 1 (k1_prz_moc; the limiter of step 1 stays at the end of the path). A scene
+ * A scene keeps the loudness the sound has without it (0.13.0, ADR 0055 point 21: its mean power over the octaves, half
+ * the same in both channels, half unrelated); the loudest point it may lift — a sound the same in both channels at any
+ * frequency, or the power of two unrelated channels (k1_prz_moc) — goes at most K1_DZW_ZAPAS above 100 %, and the limiter
+ * at the end of the path takes it (until 0.13.0 every point was bounded by 100 %: the whole sound was much quieter). A scene
  * off ("Wyłączony") computes nothing: the path stays transparent sample for sample. A change crosses over one period.
  *
  * No libm, no -ffast-math: our own series (k1_korektor.h), the same numbers on the host, in the fuzzer and in K1. The
@@ -53,14 +56,15 @@ struct k1_prz_scena {
 
 /* The ready scenes (D5; rule 5: a new one is a row): X(NAME, the name in K1, a short description, then each band's
  * direction, width and distance — Bas, Niski środek, Środek, Góra). "Wyłączony" is a scene switched off. */
-#define K1_PRZ_NATURALNE 0, 60, 20 /* one band of Naturalny: in front, as wide as a normal stereo, near (the start) */
+#define K1_PRZ_NATURALNE 0, 60, 20 /* one band of Naturalny: in front, as wide as a normal stereo, near */
+/* Koncert, the start (0.13.0, the owner's choice: "the best one", the bass near — 4 %) */
+#define K1_PRZ_KONCERT_MIEJSCA 0, 60, 4, 0, 100, 70, 0, 90, 70, 0, 100, 70
 #define K1_PRZ_SCENY(X)                                                                                        \
     X(NATURALNY, "Naturalny", "szeroko z przodu, jak dobre głośniki",                                          \
       K1_PRZ_NATURALNE, K1_PRZ_NATURALNE, K1_PRZ_NATURALNE, K1_PRZ_NATURALNE)                                  \
     X(KINO, "Kino", "głos i góra z przodu, otoczenie po bokach i z tyłu",                                      \
       0, 60, 20, 180, 150, 40, 0, 50, 15, 0, 90, 20)                                                           \
-    X(KONCERT, "Koncert", "dalej i szeroko, z łagodnym odbiciem sali",                                         \
-      0, 60, 70, 0, 100, 70, 0, 90, 70, 0, 100, 70)                                                            \
+    X(KONCERT, "Koncert", "dalej i szeroko, z łagodnym odbiciem sali", K1_PRZ_KONCERT_MIEJSCA)               \
     X(POKOJ, "Pokój", "blisko i wąsko, jak głośniki na biurku",                                                \
       0, 60, 5, 0, 40, 5, 0, 40, 5, 0, 40, 5)                                                                  \
     X(GLOS, "Głos", "środek blisko i wyraźnie, reszta dalej",                                                  \
@@ -70,13 +74,17 @@ enum { K1_PRZ_SCENY(K1_X_PRZ_SCENA) K1_PRZ_SCEN };
 const char *k1_prz_scena_nazwa(int nr); /* "" outside 0..K1_PRZ_SCEN-1 */
 const char *k1_prz_scena_opis(int nr);
 void k1_prz_scena_gotowa(int nr, struct k1_prz_scena *s); /* switched on; outside: Naturalny switched off */
-/* The start: Naturalny's places, switched off. Inline: gui's memory (k1_dzwiek.c, also in nadzorca) needs it. */
+/* The start (0.13.0, the owner's choice; until then Naturalny switched off): Koncert, switched on — what an output plays
+ * until gui gives the remembered one. Inline: gui's memory (k1_dzwiek.c, also in nadzorca) needs it. */
 static inline void k1_prz_scena_start(struct k1_prz_scena *sc)
 {
-    static const struct k1_prz_miejsce n = { K1_PRZ_NATURALNE };
-    sc->wlaczona = 0;
-    for (int i = 0; i < K1_PRZ_PASMA_N; i++)
-        sc->pasma[i] = n;
+    static const int16_t koncert[3 * K1_PRZ_PASMA_N] = { K1_PRZ_KONCERT_MIEJSCA };
+    sc->wlaczona = 1;
+    for (int i = 0; i < K1_PRZ_PASMA_N; i++) {
+        sc->pasma[i].kierunek = koncert[3 * i];
+        sc->pasma[i].szerokosc = koncert[3 * i + 1];
+        sc->pasma[i].odleglosc = koncert[3 * i + 2];
+    }
 }
 /* Which ready scene these places are (the first equal row), or -1: "Własna" (on or off alike). */
 int k1_prz_rozpoznaj(const struct k1_prz_scena *s);
@@ -142,7 +150,8 @@ double k1_prz_pasmo_moc(int pasmo, double hz); /* |X_b(f)|: the magnitude of a b
  * in seconds after the nearest point of the head (0 … 656 µs). */
 double k1_prz_opoznienie(double kierunek, int ucho);
 
-#define K1_PRZ_DROGI_MAKS 8 /* the paths of one band: source → ear (and on the speakers also the cross-cancellation) */
+#define K1_PRZ_DROGI_MAKS 12 /* the paths of one band: source → ear (headphones: the middle and the sides; the speakers:
+                              * also the cross-cancellation) */
 /* One path from a source (0 L, 1 R) to an ear (0 L, 1 R): a delay (`n` whole frames and a 3rd-order Lagrange filter for
  * the rest), the head's shadow and the softer back (two first-order filters), a gain. */
 struct k1_prz_droga {
@@ -157,7 +166,7 @@ int k1_prz_odbicie_ramki(int t, int *ucho); /* reflection t: frames after the so
 struct k1_prz_ustawienie {
     struct k1_prz_scena scena;
     int wyjscie;  /* K1_DZW_WYJSCIE_GLOSNIKI / SLUCHAWKI (only when on) */
-    double wzm;   /* the level that keeps it within 100 % (≤ 1) */
+    double wzm;   /* the level that keeps the loudness (ADR 0055 point 21) */
     int drog[K1_PRZ_PASMA_N];
     struct k1_prz_droga d[K1_PRZ_PASMA_N][K1_PRZ_DROGI_MAKS];
     double odbicie[K1_PRZ_PASMA_N]; /* each band's share in the reflections */
@@ -165,7 +174,7 @@ struct k1_prz_ustawienie {
 };
 void k1_prz_policz(struct k1_prz_ustawienie *u, const struct k1_prz_scena *s, int wyjscie);
 /* The bound of the gain at `hz` for ear `ucho` (0, 1): of a sound the same in both inputs, and of the power of two
- * unrelated inputs — the larger (with `wzm`: ≤ 1 on the grid of k1_prz_policz). 1 for a scene off. */
+ * unrelated inputs — the larger (with `wzm`: ≤ K1_DZW_ZAPAS on the grid of k1_prz_policz). 1 for a scene off. */
 double k1_prz_moc(const struct k1_prz_ustawienie *u, double hz, int ucho);
 
 #define K1_PRZ_OKRES 1024u /* = K1_DZW_OKRES (checked in k1_przestrzen.c) */
