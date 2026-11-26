@@ -45,7 +45,9 @@ void korektor_minuta(void);                       /* the log once a minute: the 
 /* przestrzen.c — Kons Spatial Audio (0.12.3 step 3, ADR 0055): the scene of each output, after the equalizer. */
 void przestrzen_start(void);                       /* both outputs off */
 struct k1_komunikat przestrzen_stan(int wyjscie); /* DZWIEK_SCENA_STAN of that output */
-int przestrzen_ustaw(const struct k1_komunikat *m, double t); /* DZWIEK_SCENA: 1 changed, 0 the same, -1 refused */
+struct k1_komunikat przestrzen_wlasna_stan(int wyjscie); /* step 4: … of its "Własna" (a = wyjscie + SCENA_WLASNA) */
+/* DZWIEK_SCENA: 1 changed (the scene of an output), 2 changed (its "Własna", step 4), 0 the same, -1 refused */
+int przestrzen_ustaw(const struct k1_komunikat *m, double t);
 int przestrzen_zalegle(double t);                 /* the log's line it owes: ms until it says it, -1 none */
 void przestrzen_licz(float *suma, uint32_t ramki, int wyjscie); /* one period of the sum, the scene of `wyjscie` */
 void przestrzen_minuta(void);                     /* the log once a minute: the mean cost of a period (T6) */

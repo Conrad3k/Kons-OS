@@ -214,9 +214,9 @@ static void el_siec(struct k1_obraz *o, int32_t x, uint32_t krem)
     rysuj_siec(o, (float)x + 8, krem);
 }
 
-/* The popover "Dźwięk": dzwiek.c (0.12.0 step 1). */
-_Static_assert(DZWIEK_OKIENKO_SZER <= OKIENKO_PASKA_SZER && DZWIEK_OKIENKO_WYS <= OKIENKO_PASKA_WYS,
-               "okienko paska w powierzchni");
+/* The popover "Dźwięk": dzwiek.c (0.12.0 step 1). Higher than the surface at the start (0.12.3 step 4: the row "Kons
+ * Spatial Audio"): the surface grows when it opens (dopasuj_powierzchnie), as for the list "Grają teraz". */
+_Static_assert(DZWIEK_OKIENKO_SZER <= OKIENKO_PASKA_SZER, "okienko paska w powierzchni");
 
 /* The popovers of the bar: one surface (P_OKIENKO_PASKA) the size of the largest, under the icon that opens it. */
 enum { OK_DZWIEK = 0, OK_BATERIA, OK_N };

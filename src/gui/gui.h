@@ -120,8 +120,8 @@ void dzwiek_okresowe(double t); /* the remembered volume written a moment after 
 int dzwiek_klawisz(const struct k1_komunikat *m); /* a volume key from ekran: 1 taken (D4: ekran's pill) */
 void dzwiek_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
 #define DZWIEK_OKIENKO_SZER 300
-#define DZWIEK_OKIENKO_WYS 202 /* without the list "Grają teraz" (0.12.0 step 3: each session that plays adds a row);
-                                * 0.12.3 step 2: with the row "Korektor" */
+#define DZWIEK_OKIENKO_WYS 238 /* without the list "Grają teraz" (0.12.0 step 3: each session that plays adds a row);
+                                * 0.12.3 step 2: with the row "Korektor"; step 4: and the row "Kons Spatial Audio" */
 int32_t dzwiek_okienko_wys(void);  /* its height now */
 void okienko_paska_wysokosc(void); /* pasek_gorny.c: the sound's popover changed its height while open */
 void dzwiek_sesja_wycisz(int nr);  /* step 3: ekran's STREFA_WYCISZ (the speaker on a session's bar was clicked) */

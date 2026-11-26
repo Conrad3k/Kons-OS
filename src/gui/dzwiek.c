@@ -11,7 +11,9 @@
  * 0.12.3 step 2 (D1: A): the row "Korektor" with the name of the output's setting ("Więcej basu", "Własne") — a click
  * opens Ustawienia → Dźwięk → Korektor (POKAZ_USTAWIENIA to nadzorca); the bands of both outputs are remembered with the
  * volume (record K1G2) and given to every new service. Step 3: so is the scene of Kons Spatial Audio of each output
- * (record K1G3; Ustawienia → Dźwięk → Kons Spatial Audio sets it — the popover's switch comes in step 4). */
+ * (record K1G3; Ustawienia → Dźwięk → Kons Spatial Audio sets it). Step 4 (point 20): the row "Kons Spatial Audio" under
+ * "Korektor" — its switch (the scene of the output playing now on / off) and the scene's name; a click on the rest opens
+ * Ustawienia on the scene (K1_UST_MIEJSCE_PRZESTRZEN); each output's "Własna" is remembered too (record K1G4). */
 #include <stdio.h>
 #include <string.h>
 
@@ -33,7 +35,8 @@ static int sc_zgodne;       /* bit w: the service has our scene of output w (its
 static double zmiana_t;     /* when the remembered volume changed (0: nothing to write) */
 static int hover = -1, wcisniete = -1; /* the control under the pointer / pressed (C_*) */
 
-enum { C_WYCISZ = 0, C_SUWAK, C_PROBA, C_KOREKTOR, C_SESJA = 10 }; /* C_SESJA + 2·row: its mute, + 1: its volume */
+enum { C_WYCISZ = 0, C_SUWAK, C_PROBA, C_KOREKTOR, C_PRZ_WL, C_PRZESTRZEN, C_SESJA = 10 }; /* C_SESJA + 2·row: its
+                                                                                           * mute, + 1: its volume */
 #define P 16
 #define WYC_X (MARG + P) /* the mute: a round button 36 px */
 #define WYC_Y (MARG + 46)
@@ -42,7 +45,8 @@ enum { C_WYCISZ = 0, C_SUWAK, C_PROBA, C_KOREKTOR, C_SESJA = 10 }; /* C_SESJA + 
 #define SUW_Y (MARG + 64)
 #define KOR_Y (MARG + 106)                   /* 0.12.3 step 2: the row "Korektor" under the line */
 #define KOR_H 36
-#define LISTA_Y (KOR_Y + KOR_H + 8)          /* "Grają teraz" under it */
+#define PRZ_Y (KOR_Y + KOR_H)                /* step 4: the row "Kons Spatial Audio" under it */
+#define LISTA_Y (PRZ_Y + KOR_H + 8)          /* "Grają teraz" under them */
 #define WIERSZ 36
 #define SES_WYC_X (MARG + P + 92)            /* a row: the dot, the name, the mute (24 px), the slider, the percent */
 #define SES_SUW_X (MARG + P + 126)
@@ -151,24 +155,30 @@ void dzwiek_kanal_nowy(int fd)
         k1_dzwk_glosnosc(&dz, zap.glosnosc[w], zap.wyciszone[w], w);
         k1_dzwk_korektor(&dz, w, zap.korektor[w]); /* 0.12.3 step 2 */
         k1_dzwk_scena(&dz, w, &zap.scena[w]);      /* step 3 */
+        k1_dzwk_scena_wlasna(&dz, w, &zap.wlasna[w]); /* step 4 */
     }
 }
 
 /* 0.12.3 step 3: the scenes of the outputs as the service says them, as zapamietaj_korektor (also its places while off:
- * switched on again, it plays as before). */
+ * switched on again, it plays as before); step 4: their "Własna" too (bits 4 << w of sc_zgodne). */
+static void zapamietaj_scene(const struct k1_prz_scena *a, struct k1_prz_scena *b, int bit)
+{
+    int rowne = a->wlaczona == b->wlaczona && memcmp(a->pasma, b->pasma, sizeof a->pasma) == 0;
+    if (!(sc_zgodne & bit)) {
+        sc_zgodne |= rowne ? bit : 0;
+        return;
+    }
+    if (!rowne) {
+        *b = *a;
+        zmiana_t = k1_teraz();
+    }
+}
+
 static void zapamietaj_sceny(void)
 {
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
-        const struct k1_prz_scena *a = &dz.scena[w], *b = &zap.scena[w];
-        int rowne = a->wlaczona == b->wlaczona && memcmp(a->pasma, b->pasma, sizeof a->pasma) == 0;
-        if (!(sc_zgodne & 1 << w)) {
-            sc_zgodne |= rowne << w;
-            continue;
-        }
-        if (!rowne) {
-            zap.scena[w] = *a;
-            zmiana_t = k1_teraz();
-        }
+        zapamietaj_scene(&dz.scena[w], &zap.scena[w], 1 << w);
+        zapamietaj_scene(&dz.wlasna[w], &zap.wlasna[w], 4 << w);
     }
 }
 
@@ -310,6 +320,24 @@ static void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     k1_el(K1_EL_PRZYCISK, "Korektor", MARG + 8, KOR_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 0);
 }
 
+/* Step 4: the switch of Kons Spatial Audio (the output playing now) and its scene's name, an arrow — to Ustawienia */
+static void przestrzen_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    const struct k1_prz_scena *s = &dz.scena[dz.wyjscie];
+    const char *nazwa = s->wlaczona ? k1_prz_nazwa(s) : "Wyłączony";
+    float sx = MARG + DZWIEK_OKIENKO_SZER - P - 4, sy = PRZ_Y + KOR_H / 2;
+    if (hover == C_PRZESTRZEN)
+        k1_zaokraglony(o, MARG + 8, PRZ_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 9, k1_kolor(m->najechanie, 255));
+    k1_przelacznik(o, m, MARG + P, PRZ_Y + 8, s->wlaczona, 0);
+    k1_el(K1_EL_PRZYCISK, "Kons Spatial Audio", MARG + P - 4, PRZ_Y + 4, 44, 28, s->wlaczona ? K1_EL_WYBRANY : 0);
+    k1_tekst(o, K1_CZ_MALA, MARG + P + 46, PRZ_Y + 23, "Kons Spatial Audio", k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, (int32_t)sx - 10 - k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), PRZ_Y + 23, nazwa,
+             k1_kolor(m->tekst, 255), 0);
+    k1_kreska(o, sx - 3, sy - 5, sx + 2, sy, 1.5f, k1_kolor(m->tekst2, 255));
+    k1_kreska(o, sx + 2, sy, sx - 3, sy + 5, 1.5f, k1_kolor(m->tekst2, 255));
+    k1_el(K1_EL_PRZYCISK, "Scena", MARG + P + 44, PRZ_Y, DZWIEK_OKIENKO_SZER - 2 * P - 36, KOR_H, 0);
+}
+
 void dzwiek_okienko(struct k1_obraz *o, const struct k1_motyw *m)
 {
     struct k1_przycisk p = przycisk_proby();
@@ -337,8 +365,19 @@ void dzwiek_okienko(struct k1_obraz *o, const struct k1_motyw *m)
              k1_kolor(dz.wyciszone ? m->tekst3 : m->tekst, 255), 0);
     k1_prostokat(o, MARG + P, MARG + 98, DZWIEK_OKIENKO_SZER - 2 * P, 1, k1_kolor(m->tekst, 22));
     korektor_rysuj(o, m);
+    przestrzen_rysuj(o, m);
     lista_rysuj(o, m);
     k1_przycisk(o, m, &p, K1_CZ_MALA_MOCNA, hover == C_PROBA, !dz.gra);
+}
+
+/* Step 4: the switch of the row "Kons Spatial Audio" — the scene of the output playing now on or off (its places stay) */
+static void przestrzen_przelacz(void)
+{
+    struct k1_prz_scena s = dz.scena[dz.wyjscie];
+    s.wlaczona = !s.wlaczona;
+    k1_dzwk_scena(&dz, dz.wyjscie, &s);
+    k1_log(TAG, "okienko dźwięku: Kons Spatial Audio %s (%s)", s.wlaczona ? "włączony" : "wyłączony",
+           k1_dzw_wyjscie_nazwa(dz.wyjscie));
 }
 
 /* The control under (x, y) of the popover's surface, or -1. */
@@ -354,6 +393,8 @@ static int pod(int32_t x, int32_t y)
         return C_SUWAK;
     if (x >= MARG + 8 && x < MARG + DZWIEK_OKIENKO_SZER - 8 && y >= KOR_Y && y < KOR_Y + KOR_H)
         return C_KOREKTOR;
+    if (x >= MARG + 8 && x < MARG + DZWIEK_OKIENKO_SZER - 8 && y >= PRZ_Y && y < PRZ_Y + KOR_H)
+        return x < MARG + P + 42 ? C_PRZ_WL : C_PRZESTRZEN; /* step 4: the switch / the rest of the row */
     for (int i = 0; i < n_listy; i++) {
         int32_t sy = LISTA_Y + 26 + WIERSZ * i + WIERSZ / 2, ddx = x - (SES_WYC_X + 12), ddy = y - sy;
         if (ddx * ddx + ddy * ddy <= 12 * 12)
@@ -418,11 +459,14 @@ void dzwiek_okienko_wskaznik(const struct k1_komunikat *m)
             k1_log(TAG, "dźwięk: głośność %d%% (suwak)", dz.glosnosc);
         else if (c == C_WYCISZ && wcisniete == C_WYCISZ)
             glosnosc(dz.glosnosc, !dz.wyciszone);
-        else if (c == C_PROBA && wcisniete == C_PROBA && k1_dzwk_proba(&dz) == 0)
+        else if (c == C_PROBA && wcisniete == C_PROBA && k1_dzwk_proba(&dz, K1_DZWK_NUTY) == 0)
             okienko_paska.brudna = 1;
-        else if (c == C_KOREKTOR && wcisniete == C_KOREKTOR) { /* 0.12.3 step 2: Ustawienia on the equalizer */
-            k1_log(TAG, "okienko dźwięku: Korektor");
-            do_nadzorcy(k1_komunikat_nowy(K1_KOM_POKAZ_USTAWIENIA, 0, K1_UST_MIEJSCE_KOREKTOR, 0, 0, 0, 0));
+        else if (c == C_PRZ_WL && wcisniete == C_PRZ_WL) /* step 4: Kons Spatial Audio on / off */
+            przestrzen_przelacz();
+        else if ((c == C_KOREKTOR || c == C_PRZESTRZEN) && c == wcisniete) { /* 0.12.3 steps 2, 4: to Ustawienia */
+            int gdzie = c == C_KOREKTOR ? K1_UST_MIEJSCE_KOREKTOR : K1_UST_MIEJSCE_PRZESTRZEN;
+            k1_log(TAG, "okienko dźwięku: %s", c == C_KOREKTOR ? "Korektor" : "Kons Spatial Audio");
+            do_nadzorcy(k1_komunikat_nowy(K1_KOM_POKAZ_USTAWIENIA, 0, gdzie, 0, 0, 0, 0));
             wcisniete = -1;
             okienko_paska_zamknij();
             return;

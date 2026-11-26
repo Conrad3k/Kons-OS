@@ -44,6 +44,8 @@ void dzwiek_dane(void)
     int r = k1_dzwk_odbierz(&dz);
     if (r & K1_DZWK_KONIEC)
         apl.kanaly[3].fd = -1; /* nadzorca gives the next one */
+    if (r & (K1_DZWK_GRA | K1_DZWK_PROBA)) /* step 4: frames taken — redraw only when "Posłuchaj" changed its band */
+        r = (r & ~K1_DZWK_GRA) | (przestrzen_gra(&dz) && zakladka == Z_PRZESTRZEN ? K1_DZWK_GRA : 0);
     if (r && sekcja == S_DZWIEK)
         k1_apl_odswiez(&apl);
 }
@@ -169,7 +171,7 @@ int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         else if (c == C_WYCISZ && wcisniete == C_WYCISZ)
             k1_dzwk_glosnosc(&dz, dz.glosnosc, !dz.wyciszone, K1_DZW_WYJSCIE_BRAK);
         else if (c == C_PROBA && wcisniete == C_PROBA)
-            k1_dzwk_proba(&dz);
+            k1_dzwk_proba(&dz, K1_DZWK_NUTY);
         zmiana |= wcisniete >= 0;
         wcisniete = -1;
     }
@@ -180,6 +182,18 @@ void dzwiek_korektor_pokaz(void)
 {
     zakladka = Z_KOREKTOR;
     ustawienia_pokaz(S_DZWIEK);
+}
+
+void dzwiek_przestrzen_pokaz(void)
+{
+    zakladka = Z_PRZESTRZEN;
+    ustawienia_pokaz(S_DZWIEK);
+}
+
+void dzwiek_klawisz(unsigned kod, int wartosc, unsigned mody)
+{
+    if (zakladka == Z_PRZESTRZEN && dz.karta == K1_DZW_KARTA_JEST && przestrzen_klawisz(&dz, kod, wartosc, mody))
+        k1_apl_odswiez(&apl);
 }
 
 void dzwiek_pokazany(void)

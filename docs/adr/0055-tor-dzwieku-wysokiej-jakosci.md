@@ -160,6 +160,28 @@ dithera.
    na krok 4. Pamięć: gui, rekord „K1G3” (54 B: „K1G2” i po nim scena głośników i słuchawek, po 13 B jak w komunikacie;
    „K1G2” i „K1G1” czytane dalej — sceny wyłączone). Ustawienia → Dźwięk → **Kons Spatial Audio** (trzecia zakładka):
    wyjście, przełącznik, lista gotowych scen z opisami; scena do przeciągania i przełącznik w okienku „Dźwięk” — krok 4.
+20. **Scena do przeciągania, „Własna”, „Posłuchaj” (krok 4; właściciel: D4 = A — widok z góry, D6 = A — jedna
+   „Własna”).** Ustawienia → Dźwięk → Kons Spatial Audio rysuje scenę z góry (`src/aplikacje/ustawienia/scena.c`): głowa
+   w środku (nos — przód), trzy pierścienie odległości, każde pasmo z kierunkiem jako łuk swojej szerokości w swoim kolorze
+   (kolumna tabeli `K1_PRZ_PASMA`) z punktem w środku (przeciąganie: kierunek i odległość) i uchwytami na końcach
+   (szerokość, najmniej 20° przy przeciąganiu); pasma w tym samym miejscu mają osobne tory (12 px dalej każde), więc się nie
+   zakrywają. Bas to pierścień wokół głowy — tylko odległość (usługa i tak trzyma go w środku, pkt 15). Na głośnikach tył
+   jest przygaszony z napisem „na głośnikach tył gra z przodu” (D3: A). Klawiatura: Tab — następne pasmo, strzałki w lewo /
+   w prawo — kierunek o 10°, w górę / w dół — odległość o 10 %, + / − — szerokość o 10°. Każdy ruch idzie od razu do usługi
+   (`DZWIEK_SCENA`, scena się włącza); koniec ruchu — jeśli to nie gotowa scena — także jako **„Własna”** wyjścia:
+   `DZWIEK_SCENA` z a = wyjście + `K1_DZW_SCENA_WLASNA` (16; b = 1 jest, 0 jeszcze nie ma) — usługa ją trzyma (nie gra),
+   mówi klientom sterującym (`DZWIEK_SCENA_STAN` z tym samym a), gui pamięta (rekord „K1G4”, 80 B: „K1G3” i po nim „Własna”
+   głośników i słuchawek po 13 B; „K1G3”…„K1G1” czytane dalej — bez „Własnej”). Wybór gotowej sceny „Własnej” nie kasuje,
+   kafelek „Własna” ją przywraca; kolejne przesunięcie ją nadpisuje. Bez nowego numeru komunikatu (185 dalej wolny).
+   **„Posłuchaj”** to druga próba K1 (D3 planu 0.12.0: jedyne dźwięki K1 to próby): szum różowy (filtr P. Kelleta na szumie
+   z xorshift32, stałe ziarno) przez te same zwrotnice co scena, po kolei Bas, Niski środek, Środek, Góra po 0,9 s z 0,1 s
+   ciszy (`src/wspolne/k1_prz_proba.c`, czyste); poziom w paśmie −24 dBFS (bas −21), szczyt najwyżej jak próba. Robi go
+   klient (przybornik, jak „Odtwórz próbę”), więc usługa kładzie go na scenę jak każdy dźwięk; Ustawienia pokazują pasmo,
+   które gra (z ramek zabranych przez usługę). Gra na wyjściu, które gra teraz — dla drugiego przycisk mówi „Podłącz
+   słuchawki” / „Odłącz słuchawki”. Pomiar (`test_przestrzen`): pasma −21,5 / −24,1 / −24,0 / −24,0 dBFS, inne pasma
+   najwyżej −11 dB (zbocza zwrotnic). Okienko „Dźwięk” na górnym pasku: wiersz pod „Korektor” — przełącznik Kons Spatial
+   Audio (scena wyjścia, które gra) i nazwa sceny ze strzałką; reszta wiersza otwiera Ustawienia na scenie (nowy wiersz
+   `K1_UST_MIEJSCA`: PRZESTRZEN).
 
 ## Skutki
 - Cichy dźwięk bez „ziarna”, głośne nakładające się dźwięki bez trzasków; na kartach 24-bitowych szum toru 48 dB niżej.
@@ -179,3 +201,10 @@ dithera.
   odległość 101 %), `test-dzwiek.sh` (Ustawienia → Dźwięk → Kons Spatial Audio po nazwach, „Kino”; pasma z lewej — w pliku
   WAV prawy kanał co najmniej 20 dB ciszej, lewy jak bez sceny ±1 dB); RYZYKA R110. Odsłuch („z tyłu”, „szerzej”) — tylko
   właściciel na sprzęcie.
+- Krok 4: scena do przeciągania — `test_przestrzen` („Posłuchaj”: ten sam co raz, każde pasmo na swoim poziomie, inne
+  pasma najwyżej −10 dB, cisza między nimi, nic po końcu), `test_dzwiek` (komunikaty „Własnej”, rekord „K1G4”),
+  `t_dzwiek` („Własna” zapamiętana i powiedziana z powrotem; NEGATYWNY: „Własna” nieistniejącego wyjścia),
+  `test-dzwiek.sh` (punkty pasm po nazwach, przeciągnięcie „Środka”, „Kino” i powrót „Własnej” w to samo miejsce,
+  przełącznik i wiersz „Scena” w okienku; „Posłuchaj” w pliku WAV: bas w obu kanałach równo, pozostałe pasma z lewej —
+  Niski środek +17 dB (jego zbocze poniżej 120 Hz to bas), Środek i Góra +50 dB, każde pasmo wyżej), wzorce zakładki
+  i okienka w obu motywach (przyjęte po „OK” właściciela 2026-11-26).

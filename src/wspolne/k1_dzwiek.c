@@ -149,6 +149,7 @@ void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
     for (int w = K1_DZW_WYJSCIE_BRAK; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         z->glosnosc[w] = w != K1_DZW_WYJSCIE_BRAK ? K1_DZW_GLOSNOSC_START : 0;
         k1_prz_scena_start(&z->scena[w]);
+        k1_prz_scena_start(&z->wlasna[w]); /* off: none yet */
     }
 }
 
@@ -174,13 +175,14 @@ static int scena_czytaj(const uint8_t *b, struct k1_prz_scena *s)
 
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf)
 {
-    memcpy(buf, "K1G3", 4);
+    memcpy(buf, "K1G4", 4);
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         buf[4 + 2 * (w - 1)] = (uint8_t)z->glosnosc[w];
         buf[5 + 2 * (w - 1)] = (uint8_t)(z->wyciszone[w] != 0);
         for (int i = 0; i < K1_KOR_PASMA_N; i++)
             buf[K1_DZW_ZAPIS_G1_BAJTY + K1_KOR_PASMA_N * (w - 1) + i] = (uint8_t)z->korektor[w][i];
         scena_zapisz(&z->scena[w], buf + K1_DZW_ZAPIS_G2_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1));
+        scena_zapisz(&z->wlasna[w], buf + K1_DZW_ZAPIS_G3_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1)); /* step 4 */
     }
     return K1_DZW_ZAPIS_BAJTY;
 }
@@ -188,7 +190,8 @@ size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *bu
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z)
 {
     struct k1_dzw_zapamietane t;
-    int g3 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G3", 4) == 0;
+    int g4 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G4", 4) == 0;
+    int g3 = g4 || (n == K1_DZW_ZAPIS_G3_BAJTY && memcmp(buf, "K1G3", 4) == 0);
     int g2 = g3 || (n == K1_DZW_ZAPIS_G2_BAJTY && memcmp(buf, "K1G2", 4) == 0);
     if (!g2 && (n != K1_DZW_ZAPIS_G1_BAJTY || memcmp(buf, "K1G1", 4) != 0))
         return -1;
@@ -207,6 +210,8 @@ int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapami
         }
         if (g3 && scena_czytaj(buf + K1_DZW_ZAPIS_G2_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1), &t.scena[w]) != 0)
             return -1; /* 0.12.3 step 3 */
+        if (g4 && scena_czytaj(buf + K1_DZW_ZAPIS_G3_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1), &t.wlasna[w]) != 0)
+            return -1; /* step 4 */
     }
     *z = t;
     return 0;

@@ -26,13 +26,15 @@
 #include <stdint.h>
 
 #define K1_PRZ_PASMA_N 4
-/* The bands (rule 5: one table): X(index, the name in K1, the lower edge in Hz, the upper edge in Hz). The edges are the
- * crossovers (120, 500, 4000 Hz). */
+/* The bands (rule 5: one table): X(index, the name in K1, the lower edge in Hz, the upper edge in Hz, its colour on the
+ * scene of Ustawienia — 0xRRGGBB, step 4, docs/WYGLAD.md). The edges are the crossovers (120, 500, 4000 Hz). */
 #define K1_PRZ_PASMA(X)                                                                                  \
-    X(0, "Bas", 20, 120) X(1, "Niski środek", 120, 500) X(2, "Środek", 500, 4000) X(3, "Góra", 4000, 20000)
+    X(0, "Bas", 20, 120, 0x9a5b3f) X(1, "Niski środek", 120, 500, 0xc7923a) X(2, "Środek", 500, 4000, 0x4f8c78) \
+    X(3, "Góra", 4000, 20000, 0x5a78b0)
 const char *k1_prz_pasmo_nazwa(int pasmo); /* "" outside */
 int k1_prz_pasmo_od(int pasmo);            /* Hz; 0 outside */
 int k1_prz_pasmo_do(int pasmo);
+uint32_t k1_prz_pasmo_kolor(int pasmo);    /* 0xRRGGBB; 0 outside */
 
 #define K1_PRZ_KIERUNEK_MAKS 180  /* degrees, −180…180 (both ends: straight behind) */
 #define K1_PRZ_SZEROKOSC_MAKS 180 /* degrees, 0…180 */
@@ -190,5 +192,28 @@ void k1_prz_ustaw(struct k1_przestrzen *p, const struct k1_prz_scena *s, int wyj
 /* Kons Spatial Audio on `ramki` ≤ K1_DZW_OKRES stereo frames of the sum, in place. Off and no change: nothing at all.
  * Returns 1 when it computed anything (the service measures that time). */
 int k1_prz_licz(struct k1_przestrzen *p, float *suma, uint32_t ramki);
+
+/* ---- "Posłuchaj" (step 4, k1_prz_proba.c): the sample of the scene ---- */
+
+/* A soft pink noise in one band after another (Bas, Niski środek, Środek, Góra), the same in both channels — so the scene
+ * places it where that band is and the ear hears where each band goes. K1's only sounds are samples (0.12.0, D3: A): this
+ * is the second, played by Ustawienia → Dźwięk → Kons Spatial Audio like "Odtwórz próbę" (its stream, its ring). Pure and
+ * the same every time (a fixed seed). */
+#define K1_PRZ_PROBA_PASMO 43200u /* frames of one band (0.9 s at 48 kHz)… */
+#define K1_PRZ_PROBA_CISZA 4800u  /* …then this much silence (0.1 s) */
+#define K1_PRZ_PROBA_KROK (K1_PRZ_PROBA_PASMO + K1_PRZ_PROBA_CISZA)
+#define K1_PRZ_PROBA_RAMKI (K1_PRZ_PASMA_N * K1_PRZ_PROBA_KROK)
+#define K1_PRZ_PROBA_SZCZYT 11000 /* its loudest sample: as "Odtwórz próbę" (K1_DZW_PROBA_SZCZYT) */
+struct k1_prz_proba {
+    struct k1_prz_zwrotnica z;
+    uint32_t los, poz;  /* the generator; frames made */
+    double rozowy[3];   /* the pink filter's memory */
+};
+void k1_prz_proba_start(struct k1_prz_proba *p);
+/* The next `ile` stereo frames (S16, the same in both channels) from where it stopped: the frames written (fewer at its
+ * end, 0 after it). */
+uint32_t k1_prz_proba(struct k1_prz_proba *p, int16_t *cel, uint32_t ile);
+/* The band that frame `ramka` of the sample plays, or -1 (the silence between, after the end). */
+int k1_prz_proba_pasmo(uint32_t ramka);
 
 #endif

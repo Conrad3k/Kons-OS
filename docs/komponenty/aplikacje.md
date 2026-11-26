@@ -164,13 +164,21 @@ krok 0,5 dB; nad każdym wartość, pod nim pasmo). Każda zmiana idzie od razu 
 „korektor (Głośniki): Więcej basu”. Opis ekranu: kafelki po nazwach ustawień, suwaki „Pasmo 31” … „Pasmo 16k”.
 `USTAWIENIA_MIEJSCE` od nadzorcy (fd 4; a = KOREKTOR — wiersz „Korektor” okienka „Dźwięk” na górnym pasku) otwiera Dźwięk
 na zakładce Korektor. Od 0.12.3 krok 3 trzecia zakładka **Kons Spatial Audio** (`przestrzen.c`; D3: A, D5, D7: A; zakładki
-450 × 32): przełącznik „Głośniki | Słuchawki” (na start wyjście, które gra; obok „Gra teraz: …”), przełącznik „Kons Spatial
-Audio” z dopiskiem „dźwięk przestrzenny”, zdanie, co robi na tym wyjściu („W słuchawkach: pasma dźwięku w miejscach wokół
-głowy.” / „Na głośnikach: szerszy dźwięk. Dźwięk wokół głowy tylko w słuchawkach.”), a pod nim gotowe sceny jako wiersze
-z opisem (Naturalny, Kino, Koncert, Pokój, Głos; inne miejsca pasm — wiersz „Własna”, tylko pokazany). Kliknięcie sceny ją
-też włącza; przełącznik wyłącza i włącza, miejsca pasm zostają. Każda zmiana idzie od razu do usługi (`DZWIEK_SCENA`); log
-„scena (Słuchawki): Kino”. Opis ekranu: przełącznik „Kons Spatial Audio” (przycisk; wybrany — włączony), wiersze po nazwach
-scen (wybrany — ta gra).
+450 × 32). Od kroku 4 (D4: A — widok z góry, D6: A — jedna „Własna”; `przestrzen.c` + rysunek sceny `scena.c`): u góry
+przełącznik „Głośniki | Słuchawki” (na start wyjście, które gra) i przełącznik „Kons Spatial Audio” z dopiskiem „dźwięk
+przestrzenny”; z lewej **scena** z góry — głowa w środku, pasma jako kolorowe łuki szerokości z punktem (przeciąganie punktu:
+kierunek i odległość, końców łuku: szerokość), bas jako pierścień wokół głowy (tylko odległość), na głośnikach tył
+przygaszony („na głośnikach tył gra z przodu”); pod nią wybrane pasmo słowami („Środek 500 Hz – 4 kHz”, „przód · szerokość
+60° · odległość 20 %”). Z prawej kafelki scen (Naturalny, Kino, Koncert, Pokój, Głos, Własna — wybrana w akcencie, przy
+wyłączonym tylko obwódka; „Własna” blada, póki jej nie ma), lista „Pasma” (kropka, nazwa, kierunek; kliknięcie wybiera
+pasmo) i „Posłuchaj” (szum po kolei w każdym paśmie przez scenę; pasmo, które gra, jest pogrubione i ma poświatę na scenie;
+dla wyjścia, które nie gra — „Podłącz słuchawki” / „Odłącz słuchawki”, nieaktywny). Klawiatura: Tab — następne pasmo,
+strzałki — kierunek i odległość, + / − — szerokość. Kliknięcie sceny ją włącza; przesunięcie pasma też, i robi z niej
+„Własną” (koniec ruchu idzie do usługi także jako „Własna” wyjścia — `k1_dzwk_scena_wlasna`; gotowa scena jej nie kasuje,
+kafelek ją przywraca). Każda zmiana idzie od razu do usługi (`DZWIEK_SCENA`); log „scena (Słuchawki): Kino”, „posłuchaj:
+pasmo Góra”. Opis ekranu: przełącznik „Kons Spatial Audio” (przycisk; wybrany — włączony), kafelki po nazwach scen
+(wybrany — ta gra), punkty pasm po nazwach pasm („Bas” — pierścień, „Środek”…), wiersze listy „pasmo Bas”…, „Posłuchaj”.
+`USTAWIENIA_MIEJSCE` a = PRZESTRZEN (wiersz „Kons Spatial Audio” okienka „Dźwięk”) otwiera tę zakładkę.
 Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).

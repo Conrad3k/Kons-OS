@@ -7,7 +7,9 @@
  * front; the level: no scene louder than 100 % — the bound on a fine grid for every ready scene and 100 random ones, a
  * tone the same in both inputs and unrelated noise through the running scene; off — transparent, nothing computed; a
  * change without a click, back to off exact after one period; the worst scenes on full-scale noise — finite, no
- * blow-up; silence leaves no denormal numbers. The numbers are printed: ADR 0055 quotes them. */
+ * blow-up; silence leaves no denormal numbers. Step 4: "Posłuchaj" — the same every time, each band at its level, its
+ * peaks within K1_PRZ_PROBA_SZCZYT, the other bands far below it, silence between, nothing after its end. The numbers are
+ * printed: ADR 0055 quotes them. */
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -383,6 +385,53 @@ static void najgorsze(void)
     printf("koszt na hoście (ASan): średnio %.0f µs na okres\n", okresy / 10.0 * 1e6);
 }
 
+/* Step 4: "Posłuchaj" — one band after another */
+static void proba(void)
+{
+    static int16_t a[K1_PRZ_PROBA_RAMKI * 2], b[K1_PRZ_PROBA_RAMKI * 2];
+    static struct k1_prz_proba pr;
+    struct k1_prz_zwrotnica z;
+    uint32_t n = 0, kawalek;
+    k1_prz_proba_start(&pr);
+    for (kawalek = 1; n < K1_PRZ_PROBA_RAMKI; kawalek = kawalek * 3 % 1999 + 1) /* in pieces, as a ring takes it */
+        n += k1_prz_proba(&pr, a + 2 * n, kawalek);
+    EXPECT(n == K1_PRZ_PROBA_RAMKI && k1_prz_proba(&pr, b, 100) == 0); /* nothing after its end */
+    k1_prz_proba_start(&pr);
+    EXPECT(k1_prz_proba(&pr, b, K1_PRZ_PROBA_RAMKI) == K1_PRZ_PROBA_RAMKI && memcmp(a, b, sizeof a) == 0);
+    EXPECT(k1_prz_proba_pasmo(0) == 0 && k1_prz_proba_pasmo(K1_PRZ_PROBA_PASMO) == -1 &&
+           k1_prz_proba_pasmo(K1_PRZ_PROBA_KROK) == 1 && k1_prz_proba_pasmo(K1_PRZ_PROBA_RAMKI - 1) == -1 &&
+           k1_prz_proba_pasmo(K1_PRZ_PROBA_RAMKI) == -1 && k1_prz_proba_pasmo(3 * K1_PRZ_PROBA_KROK + 5) == 3);
+    for (int pasmo = 0; pasmo < K1_PRZ_PASMA_N; pasmo++) {
+        double moc[K1_PRZ_PASMA_N] = { 0 }, r[K1_PRZ_PASMA_N], cel = pasmo == 0 ? -21.0 : -24.0, kw = 0.0;
+        int szczyt = 0, cisza = 1, obce = 0, stereo = 1;
+        uint32_t od = (uint32_t)pasmo * K1_PRZ_PROBA_KROK;
+        k1_prz_zwrotnica_start(&z);
+        for (uint32_t i = od; i < od + K1_PRZ_PROBA_PASMO; i++) {
+            int v = a[2 * i] < 0 ? -a[2 * i] : a[2 * i];
+            szczyt = v > szczyt ? v : szczyt;
+            stereo &= a[2 * i] == a[2 * i + 1]; /* the same in both channels */
+            k1_prz_zwrotnica_licz(&z, a[2 * i] / 32768.0, r);
+            if (i >= od + 4800 && i < od + K1_PRZ_PROBA_PASMO - 2400) { /* the crossovers settled, before the end */
+                kw += (a[2 * i] / 32768.0) * (a[2 * i] / 32768.0);
+                for (int c = 0; c < K1_PRZ_PASMA_N; c++)
+                    moc[c] += r[c] * r[c];
+            }
+        }
+        for (uint32_t i = od + K1_PRZ_PROBA_PASMO; i < od + K1_PRZ_PROBA_KROK; i++)
+            cisza &= a[2 * i] == 0 && a[2 * i + 1] == 0;
+        for (int c = 0; c < K1_PRZ_PASMA_N; c++)
+            obce |= c != pasmo && 10.0 * log10(moc[c] / moc[pasmo]) > -10.0; /* the crossovers' own slopes */
+        double rms = 10.0 * log10(kw / (K1_PRZ_PROBA_PASMO - 7200)), inne = -999.0;
+        for (int c = 0; c < K1_PRZ_PASMA_N; c++)
+            if (c != pasmo && 10.0 * log10(moc[c] / moc[pasmo]) > inne)
+                inne = 10.0 * log10(moc[c] / moc[pasmo]);
+        printf("posłuchaj: %-13s %.1f dBFS, szczyt %d, inne pasma najwyżej %.1f dB\n", k1_prz_pasmo_nazwa(pasmo), rms,
+               szczyt, inne);
+        EXPECT(fabs(rms - cel) < 1.5 && szczyt <= K1_PRZ_PROBA_SZCZYT && szczyt > K1_PRZ_PROBA_SZCZYT / 4 && cisza &&
+               !obce && stereo);
+    }
+}
+
 int main(void)
 {
     srand(7);
@@ -395,5 +444,6 @@ int main(void)
     przezroczystosc();
     zmiana();
     najgorsze();
+    proba();
     return K1_TEST_KONIEC("test_przestrzen");
 }

@@ -142,6 +142,24 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   sceny jako wiersze 32 px co 36 px przez całą szerokość treści (pole, zaokrąglenie 9, cienka obwódka; pod kursorem
   „najechanie”): kółko 6 px (wybrana i włączona — kółko i kropka w akcencie, obwódka wiersza w akcencie), nazwa (Medium 13),
   opis od 128 px (Sans 13, tekst drugi); przy wyłączonym — nazwy i opisy bledsze, wybrana tylko z bladą obwódką akcentu.
+- **Scena Kons Spatial Audio** (0.12.3 krok 4, szkic A „widok z góry” — decyzja właściciela D4 z 2026-11-26; szkice A/B
+  w obu motywach z hosta; „Własna” — D6: A): zakładka jak wyżej, u góry przełącznik „Głośniki | Słuchawki” (230 × 32)
+  i obok (od +252 px) `k1_przelacznik` z „Kons Spatial Audio” (Medium 15) i „dźwięk przestrzenny” (Sans 13, tekst drugi).
+  Z lewej scena: koło 124 px (pole, cienka obwódka), trzy bledsze pierścienie odległości, krzyż kierunków, „przód” u góry
+  i „tył” u dołu (Sans 13, tekst trzeci); głowa — koło 19 px w kolorze tła z obwódką 1,5 px (tekst drugi), nos „^” do przodu,
+  uszy 7 × 14; pasmo z kierunkiem — łuk szerokości 3 px (wybrane 4 px) w kolorze pasma (alfa 140, wybrane 220), na końcach
+  uchwyty 4 px (pole z obwódką koloru), punkt 7 px w kolorze pasma; wybrane — obwódka 2 px w kolorze tekstu, pod kursorem —
+  bladą obwódką koloru, grające („Posłuchaj”) — poświata 15 px; pasma w tym samym miejscu na osobnych torach co 12 px. Bas —
+  pierścień 3 px wokół głowy. Wyłączona — wszystko w 40 % krycia; na głośnikach tylna połowa przykryta tłem (alfa 150)
+  z napisem „na głośnikach tył gra z przodu”. **Kolory pasm** (nowe, kolumna `K1_PRZ_PASMA`): Bas — brąz `#9A5B3F`,
+  Niski środek — miód `#C7923A`, Środek — morska zieleń `#4F8C78`, Góra — łupek jasny `#5A78B0`. Z prawej (od +266 px,
+  214 px): kafelki scen 103 × 30 w dwóch kolumnach (pełne zaokrąglenie, Medium 13; wybrana i włączona — akcent, wyłączona —
+  obwódka akcentu 1,5 px, „Własna” bez Własnej — tekst trzeci), „Pasma” (Sans 13, tekst drugi) i cztery wiersze 24 px
+  (kropka 5 px, nazwa, kierunek z prawej; wybrany na tle „zaznaczenie”), przycisk „Posłuchaj” 214 × 36 (zwykły). Pod sceną
+  wybrane pasmo: kropka, nazwa (Medium 13) i zakres (tekst trzeci), niżej miejsce słowami (tekst drugi).
+- **Wiersz „Kons Spatial Audio” okienka „Dźwięk”** (0.12.3 krok 4, decyzja właściciela 2026-11-26 — „jak na szkicu”): pod
+  wierszem „Korektor” drugi wiersz 36 px: z lewej `k1_przelacznik`, obok „Kons Spatial Audio” (Sans 13, tekst drugi),
+  z prawej nazwa sceny (Medium 13; wyłączona — „Wyłączony”) i strzałka „›”; okienko ma 300 × 238.
 - **Wiersz „Korektor” okienka „Dźwięk”** (0.12.3 krok 2, szkic A „jeden wiersz” — decyzja właściciela D1 z 2026-11-26):
   pod kreską wiersz 36 px (zaokrąglenie 9; pod kursorem tło „najechanie”): z lewej „Korektor” (Sans 13, tekst drugi),
   z prawej nazwa ustawienia wyjścia, które gra (Medium 13) i strzałka „›” (kreski 1,5 px, tekst drugi); okienko ma

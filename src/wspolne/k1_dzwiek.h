@@ -74,6 +74,10 @@ enum {
  * the one playing now). */
 enum { K1_DZW_WYJSCIE_BRAK = 0, K1_DZW_WYJSCIE_GLOSNIKI = 1, K1_DZW_WYJSCIE_SLUCHAWKI = 2 };
 #define K1_DZW_WYJSCIE_MAKS 2
+/* 0.12.3 step 4 (the owner's D6: A — one "Własna"): DZWIEK_SCENA and its STAN with a = an output + this are that output's
+ * "Własna" — the places of the last scene moved by hand, kept by the service for its steering clients (gui remembers it,
+ * Ustawienia brings it back), never played; b = 1 there is one, 0 none yet. */
+#define K1_DZW_SCENA_WLASNA 16
 const char *k1_dzw_wyjscie_nazwa(int wyjscie); /* "Głośniki", "Słuchawki"; "" for BRAK */
 /* Step 3 (D6: A): a session plays while its stream was given frames in the last K1_DZW_GRA_S seconds (silence a page
  * writes counts too — as a browser's tab "plays"); each session has a volume (0..100, start 100) and a mute of its own,
@@ -120,19 +124,23 @@ int k1_dzw_gniazdo_sluchawek(const char *nazwa);
  * then the equalizer's ten bands of the speakers and of the headphones (half-decibels, two's complement, ±K1_KOR_MAKS).
  * Step 3: "K1G3" — the same and then the scene of Kons Spatial Audio of the speakers and of the headphones, 13 bytes each:
  * on 0/1, the four directions, the four widths (in steps of K1_PRZ_KROK) and the four distances — as in a message
- * (k1_prz_z_pol checks them). Records "K1G1" and "K1G2" are still read (the equalizer flat, the scenes as at the start). */
+ * (k1_prz_z_pol checks them). Step 4: "K1G4" — the same and then the "Własna" of the speakers and of the headphones, 13
+ * bytes each in the same way (on = there is one). Records "K1G1", "K1G2", "K1G3" are still read (the equalizer flat, the
+ * scenes as at the start, no "Własna"). */
 #define K1_DZW_ZAPIS_G1_BAJTY 8
 #define K1_DZW_ZAPIS_G2_BAJTY (8 + 2 * K1_KOR_PASMA_N)
 #define K1_DZW_ZAPIS_SCENA 13
-#define K1_DZW_ZAPIS_BAJTY (K1_DZW_ZAPIS_G2_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
+#define K1_DZW_ZAPIS_G3_BAJTY (K1_DZW_ZAPIS_G2_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
+#define K1_DZW_ZAPIS_BAJTY (K1_DZW_ZAPIS_G3_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
 struct k1_dzw_zapamietane {
     int glosnosc[K1_DZW_WYJSCIE_MAKS + 1], wyciszone[K1_DZW_WYJSCIE_MAKS + 1]; /* by output; [BRAK] unused */
     int8_t korektor[K1_DZW_WYJSCIE_MAKS + 1][K1_KOR_PASMA_N];                    /* 0.12.3 step 2 */
     struct k1_prz_scena scena[K1_DZW_WYJSCIE_MAKS + 1];                         /* 0.12.3 step 3 */
+    struct k1_prz_scena wlasna[K1_DZW_WYJSCIE_MAKS + 1];                        /* step 4 (wlaczona: there is one) */
 };
 void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z);
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf); /* K1_DZW_ZAPIS_BAJTY */
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z); /* 0, or -1 (z unchanged);
-                                                                                            * K1G1, K1G2 or K1G3 */
+                                                                                            * K1G1 … K1G4 */
 
 #endif

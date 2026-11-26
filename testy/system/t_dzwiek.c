@@ -173,6 +173,22 @@ static void scena(int fd)
     wyslij_scene(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &s);
     check(scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && !t.wlaczona,
           "dźwięk: scena wyłączona, kanał po złych komunikatach działa", "%s", k1_prz_nazwa(&t));
+    /* step 4 (D6: A): the headphones' "Własna" — kept and told back under a = the output + K1_DZW_SCENA_WLASNA */
+    s.wlaczona = 1;
+    s.pasma[2].kierunek = -60;
+    wyslij_scene(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_SLUCHAWKI, &s);
+    memset(&t, 0, sizeof t);
+    check(scena_stan(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && t.wlaczona &&
+              t.pasma[2].kierunek == -60 && k1_prz_rozpoznaj(&t) < 0,
+          "dźwięk: „Własna” słuchawek zapamiętana w usłudze (0.12.3 krok 4) — mówi ją klientom sterującym", "");
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS + 1, 1, 0, 0, 0), -1);
+    check(!scena_stan(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS + 1, &t, 1000) &&
+              !scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 300),
+          "NEGATYWNY: „Własna” nieistniejącego wyjścia — odrzucona", "");
+    s.wlaczona = 0; /* none again: the next gui gives its own */
+    wyslij_scene(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_SLUCHAWKI, &s);
+    check(scena_stan(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && !t.wlaczona,
+          "dźwięk: „Własna” słuchawek znów pusta", "");
 }
 
 static void wrogi_klient(long pid)

@@ -23,7 +23,12 @@
 # 0.12.3 krok 3 (Kons Spatial Audio, D3: A, D5, D7: A): Ustawienia → Dźwięk → Kons Spatial Audio — przełącznik i gotowe
 # sceny po nazwach; „Kino” na głośnikach (usługa gra, pulpit zapamiętuje), potem program testowy stawia wszystkie pasma
 # z lewej (Ustawienia pokazują „Własna”), siódma próba — w pliku lewy kanał co najmniej 20 dB głośniej niż prawy i tak
-# głośny jak piąta próba (scena nie podnosi poziomu), przełącznik — wyłączony.
+# głośny jak piąta próba (scena nie podnosi poziomu).
+# 0.12.3 krok 4 (scena do przeciągania, D4: A, D6: A): punkty pasm, lista pasm i „Posłuchaj” po nazwach; „Posłuchaj” —
+# szum po kolei w czterech pasmach (w pliku: bas w obu kanałach równo, pozostałe pasma z lewej, każde wyżej od
+# poprzedniego); przeciągnięcie punktu „Środek” robi „Własną” (usługa ją trzyma, pulpit zapamiętuje), „Kino” i z powrotem
+# „Własna” — punkt wraca tam, gdzie go postawiono; okienko „Dźwięk”: przełącznik Kons Spatial Audio — wyłączony, wiersz
+# „Scena” otwiera Ustawienia na scenie.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -198,7 +203,7 @@ q.sprawdz("Ustawienia → Dźwięk → Kons Spatial Audio: przełącznik i gotow
 q.zrzut("przestrzen", gdy=lambda w, h, px: True)
 n_sc, n_zap = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Kino"), q.ile(r"K1-GUI: dźwięk: głośność zapamiętana")
 q.klik_w("Ustawienia", "Kino")
-q.sprawdz("„Kino”: usługa gra scenę na głośnikach, pulpit ją zapamiętuje w skarbcu (K1G3)",
+q.sprawdz("„Kino”: usługa gra scenę na głośnikach, pulpit ją zapamiętuje w skarbcu (K1G4)",
           q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Kino", od=n_sc, czas=30) and
           q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", od=n_zap, czas=30))
 q.sprawdz("program testowy stawia wszystkie pasma z lewej (klient sterujący): usługa gra „Własna”, Ustawienia ją pokazują",
@@ -212,10 +217,56 @@ q.klik_w("Ustawienia", "Odtwórz próbę")
 q.sprawdz("próba ze sceną z lewej (45 %) zagrana — w pliku lewy kanał głośniej",
           q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
 q.klik_w("Ustawienia", "Kons Spatial Audio", "zakladka")
+
+# ---- 0.12.3 step 4: the scene to drag (D4: A), "Własna" (D6: A), "Posłuchaj", the popover's row ----
+q.sprawdz("scena: punkty pasm, lista pasm i „Posłuchaj” po nazwach (opis ekranu)",
+          q.czekaj_na_element("Ustawienia", "Środek", czas=30) and q.element("Ustawienia", "Góra") and
+          q.element("Ustawienia", "Bas") and q.element("Ustawienia", "pasmo Niski środek") and
+          q.element("Ustawienia", "Posłuchaj"))
+n = q.ile(r"K1-USTAWIENIA: posłuchaj: zagrana")
+q.klik_w("Ustawienia", "Posłuchaj")
+q.sprawdz("„Posłuchaj”: szum po kolei w pasmach przez scenę (Ustawienia pokazują pasmo, które gra) — w pliku ósmy dźwięk",
+          q.czekaj(r"K1-USTAWIENIA: posłuchaj: pasmo Bas", czas=60) and
+          q.czekaj(r"K1-USTAWIENIA: posłuchaj: pasmo Góra", czas=120) and
+          q.czekaj(r"K1-USTAWIENIA: posłuchaj: zagrana", od=n, czas=120))
+bas, sr = q.element("Ustawienia", "Bas"), q.element("Ustawienia", "Środek")
+cx, cy = bas["x"] + bas["w"] // 2, bas["y"] + 3 + bas["w"] // 2  # the head: the bass's ring is around it
+n_wl, n_zap = q.ile(r"K1-USTAWIENIA: scena \(Głośniki\): Własna"), q.ile(r"K1-GUI: dźwięk: głośność zapamiętana")
+q.przeciagnij(sr["x"] + sr["w"] // 2, sr["y"] + sr["h"] // 2, cx + 80, cy - 40, krokow=8)
+q.sprawdz("przeciągnięty punkt „Środek”: przed głową z prawej, scena „Własna” (Ustawienia, usługa), pulpit zapamiętuje (K1G4)",
+          q.czekaj(r"K1-USTAWIENIA: scena \(Głośniki\): Własna", od=n_wl, czas=30) and
+          q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", od=n_zap, czas=30) and
+          q.czekaj_na(lambda: (q.element("Ustawienia", "Środek") or {"x": 0})["x"] > cx + 40, czas=30))
+po = q.element("Ustawienia", "Środek")
+n_sc = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Kino")
+q.klik_w("Ustawienia", "Kino")
+q.sprawdz("„Kino”: gotowa scena (punkt „Środek” wraca przed głowę)",
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Kino", od=n_sc, czas=30) and
+          q.czekaj_na(lambda: abs((q.element("Ustawienia", "Środek") or {"x": 0})["x"] - po["x"]) > 20, czas=30))
+n_sc = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Własna")
+q.klik_w("Ustawienia", "Własna")
+q.sprawdz("D6: „Własna” wraca — punkt „Środek” tam, gdzie go postawiono",
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Własna", od=n_sc, czas=30) and
+          q.czekaj_na(lambda: (q.element("Ustawienia", "Środek") or {"x": 0})["x"] == po["x"] and
+                      q.element("Ustawienia", "Środek")["y"] == po["y"], czas=30))
+q.zrzut("przestrzen-scena", gdy=lambda w, h, px: True)
+q.klik_w("Ustawienia", "Głośność", "zakladka")
+q.czekaj_na(lambda: q.element("Ustawienia", "Posłuchaj") is None, czas=30)
+q.klik_w("Pasek górny", "Dźwięk")
+q.sprawdz("okienko „Dźwięk”: wiersz Kons Spatial Audio (przełącznik włączony, „Scena”)",
+          q.czekaj_na_element(OK, "Scena", czas=30) and
+          q.czekaj_na(lambda: (q.element(OK, "Kons Spatial Audio") or {}).get("stan", 0) & 1, czas=30))
 n_sc = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony")
-q.klik_w("Ustawienia", "Kons Spatial Audio", "przycisk")
-q.sprawdz("przełącznik „Kons Spatial Audio”: scena głośników wyłączona",
-          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony", od=n_sc, czas=30))
+q.klik_w(OK, "Kons Spatial Audio")
+q.sprawdz("przełącznik Kons Spatial Audio w okienku: scena głośników wyłączona",
+          q.czekaj(r"K1-GUI: okienko dźwięku: Kons Spatial Audio wyłączony \(Głośniki\)", czas=30) and
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony", od=n_sc, czas=30) and
+          q.czekaj_na(lambda: not (q.element(OK, "Kons Spatial Audio") or {}).get("stan", 1) & 1, czas=30))
+q.klik_w(OK, "Scena")
+q.sprawdz("wiersz „Scena” okienka: Ustawienia na zakładce Kons Spatial Audio, przełącznik wyłączony",
+          q.czekaj(r"K1-GUI: okienko dźwięku: Kons Spatial Audio(?! )", czas=30) and
+          q.czekaj_na_element("Ustawienia", "Posłuchaj", czas=30) and
+          not (q.element("Ustawienia", "Kons Spatial Audio", "przycisk") or {}).get("stan", 1) & 1)
 
 # ---- 0.12.0 step 3: a zone plays (D6: A — the speaker on its bar, the list "Grają teraz"); the hostile one ----
 q.klik_w("Ustawienia", "Zamknij", "przycisk")  # the cue: the test program starts the test zone with a tone

@@ -17,12 +17,15 @@ static int korektor(const struct k1_komunikat *k)
     return w(k->a, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS) && k1_kor_z_pol(pola, pasma) == 0 && k->e == 0;
 }
 
-/* DZWIEK_SCENA and its STAN (0.12.3 step 3): an output that exists, on 0/1, every band in its ranges */
+/* DZWIEK_SCENA and its STAN (0.12.3 step 3): an output that exists (step 4: or its "Własna", + K1_DZW_SCENA_WLASNA), on
+ * 0/1, every band in its ranges */
 static int scena(const struct k1_komunikat *k)
 {
     int32_t pola[4] = { k->b, k->c, k->d, k->e };
     struct k1_prz_scena s;
-    return w(k->a, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS) && k1_prz_z_pol(pola, &s) == 0;
+    return (w(k->a, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS) ||
+            w(k->a, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS)) &&
+           k1_prz_z_pol(pola, &s) == 0;
 }
 
 static int do_dzwieku(const struct k1_komunikat *k)
