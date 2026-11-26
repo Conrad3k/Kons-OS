@@ -18,6 +18,7 @@
  * 0.11.0 step 2 (ADR 0052): the agent (/usr/lib/k1/agent) watches the folder of downloads and tells the VMM of a finished
  * one on the files port — K1 asks the user whether to save it in Pliki.
  * Paths here are the zone image's (Debian's tree), never K1's. */
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
@@ -66,6 +67,25 @@ void katalog_tmpfs(const char *gdzie, const char *opcje, uid_t wlasciciel)
         loguj("montowanie %s: %s", gdzie, strerror(errno));
     else if (wlasciciel != 0 && chown(gdzie, wlasciciel, wlasciciel) != 0)
         loguj("chown %s: %s", gdzie, strerror(errno));
+}
+
+/* 0.12.0 step 3: the sound card's nodes (/dev/snd: virtio-snd of the VMM — root's only in devtmpfs) for the browser's
+ * user, which plays through ALSA (T6 = A). The card has no input (D1 = A: no microphone). */
+static void dzwiek_dla_przegladarki(void)
+{
+    DIR *d = opendir("/dev/snd");
+    struct dirent *e;
+    int n = 0;
+    while (d != NULL && (e = readdir(d)) != NULL) {
+        char p[300];
+        if (e->d_name[0] == '.')
+            continue;
+        snprintf(p, sizeof p, "/dev/snd/%s", e->d_name);
+        n += chown(p, UZYTKOWNIK, UZYTKOWNIK) == 0;
+    }
+    if (d != NULL)
+        closedir(d);
+    loguj("dźwięk: %d węzłów karty dla przeglądarki", n);
 }
 
 /* The loopback: the browser reaches the relay on 127.0.0.1 (the zone has no other interface). */
@@ -327,6 +347,7 @@ void przegladarka(int ster)
         (mkdir(Z_K1, 0700) != 0 && errno != EEXIST) || chown(Z_K1, UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
+    dzwiek_dla_przegladarki();
     grafika = z_grafika();
     prefy(grafika);
     uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);

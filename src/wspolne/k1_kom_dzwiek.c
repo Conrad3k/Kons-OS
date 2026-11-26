@@ -5,6 +5,7 @@
 #include "k1_kom_wew.h"
 
 #include "k1_dzwiek.h"
+#include "k1_uslugi.h"
 
 static int do_dzwieku(const struct k1_komunikat *k)
 {
@@ -15,9 +16,9 @@ static int do_dzwieku(const struct k1_komunikat *k)
         return w(k->a, 1, (int32_t)K1_DZW_PIERSCIEN) && zera(k, 1);
     case K1_KOM_DZWIEK_ZAMKNIJ:
         return w(k->a, K1_DZW_PO_ODEGRANIU, K1_DZW_OD_RAZU) && zera(k, 1);
-    case K1_KOM_DZWIEK_GLOSNOSC:
+    case K1_KOM_DZWIEK_GLOSNOSC: /* d: a session (step 3) — then not an output */
         return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) &&
-               zera(k, 3);
+               w(k->d, 0, K1_STREFY_MAKS) && (k->d == 0 || k->c == K1_DZW_WYJSCIE_BRAK) && k->e == 0;
     default:
         return 0;
     }
@@ -33,6 +34,9 @@ static int od_dzwieku(const struct k1_komunikat *k)
                k->e == 0;
     case K1_KOM_DZWIEK_ODTWORZONO: /* nothing taken only when the stream ends */
         return w(k->a, k->b ? 0 : 1, (int32_t)K1_DZW_PIERSCIEN) && w(k->b, 0, 1) && zera(k, 2);
+    case K1_KOM_DZWIEK_SESJA: /* step 3 */
+        return w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && w(k->c, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->d, 0, 1) &&
+               k->e == 0;
     default:
         return 0;
     }
@@ -44,8 +48,9 @@ static int sterowanie(const struct k1_komunikat *k)
     case K1_KOM_DZWIEK_KARTA: /* the controls are the card's, not a device's: c = 0 */
         return w(k->a, K1_DZW_WEZEL_ODTWARZANIE, K1_DZW_WEZEL_KONTROLKI) && w(k->b, 0, K1_DZW_KARTA_NR_MAKS) &&
                (k->a == K1_DZW_WEZEL_ODTWARZANIE ? w(k->c, 0, K1_DZW_KARTA_NR_MAKS) : k->c == 0) && zera(k, 3);
-    case K1_KOM_DZWIEK_KLIENT:
-        return w(k->a, 1, K1_DZW_KLIENCI_MAKS) && w(k->b, 0, 65535) && zera(k, 2);
+    case K1_KOM_DZWIEK_KLIENT: /* c: the zone of a client STREFA (step 3), else 0 */
+        return w(k->a, 1, K1_DZW_KLIENCI_MAKS) && w(k->b, 0, 65535) &&
+               (k->a == K1_DZW_KLIENT_STREFA ? w(k->c, 1, K1_STREFY_MAKS) : k->c == 0) && zera(k, 3);
     case K1_KOM_DZWIEK_BEZ_KARTY:
         return zera(k, 0);
     default:
@@ -69,6 +74,7 @@ int k1_kom_sprawdz_dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek k
         return kier == K1_KIER_DO_DZWIEKU && do_dzwieku(k);
     case K1_KOM_DZWIEK_STAN:
     case K1_KOM_DZWIEK_ODTWORZONO:
+    case K1_KOM_DZWIEK_SESJA:
         return kier == K1_KIER_OD_DZWIEKU && od_dzwieku(k);
     case K1_KOM_DZWIEK_KANAL:
         return kier == K1_KIER_OD_NADZORCY && zera(k, 0);

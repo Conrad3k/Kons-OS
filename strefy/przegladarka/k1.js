@@ -16,6 +16,9 @@ pref("network.proxy.share_proxy_settings", false, locked);
 pref("network.trr.mode", 5, locked);
 pref("network.dns.disableIPv6", true, locked);
 pref("media.peerconnection.enabled", false, locked);
+// Dźwięk (0.12.0 krok 3, ADR 0054 T6 = A): Firefox gra przez ALSA (libasound z obrazu) do karty virtio-snd strefy, którą
+// udaje VMM K1 — bez serwera PulseAudio (najpierw próbowałby go szukać). Mikrofonu nie ma (D1 = A).
+pref("media.cubeb.backend", "alsa", locked);
 // Nic nie wysyła sama: bez aktualizacji (przychodzą z wydaniem K1), telemetrii, badań, raportów awarii.
 pref("app.update.enabled", false, locked);
 pref("extensions.update.enabled", false, locked);

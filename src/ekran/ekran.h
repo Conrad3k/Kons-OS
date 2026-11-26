@@ -205,7 +205,8 @@ int wylaczanie_czas_ms(void);               /* ms until the dots move again (dam
 /* strefy.c — the frame of a zone's window (0.10.0, ADR 0042); the sessions from nadzorca (0.10.0 step 5) */
 void strefy_sesje(const struct k1_komunikat *k);              /* STREFY_STAN, STREFA_NAZWA on the control channel */
 int strefa_pamieta(int nr);                                   /* zone nr remembers (as nadzorca said last) */
-enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ, STREFA_MAKSYMALIZUJ }; /* where on the frame */
+enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ, STREFA_MAKSYMALIZUJ,
+       STREFA_GLOSNIK }; /* where on the frame (0.12.0 step 3: the speaker of a session that plays) */
 #define STREFA_BRZEG 16 /* | K_* edges: a grip of the frame (0.10.5 step 4, rozmiar.c) */
 int okno_strefy(const struct pow *p);
 struct prost strefa_obszar(const struct pow *p);              /* the window with K1's frame around it */
@@ -245,6 +246,16 @@ int pelny_wskaznik(void);                   /* the pointer moved: 1 when it is o
 void pelny_klik(void);                      /* a press on K1's bar */
 int pelny_czas_ms(void);                    /* how soon the loop must come back, -1: no need */
 void pelny_rysuj(const struct prost *k);    /* the pill or K1's bar, into the scene inside k */
+
+/* strefy_dzwiek.c — the speaker on a session's bar (0.12.0 step 3, D6: A) */
+struct k1_motyw;
+void strefa_dzwiek(const struct k1_komunikat *m); /* STREFA_DZWIEK from the shell: which session plays, muted */
+int strefa_gra(const struct pow *p);              /* the session of zone window p plays */
+int32_t strefa_glosnik_rysuj(struct k1_obraz *o, const struct pow *p, const struct prost *r, int32_t tx, int32_t ty,
+                             int32_t kon, const struct k1_motyw *m, int fokus); /* into the bar; the text's next x */
+int strefa_glosnik_pod(int i, int32_t x, int32_t y); /* 1: on the speaker of window i */
+void strefa_glosnik_klik(int i);                   /* STREFA_WYCISZ to the shell */
+int strefa_glosnik_opis(struct k1_opis_el *el, int n, int i); /* its record for the screen's description (0, 1) */
 
 /* glosnosc.c — the pill of the volume keys (0.12.0 step 2, D4: A) */
 void glosnosc_pokaz(const struct k1_komunikat *m); /* GLOSNOSC_POKAZ from the shell */

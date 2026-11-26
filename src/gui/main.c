@@ -196,6 +196,9 @@ static void komunikat(struct k1_komunikat *m)
             przelacznik_klawisz(m); /* Tab with Alt held, Esc, Alt's release (0.10.5 step 6) */
         }
         break;
+    case K1_KOM_STREFA_WYCISZ: /* 0.12.0 step 3 (D6: A): the speaker on a session's bar */
+        dzwiek_sesja_wycisz(m->a);
+        break;
     case K1_KOM_OKNO:
         zmiana_okna(m);
         dok_zmiana(); /* a running application that is not pinned comes and goes on the bar */

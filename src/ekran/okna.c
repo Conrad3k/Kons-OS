@@ -330,20 +330,23 @@ static int obraz_albo_tapeta(int kl, const struct k1_komunikat *m, int fd)
 }
 
 /* The shell's own: other windows shown, minimised or closed (Alt+Tab, the bottom bar); 0.12.0 step 2 (D4: A): the pill
- * of the volume. 1: handled (refused or done). */
+ * of the volume; step 3 (D6: A): which session plays. 1: handled (refused or done). */
 static int od_powloki(int kl, const struct k1_komunikat *m)
 {
     int i;
     if (m->typ != K1_KOM_AKTYWUJ_OKNO && m->typ != K1_KOM_MINIMALIZUJ_OKNO && m->typ != K1_KOM_ZAMKNIJ_OKNO &&
-        m->typ != K1_KOM_GLOSNOSC_POKAZ)
+        m->typ != K1_KOM_GLOSNOSC_POKAZ && m->typ != K1_KOM_STREFA_DZWIEK)
         return 0;
     if (s.kl[kl].rola != K1_ROLA_POWLOKA) {
-        odrzuc(kl, m->typ == K1_KOM_GLOSNOSC_POKAZ ? "pigułka głośności tylko od powłoki"
-                                                    : "zarządzanie cudzymi oknami tylko dla powłoki");
+        odrzuc(kl, m->typ == K1_KOM_GLOSNOSC_POKAZ || m->typ == K1_KOM_STREFA_DZWIEK ? "dźwięk na ekranie tylko od powłoki"
+                                                                                      : "zarządzanie cudzymi oknami tylko dla powłoki");
         return 1;
     }
-    if (m->typ == K1_KOM_GLOSNOSC_POKAZ) {
-        glosnosc_pokaz(m);
+    if (m->typ == K1_KOM_GLOSNOSC_POKAZ || m->typ == K1_KOM_STREFA_DZWIEK) {
+        if (m->typ == K1_KOM_GLOSNOSC_POKAZ)
+            glosnosc_pokaz(m);
+        else
+            strefa_dzwiek(m); /* 0.12.0 step 3 (D6: A) */
         return 1;
     }
     i = znajdz_okno(m->obiekt);

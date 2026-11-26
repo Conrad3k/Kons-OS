@@ -138,6 +138,8 @@ static int zbierz(struct k1_opis_el *el)
                 rekord(&el[w], t->rodzaj, t->stan, okno ? p->okno : 0, p->x + t->x, p->y + t->y, t->w, t->h, t->nazwa))
                 w++;
         }
+        if (okno_strefy(p)) /* 0.12.0 step 3: the speaker on its bar */
+            w += strefa_glosnik_opis(&el[w], K1_OPIS_EKRAN_MAKS - w, i);
     }
     if (wylaczanie_trwa() && w < K1_OPIS_EKRAN_MAKS && rekord(&el[w], K1_EL_PANEL, 0, 0, 0, 0, s.W, s.H, wylaczanie_napis()))
         w++; /* 0.10.7 step 6: the screen "Wyłączanie" over everything */

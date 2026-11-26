@@ -50,6 +50,7 @@ void strefa_kanal_koniec(int nr)
     strefa_kanal[nr] = -1;
     strefa_pliki_koniec(nr); /* 0.11.0 step 2: its files waiting or being written */
     strefa_do_koniec(nr);    /* step 3: a file being sent to it */
+    dzwiek_strefa_koniec(nr); /* 0.12.0 step 3: its sound */
     if (licznik[nr].wszystkie > 0)
         k1_log(TAG, "strefa %d: połączenia %u, odmowy %u", nr, licznik[nr].wszystkie, licznik[nr].odmowy);
 }

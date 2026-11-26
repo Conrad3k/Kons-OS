@@ -234,6 +234,25 @@ static const struct {
 };
 _Static_assert(BATERIA_OKIENKO_SZER <= OKIENKO_PASKA_SZER && BATERIA_OKIENKO_WYS <= OKIENKO_PASKA_WYS,
                "okienko baterii w powierzchni");
+static int32_t powierzchnia_wys = OKIENKO_PASKA_WYS; /* the surface's height now: it grows for a longer popover */
+
+/* The popover's height now: the sound's grows with the list "Grają teraz" (0.12.0 step 3). */
+static int32_t wys_okienka(int nr)
+{
+    return nr == OK_DZWIEK ? dzwiek_okienko_wys() : okienka[nr].wys;
+}
+
+/* The surface as high as the popover: made anew (hidden) when the popover would not fit — never smaller than at the
+ * start, so the popovers look as they did (their reference screenshots). */
+static void dopasuj_powierzchnie(int32_t wys)
+{
+    if (wys <= powierzchnia_wys)
+        return;
+    powierzchnia_wys = wys;
+    k1_pow_usun(&k, &okienko_paska);
+    k1_pow_utworz(&k, &okienko_paska, P_OKIENKO_PASKA, OKIENKO_PASKA_SZER + 2 * MARG, wys + 2 * MARG, K1_POW_PANEL, 0, 0);
+    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 0, 0, 0, 0, 0));
+}
 
 /* The elements at the right of the bar, left to right, in one pill. */
 enum { EL_SIEC = 0, EL_BATERIA, EL_DZWIEK, EL_N };
@@ -249,6 +268,7 @@ static const struct {
 };
 static int32_t el_x[EL_N], el_w[EL_N];
 static void pokaz_okienko(int nr);
+static int32_t okienko_x;
 
 /* Where each element stands now — right to left from the date, 12 px before it; the pill's left edge. */
 static int32_t uloz_elementy(void)
@@ -318,7 +338,7 @@ void rysuj_okienko_paska(void)
     k1_el_od_nowa(&okienko_paska, "Okienko paska");
     k1_wyczysc(o, 0);
     if (okienko_otwarte >= 0) {
-        tlo_panelu(o, (float)okienka[okienko_otwarte].szer, (float)okienka[okienko_otwarte].wys);
+        tlo_panelu(o, (float)okienka[okienko_otwarte].szer, (float)wys_okienka(okienko_otwarte));
         okienka[okienko_otwarte].rysuj(o, motyw());
     }
     k1_pow_zatwierdz(&k, &okienko_paska);
@@ -347,10 +367,12 @@ static void pokaz_okienko(int nr)
             x = el_x[i] + el_w[i] / 2 - okienka[nr].szer / 2;
     x = x + okienka[nr].szer > k.szer_ekranu - 8 ? k.szer_ekranu - 8 - okienka[nr].szer : x;
     x = x < 8 ? 8 : x;
+    dopasuj_powierzchnie(wys_okienka(nr));
     rysuj_okienko_paska(); /* drawn before it shows: never the previous popover for a moment */
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_OKIENKO_PASKA, x - MARG, y - MARG, 0, 0, 0));
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 1, 0, 0, 0, 0));
-    k1_log(TAG, "okienko paska: %s w %d,%d (%dx%d)", okienka[nr].nazwa, x, y, okienka[nr].szer, okienka[nr].wys);
+    k1_log(TAG, "okienko paska: %s w %d,%d (%dx%d)", okienka[nr].nazwa, x, y, okienka[nr].szer, wys_okienka(nr));
+    okienko_x = x;
 }
 
 void okienko_paska_zamknij(void)
@@ -381,4 +403,20 @@ void wskaznik_gora(const struct k1_komunikat *m)
     }
     if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY && nowy >= 0) /* a second click closes it */
         pokaz_okienko(okienko_otwarte == elementy[nowy].okienko ? -1 : elementy[nowy].okienko);
+}
+
+/* 0.12.0 step 3: the sound's popover changed its height while open (a session started or stopped playing): a larger
+ * surface if needed, shown again where it was. */
+void okienko_paska_wysokosc(void)
+{
+    int32_t stara = powierzchnia_wys;
+    if (okienko_otwarte != OK_DZWIEK)
+        return;
+    dopasuj_powierzchnie(wys_okienka(OK_DZWIEK));
+    rysuj_okienko_paska();
+    if (powierzchnia_wys != stara) {
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_OKIENKO_PASKA, okienko_x - MARG, K1_PASEK_GORNY + 4 - MARG, 0,
+                                        0, 0));
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 1, 0, 0, 0, 0));
+    }
 }

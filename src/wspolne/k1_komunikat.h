@@ -223,6 +223,11 @@ enum k1_komunikat_typ {
                                    * opened / closed (nadzorca reads the battery every 5 s while it is open), or its button
                                    * "Ustawienia baterii" (open Ustawienia on Bateria); b..e=0 */
     K1_KOM_BATERIA_POKAZ = 251,   /* nadzorca → Ustawienia (its fd 4): obiekt=0, all 0 — show the section Bateria */
+    K1_KOM_STREFA_DZWIEK = 47,    /* 0.12.0 step 3 (D6: A): the shell → ekran: obiekt=0, a=the zone 1..K1_STREFY_MAKS,
+                                   * b=1 its session plays, c=1 it is muted, d,e=0 — ekran shows the speaker on the
+                                   * bar of the zone's window while b = 1 */
+    K1_KOM_STREFA_WYCISZ = 48,    /* ekran → the shell (K1_KIER_OD_EKRANU): obiekt=0, a=the zone — the user clicked the
+                                   * speaker on its window's bar: mute / unmute its session */
     K1_KOM_GLOSNOSC_POKAZ = 252,  /* 0.12.0 step 2 (D4: A): the shell → ekran (K1_KIER_DO_EKRANU), after a volume key:
                                    * obiekt=0, a=the volume 0..K1_DZW_GLOSNOSC_MAKS, b=1 muted, c=the output
                                    * K1_DZW_WYJSCIE_* (BRAK: no card — then a=b=0), d,e=0 — ekran shows its pill */
@@ -230,7 +235,8 @@ enum k1_komunikat_typ {
      * service (its fd 3, one way: K1_KIER_STEROWANIE) */
     K1_KOM_DZWIEK_KARTA = 4,       /* a=K1_DZW_WEZEL_* (ODTWARZANIE: b=the card, c=its device; KONTROLKI: b=the card, c=0;
                                     * 0..K1_DZW_KARTA_NR_MAKS), d=e=0; + 1 fd: that node of /dev/snd */
-    K1_KOM_DZWIEK_KLIENT = 5,      /* a=the client's row 1..K1_DZW_KLIENCI_MAKS, b=its UID 0..65535, c..e=0; + 1 fd: the
+    K1_KOM_DZWIEK_KLIENT = 5,      /* a=the client's row 1..K1_DZW_KLIENCI_MAKS, b=its UID 0..65535, c=its zone 1..K1_STREFY_MAKS
+                                    * for a client STREFA (step 3), else 0, d,e=0; + 1 fd: the
                                     * service's end of the client's channel (the service checks that UID as the sender) */
     K1_KOM_DZWIEK_BEZ_KARTY = 6,   /* all 0: 5 s after the start there is no card with a playback device */
     /* a client → dzwiek (K1_KIER_DO_DZWIEKU): one stream at a time */
@@ -242,7 +248,8 @@ enum k1_komunikat_typ {
                                     * b..e=0 */
     K1_KOM_DZWIEK_GLOSNOSC = 41,   /* a steering client only (K1_DZW_KLIENCI): a=the volume of all K1 0..K1_DZW_GLOSNOSC_MAKS,
                                     * b=1 muted / 0, c=of which output K1_DZW_WYJSCIE_* (step 2, D5; BRAK: the one
-                                    * playing now), d,e=0 */
+                                    * playing now), d=0 — or (step 3) d=a zone 1..K1_STREFY_MAKS: the volume and the
+                                    * mute of its session (c=0), e=0 */
     /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
     K1_KOM_DZWIEK_STAN = 42,       /* a=K1_DZW_KARTA_*, b=the volume 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted, d=K1_DZW_WYJSCIE_*
                                     * (BRAK unless a=JEST, then not BRAK; step 2: SLUCHAWKI while something is in their
@@ -250,6 +257,8 @@ enum k1_komunikat_typ {
     K1_KOM_DZWIEK_ODTWORZONO = 43, /* a=frames taken from the client's ring since the last 0..K1_DZW_PIERSCIEN (room for as
                                     * many new ones), b=1 its stream ended (a may be 0) / 0 (then a ≥ 1), c..e=0 */
     /* nadzorca → gui (its fd 5) */
+    K1_KOM_DZWIEK_SESJA = 46,      /* step 3 (D6: A), to a steering client: a=the zone 1..K1_STREFY_MAKS, b=1 it plays
+                                    * (K1_DZW_GRA_S), c=its volume 0..100, d=1 muted, e=0 — after every change */
     K1_KOM_DZWIEK_KANAL = 44,      /* all 0; + 1 fd: gui's end of its channel to dzwiek (again after the service restarts) */
     /* the test program → nadzorca (test image only) */
     K1_KOM_TEST_DZWIEK = 45,       /* all 0 → TEST_GNIAZDO + 1 fd: a channel to dzwiek as the client TEST (its UID 0) */
@@ -735,7 +744,8 @@ enum { K1_STREFA_TRYB_GRAFIKA = 16, K1_STREFA_TRYB_GRAFIKA_ZLA = 17 };
  * program says "Zapisz" to each) — scripts/test-pobrane.sh */
 enum { K1_STREFA_TRYB_POBRANIE = 18, K1_STREFA_TRYB_POBRANIE_ZLE = 19 };
 enum { K1_STREFA_TRYB_ODBIOR = 20 }; /* 0.11.0 step 3: files from K1 to the zone and back changed */
-#define K1_STREFA_TRYB_MAKS 20
+enum { K1_STREFA_TRYB_DZWIEK = 21, K1_STREFA_TRYB_DZWIEK_ZLY = 22 }; /* 0.12.0 step 3: a tone; hostile to the sound card */
+#define K1_STREFA_TRYB_MAKS 22
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480

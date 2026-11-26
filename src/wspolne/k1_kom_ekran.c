@@ -53,12 +53,20 @@ static int przeciagane(const struct k1_komunikat *k)
            (k->d == 0 || wpis((uint32_t)k->d)) && w(k->e, 0, K1_DOK_ID_MAKS);
 }
 
-/* 0.12.0 step 2: the pill of the volume (from the shell); without a card (c = BRAK) a and b are 0 */
-static int pigulka(const struct k1_komunikat *k)
+/* 0.12.0: sound on the screen — the pill of the volume (step 2; without a card, c = BRAK, a and b are 0), the speaker
+ * on a session's bar (step 3: from the shell) and its click (to the shell) */
+static int dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
-    return k->obiekt == 0 && w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) &&
-           w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) && (k->c != K1_DZW_WYJSCIE_BRAK || (k->a == 0 && k->b == 0)) &&
-           zera(k, 3);
+    if (k->obiekt != 0)
+        return 0;
+    if (k->typ == K1_KOM_STREFA_WYCISZ)
+        return kier == K1_KIER_OD_EKRANU && w(k->a, 1, K1_STREFY_MAKS) && zera(k, 1);
+    if (kier != K1_KIER_DO_EKRANU)
+        return 0;
+    if (k->typ == K1_KOM_STREFA_DZWIEK)
+        return w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && w(k->c, 0, 1) && zera(k, 3);
+    return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) &&
+           (k->c != K1_DZW_WYJSCIE_BRAK || (k->a == 0 && k->b == 0)) && zera(k, 3);
 }
 
 /* POWIERZCHNIA: a window, the desktop or a panel */
@@ -140,8 +148,8 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, K1_OPIS_MAKS) && zera(k, 1);
     case K1_KOM_OPIS_PYTANIE:
         return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && zera(k, 0);
-    case K1_KOM_GLOSNOSC_POKAZ: /* 0.12.0 step 2 (D4: A) */
-        return kier == K1_KIER_DO_EKRANU && pigulka(k);
+    case K1_KOM_GLOSNOSC_POKAZ: case K1_KOM_STREFA_DZWIEK: case K1_KOM_STREFA_WYCISZ: /* 0.12.0 steps 2, 3 */
+        return dzwiek(k, kier);
     case K1_KOM_OPIS_EKRANU:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 0, K1_OPIS_EKRAN_MAKS) &&
                w(k->b, 1, K1_POW_MAKS_BOK) && w(k->c, 1, K1_POW_MAKS_BOK) && zera(k, 3);

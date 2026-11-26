@@ -112,9 +112,10 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
 [x]  1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
                                                                                             T1–T4, T7, T8
-[ ]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
-     [w toku: Claude, gałąź claude/brave-planck-26jckj]
+[x]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
+     PR #225
 [ ]  3  Dźwięk z przeglądarki, znak na ramce sesji              L11–L15          1           D6, T5, T6     L        0054 (uzup.)
+     [w toku: Claude, gałąź claude/brave-planck-26jckj]
 [ ]  4  Porządki; wydanie 0.12.0                                L16              1–3         —              S–M      —
 (ADR 0054: następny wolny po 0053, który przesunął mapę drogi.)
 
@@ -374,7 +375,7 @@ Krok 1 (PR #223, 2026-11-25): D1: A, D2: B (szkice z hosta, oba motywy), D3: A. 
   - Ikony głośnika z poziomami: najpierw podział `k1_rysuj.c` (560 wierszy) → `k1_ikony.c` (osobny commit).
   - Do sprawdzenia na sprzęcie (właściciel, po najbliższym wydaniu robota): próba słychać na X230 i IdeaPadzie; log
     „K1-DZWIEK: karta 0: …, kodek …” — który kodek mają laptopy (L1, krok 2).
-Krok 2 (2026-11-25): D4: A, D5: A (szkice z hosta). ADR 0054 pkt 8–12. Wzorce Ustawień (wiersz „Dźwięk”, nowa sekcja)
+Krok 2 (PR #225, 2026-11-26): D4: A, D5: A (szkice z hosta). ADR 0054 pkt 8–12. Wzorce Ustawień (wiersz „Dźwięk”, nowa sekcja)
   przyjęte przez właściciela.
   - L7: klawisze głośności rozpoznaje ekran (`wskaznik.c`) i daje tylko powłoce; `wejscie` zostawia też urządzenie z samymi
     klawiszami głośności. Na X230 i IdeaPadzie klawisze idą najpewniej przez atkbd — NIEPEWNE: log wejścia „klawiatura
@@ -393,3 +394,19 @@ Krok 2 (2026-11-25): D4: A, D5: A (szkice z hosta). ADR 0054 pkt 8–12. Wzorce 
   - Do sprawdzenia na sprzęcie: klawisze głośności (X230: nad klawiaturą; IdeaPad: Fn+F2/F3, Fn+F1), pigułka nad pełnym
     ekranem przeglądarki, słuchawki w gnieździe (log „gniazdo słuchawek”, „wyjście: Słuchawki”), głośność po ponownym
     uruchomieniu, szum przy małej głośności (T3).
+Krok 3 (2026-11-26): D6: A (szkice z hosta: głośnik na pasku + lista „Grają teraz”). ADR 0054 pkt 13–16; RYZYKA R108,
+  R77 uzupełnione.
+  - T6 = A (POTWIERDZONE w pakiecie): libxul Firefoksa ESR 153 z obrazu strefy ma backend ALSA biblioteki cubeb
+    (`snd_pcm_open_lconf`, `libasound.so.2`; obok `pulse-rust`) — `media.cubeb.backend` „alsa”, bez PulseAudio. Że
+    Firefox naprawdę gra, sprawdza właściciel na sprzęcie (w emulacji Firefox w strefie nie rysuje okna, a stanowisko nie
+    ma karty virtio-snd).
+  - T5: VMM `dzwiek.c` + czyste `dzwiek_prosby.c`. Pierwsza wersja oddawała gościowi transfer zaraz po skopiowaniu —
+    sterownik gościa widział cały bufor „zagrany” naraz i co chwilę niedobór (test w emulacji: 0,3 s tonu, potem błąd
+    zapisu). Transfer wraca dopiero, gdy jego ramki zostały zagrane; usługa zgłasza postęp co okres (1024 ramki).
+  - Kanał VMM-a przychodzi z komunikatami nadzorcy na fd 7, które VMM czyta pod swoim zamkiem — `dzwiek_kanal` nie bierze
+    zamka drugi raz (pierwsza wersja: zakleszczenie, stróż VMM-a to pokazał).
+  - test-dzwiek.sh ma teraz też strefę próbną (zamknięcie Ustawień to znak dla programu testowego): ton 480 Hz przez
+    virtio-snd → usługa → plik WAV, głośnik na pasku, „Grają teraz”, wyciszenie sesji (w pliku przerwa ok. 5 s), gość
+    złośliwy (`TRYB_DZWIEK_ZLY`). QEMU z `--pamiec 1024`.
+  - Do sprawdzenia na sprzęcie: YouTube z dźwiękiem w Ogólnej i Banku, z szybką grafiką i bez; głośnik na pasku okna
+    i jego wyciszenie; „Grają teraz” z dwiema sesjami naraz; zgodność obrazu z dźwiękiem w filmie (VMM trzyma do ~170 ms).

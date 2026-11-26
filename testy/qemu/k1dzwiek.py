@@ -3,7 +3,9 @@
 crossings, the loudest sample. The checks are those of test-dzwiek: exactly five sounds (the muted sample is silence),
 in each the notes 660 Hz then 880 Hz, the second and third at 50 % ≈ 1/8 of the first (100 %; the cubic curve of
 k1_dzw_wzmocnienie), the third (after the service restarted) as loud as the second; step 2: the fourth at 40 % (after the
-volume keys, from Ustawienia), the fifth at 45 % (the volume a new gui took from skarbiec) — (0.8)³ and (0.9)³ of 50 %.
+volume keys, from Ustawienia), the fifth at 45 % (the volume a new gui took from skarbiec) — (0.8)³ and (0.9)³ of 50 %;
+step 3: after them the test zone's tone, 480 Hz, at least a second of it, with a gap of at least 2 s (its session muted
+from the speaker on its window's bar).
 
     python3 -I testy/qemu/k1dzwiek.py PLIK.wav   — exit 0 when all hold"""
 import struct
@@ -73,8 +75,8 @@ def main():
         sprawdz("plik WAV od QEMU (48 kHz, 16 bitów)", False, sys.argv[1])
         return 1
     d = dzwieki(s)
-    sprawdz("dokładnie pięć dźwięków (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %; wyciszona próba — cisza)",
-            len(d) == 5,
+    sprawdz("pięć prób (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %; wyciszona — cisza), po nich ton strefy",
+            len(d) >= 6,
             f"{len(d)}: " + ", ".join(f"{a / CZESTOTLIWOSC:.2f}–{z / CZESTOTLIWOSC:.2f} s" for a, z in d))
     szczyty = []
     for nr, (a, z) in enumerate(d[:5], 1):
@@ -89,6 +91,15 @@ def main():
         sprawdz("po restarcie usługi ta sama głośność (gui podała ją nowej usłudze)", 0.8 < szczyty[2] / szczyty[1] < 1.25,
                 f"{szczyty[2] / szczyty[1]:.3f}")
         sprawdz("100 %: próba bez przesterowania (szczyt poniżej 32767)", 3000 < szczyty[0] < 32767, f"{szczyty[0]}")
+    if len(d) >= 6:  # step 3: the zone's tone (in emulation it may come in pieces), one gap of the muted session
+        reszta = d[5:]
+        ton = [v for a, z in reszta for v in s[a:z]]
+        przerwa = max((reszta[i + 1][0] - reszta[i][1]) / CZESTOTLIWOSC for i in range(len(reszta) - 1)) \
+            if len(reszta) > 1 else 0
+        sprawdz("strefa: ton 480 Hz, co najmniej 1 s (karta virtio-snd → usługa dźwięku)",
+                len(ton) >= CZESTOTLIWOSC and 450 < czestotliwosc(ton) < 510,
+                f"{len(ton) / CZESTOTLIWOSC:.1f} s, {czestotliwosc(ton):.0f} Hz, części {len(reszta)}")
+        sprawdz("strefa: sesja wyciszona głośnikiem na pasku — przerwa co najmniej 2 s", przerwa >= 2.0, f"{przerwa:.1f} s")
     if len(szczyty) == 5:  # step 2: the keys (40 %) and the remembered volume (45 %), against 50 %: (0.8)³ = 0.512, (0.9)³ = 0.729
         sprawdz("40 % (klawisze, próba z Ustawień) ≈ 0,51 amplitudy 50 %", 0.42 < szczyty[3] / szczyty[1] < 0.62,
                 f"{szczyty[3] / szczyty[1]:.3f}")

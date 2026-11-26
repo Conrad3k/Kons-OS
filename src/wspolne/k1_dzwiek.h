@@ -33,7 +33,8 @@
 #define K1_DZW_KLIENCI(X)                                                                                     \
     X(GUI, 1, "pulpit", 1)            /* the popover "Dźwięk": the volume, the mute, "Odtwórz próbę" */      \
     X(TEST, 2, "program testowy", 1)  /* the test image only (TEST_DZWIEK) */                               \
-    X(USTAWIENIA, 3, "Ustawienia", 1) /* step 2: Ustawienia → Dźwięk (DZWIEK_KANAL on its fd 4) */
+    X(USTAWIENIA, 3, "Ustawienia", 1) /* step 2: Ustawienia → Dźwięk (DZWIEK_KANAL on its fd 4) */          \
+    X(STREFA, 4, "strefa", 0)         /* step 3: a zone's VMM, for its guest (virtio-snd; DZWIEK_KANAL on fd 7) */
 #define K1_X_DZW_KLIENT(n, nr, ...) K1_DZW_KLIENT_##n = nr,
 enum k1_dzw_klient { K1_DZW_KLIENCI(K1_X_DZW_KLIENT) };
 #define K1_X_DZW_LICZ(...) +1
@@ -57,6 +58,12 @@ enum {
 enum { K1_DZW_WYJSCIE_BRAK = 0, K1_DZW_WYJSCIE_GLOSNIKI = 1, K1_DZW_WYJSCIE_SLUCHAWKI = 2 };
 #define K1_DZW_WYJSCIE_MAKS 2
 const char *k1_dzw_wyjscie_nazwa(int wyjscie); /* "Głośniki", "Słuchawki"; "" for BRAK */
+/* Step 3 (D6: A): a session plays while its stream was given frames in the last K1_DZW_GRA_S seconds (silence a page
+ * writes counts too — as a browser's tab "plays"); each session has a volume (0..100, start 100) and a mute of its own,
+ * on top of the volume of K1. DZWIEK_SESJA tells the steering clients; DZWIEK_GLOSNOSC d = the zone sets them. */
+#define K1_DZW_GRA_S 1.0
+#define K1_DZW_SESJA_START 100
+
 /* DZWIEK_ZAMKNIJ a */
 enum { K1_DZW_PO_ODEGRANIU = 0, K1_DZW_OD_RAZU = 1 };
 
@@ -78,6 +85,8 @@ uint32_t k1_dzw_pobierz(struct k1_dzw_pierscien *p, const int16_t *pamiec, int16
 uint32_t k1_dzw_wzmocnienie(int glosnosc, int wyciszone);
 /* Adds `ramki` frames of `probki` into the sum `suma` (2 × ramki values). */
 void k1_dzw_dodaj(int32_t *suma, const int16_t *probki, uint32_t ramki);
+/* The same at a gain (K1_DZW_JEDEN = 1.0; step 3: a session's volume) — never more than the samples themselves. */
+void k1_dzw_dodaj_wzm(int32_t *suma, const int16_t *probki, uint32_t ramki, uint32_t wzmocnienie);
 /* The sum × gain (K1_DZW_JEDEN = 1.0) clipped to 16 bits into `wyj`; returns how many samples were clipped. */
 uint32_t k1_dzw_wyjscie(int16_t *wyj, const int32_t *suma, uint32_t ramki, uint32_t wzmocnienie);
 

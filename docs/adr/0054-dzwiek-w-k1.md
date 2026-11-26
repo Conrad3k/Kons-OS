@@ -1,6 +1,6 @@
 # 0054. Dźwięk w K1: usługa dźwięku z wyłącznym prawem do karty, ALSA bez alsa-lib, kanał z pierścieniem
 
-- Status: Przyjęty, kroki 1–2 wdrożone (0.12.0)
+- Status: Przyjęty, kroki 1–3 wdrożone (0.12.0)
 - Data: 2026-11-25
 - Dotyczy: SPEC §5 (usługi), §7 (klatki), niezmiennik 7 skilla (jeden właściciel zasobu — **rozszerza go o kartę
   dźwiękową**), ADR 0007 (klatki), ADR 0053 (0.12 = Dźwięk); plan `docs/PLAN-0.12.0.txt` (T1–T4, T7, T8, D1–D3);
@@ -43,7 +43,7 @@ nie wydaje własnych dźwięków; jedyny to „Odtwórz próbę”).
    przeciw zmniejszeniu i powiększeniu (`DZWIEK_OTWORZ`), usługa mapuje go tylko do odczytu; po każdym zapisie klient podaje
    **liczbę nowych ramek** (`DZWIEK_ZAPISANO`), nigdy indeks ani pozycję. Usługa liczy sama (`k1_dzw_zapisano`): więcej, niż
    mieści pierścień, albo ramki bez strumienia — klient traci kanał. Ramki są **kopiowane** z pierścienia przed mieszaniem
-   (klient może pisać w tym czasie — wtedy gra tylko inny szum). Postęp wraca co 4096 ramek (`DZWIEK_ODTWORZONO`).
+   (klient może pisać w tym czasie — wtedy gra tylko inny szum). Postęp wraca co 4096 ramek (`DZWIEK_ODTWORZONO`; od kroku 3 co okres, 1024 — pkt 14).
    Klient sterujący (gui, program testowy) zmienia głośność całego K1 (`DZWIEK_GLOSNOSC`), każdy klient słyszy stan
    (`DZWIEK_STAN`). Wszystkie komunikaty sprawdzane pole po polu (`k1_kom_dzwiek.c`), test i fuzzing na hoście.
 5. **Energia (T8):** bez strumienia przez 5 s usługa zatrzymuje kartę i zwalnia jej bufor (DROP + HW_FREE). Usypianie
@@ -78,11 +78,34 @@ włączeniu taka, jak przy wyłączaniu — osobno głośniki i słuchawki).
 12. **Energia (T8):** `PM` w jądrze — **jeszcze nie**: zmienia też USB, i915 i karty sieciowe, a pomiaru na laptopach w tym
     kroku nie ma; karta po 5 s ciszy dalej przestaje grać (DROP + HW_FREE). Pomiar i decyzja — „Później”.
 
+## Uzupełnienie — krok 3 (dźwięk przeglądarki, głośnik na pasku sesji; 2026-11-25)
+Właściciel, 2026-11-25: **D6 = A** (mały głośnik na pasku okna sesji, która gra; kliknięcie wycisza tylko tę sesję) —
+razem z listą „Grają teraz” z D2 = B.
+13. **Firefox gra przez ALSA (T6 = A):** libxul Firefoksa ESR z obrazu strefy ma backend ALSA biblioteki cubeb (sprawdzone
+    w pakiecie: `snd_pcm_open_lconf`, `libasound.so.2`); `media.cubeb.backend` = „alsa” (zablokowane), bez PulseAudio
+    i PipeWire w strefie. Węzły `/dev/snd` gościa dostaje użytkownik przeglądarki (`gosc/przegladarka.c`).
+14. **Karta strefy to virtio-snd w VMM (T5):** jądro strefy `SND_VIRTIO`; VMM (`src/strefa/dzwiek.c`, czyste
+    `dzwiek_prosby.c`) ma jeden strumień wyjścia w formacie usługi dźwięku (48 kHz, S16, stereo — VMM nic nie przelicza),
+    bez gniazd, map kanałów, kontrolek i wejścia. Prośby gościa w stanach z virtio 5.14.6.6.1, każde pole sprawdzane;
+    prośba bez miejsca na odpowiedź albo transfer bez miejsca na stan kończy maszynę. Transfer wraca do gościa dopiero, gdy
+    jego ostatnia ramka **została zagrana** (usługa zgłasza postęp co okres, 1024 ramki) — sterownik gościa liczy swój
+    zegar z oddanych transferów; oddane od razu po skopiowaniu dawały mu „zagrany” cały bufor naraz i niedobór za każdym
+    razem (pierwsza wersja, test w emulacji). W pierścieniu najwyżej 8192 ramek niezagranych (~170 ms).
+    Bez usługi albo karty — własny zegar urządzenia (film idzie w swoim tempie, bez dźwięku).
+15. **Strefa to klient `STREFA` usługi dźwięku:** nadzorca daje kanał VMM-owi każdej strefy z oknem na jej fd 7
+    (`DZWIEK_KANAL`, od nowa po restarcie usługi i przy nowej maszynie), z numerem strefy w `DZWIEK_KLIENT`; strefa
+    pobierania — nie. Klient `STREFA` nie steruje (głośność K1 tylko gui i Ustawienia).
+16. **Sesja, która gra, i jej głośność (D6 = A):** usługa miesza każdą sesję z jej własną głośnością i wyciszeniem
+    (`DZWIEK_GLOSNOSC` d = strefa; start 100 %, nie zapamiętywane), potem głośność K1. Sesja gra, póki jej ramki szły
+    w ostatniej sekundzie; `DZWIEK_SESJA` mówi to klientom sterującym. gui pokazuje „Grają teraz” i mówi ekranowi
+    (`STREFA_DZWIEK`, tylko od powłoki), który rysuje głośnik na pasku okna sesji poza obrazem strefy (R26); kliknięcie
+    (`STREFA_WYCISZ`) wraca do gui. Stan „gra” pochodzi od usługi dźwięku — nigdy od strefy.
+
 ## Konsekwencje
 - Nowa powierzchnia ataku: sterownik HD Audio w jądrze, osiągalny tylko z usługi dźwięku (klatka, lista ioctl) —
   RYZYKA R107. Klienci widzą tylko pierścień i komunikaty usługi.
-- Krok 2 (klawisze, słuchawki, Ustawienia → Dźwięk) i krok 3 (urządzenie virtio-snd w VMM strefy, klient „strefa” w tabeli
-  `K1_DZW_KLIENCI`, lista „Grają teraz” z D2 = B) uzupełnią ten ADR.
+- Kroki 2 i 3 uzupełniają ten ADR (pkt 8–16). Nowe ryzyka: VMM rozbiera prośby virtio-snd gościa (R77), strona gra bez
+  wiedzy użytkownika (R108 — głośnik na pasku i wyciszanie sesji).
 - Okienko „Dźwięk” i ikona głośnika (wyciszony / cicho / głośno / bez karty) — `docs/WYGLAD.md`, `gui.md`.
 
 ## Rozważane alternatywy

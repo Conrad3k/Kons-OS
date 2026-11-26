@@ -69,6 +69,16 @@ void k1_dzw_dodaj(int32_t *suma, const int16_t *probki, uint32_t ramki)
         suma[i] += probki[i]; /* at most 16 streams of 32767: far from 2^31 */
 }
 
+void k1_dzw_dodaj_wzm(int32_t *suma, const int16_t *probki, uint32_t ramki, uint32_t wzmocnienie)
+{
+    if (wzmocnienie >= K1_DZW_JEDEN) {
+        k1_dzw_dodaj(suma, probki, ramki);
+        return;
+    }
+    for (size_t i = 0; i < (size_t)ramki * K1_DZW_KANALY; i++)
+        suma[i] += (int32_t)(((int64_t)probki[i] * (int64_t)wzmocnienie) / (int64_t)K1_DZW_JEDEN);
+}
+
 uint32_t k1_dzw_wyjscie(int16_t *wyj, const int32_t *suma, uint32_t ramki, uint32_t wzmocnienie)
 {
     uint32_t przyciete = 0;

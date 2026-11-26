@@ -55,6 +55,7 @@ void wejscie_klawisz(int kod, int wartosc) { (void)kod, (void)wartosc; }
 void gpu_liczniki(unsigned *n, unsigned *mib) { *n = 0, *mib = 0; }
 void pomiar_gosc(const uint32_t *w) { (void)w; } /* 0.10.11 step 1: the guest's measurement line */
 void balon_cel(uint32_t mib) { (void)mib; }
+void dzwiek_kanal(int fd) { (void)fd; } /* 0.12.0 step 3: the channel to the sound service (dzwiek.c) */
 void balon_stan(struct balon_stan *s) { memset(s, 0, sizeof *s); }
 void k1_log(const char *tag, const char *fmt, ...) { (void)tag, (void)fmt; }
 

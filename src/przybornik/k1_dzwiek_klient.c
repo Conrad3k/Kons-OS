@@ -30,6 +30,8 @@ void k1_dzwk_kanal(struct k1_dzw_polaczenie *k, int fd)
         close(k->fd);
     k->fd = nowy;
     k->gra = 0;
+    for (int nr = 0; nr <= K1_STREFY_MAKS; nr++)
+        k->sesje[nr] = (struct k1_dzw_sesja){ 0, K1_DZW_SESJA_START, 0 };
     k1_log(k->tag, "dźwięk: kanał do usługi dźwięku");
 }
 
@@ -41,6 +43,16 @@ void k1_dzwk_glosnosc(struct k1_dzw_polaczenie *k, int glosnosc, int wyciszone, 
         k->wyciszone = wyciszone;
     }
     wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, glosnosc, wyciszone != 0, wyjscie, 0, 0));
+}
+
+void k1_dzwk_sesja(struct k1_dzw_polaczenie *k, int nr, int glosnosc, int wyciszona)
+{
+    if (nr < 1 || nr > K1_STREFY_MAKS)
+        return;
+    glosnosc = glosnosc < 0 ? 0 : glosnosc > K1_DZW_GLOSNOSC_MAKS ? K1_DZW_GLOSNOSC_MAKS : glosnosc;
+    k->sesje[nr].glosnosc = glosnosc;
+    k->sesje[nr].wyciszona = wyciszona != 0;
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, glosnosc, wyciszona != 0, 0, nr, 0));
 }
 
 /* The sample into the ring as far as it is free; at its end: close after it plays. */
@@ -128,6 +140,9 @@ int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
             continue;
         if (m.typ == K1_KOM_DZWIEK_STAN) {
             r |= stan(k, &m);
+        } else if (m.typ == K1_KOM_DZWIEK_SESJA) { /* step 3 (numbers only: no session's name in the log) */
+            k->sesje[m.a] = (struct k1_dzw_sesja){ m.b, m.c, m.d };
+            r |= K1_DZWK_SESJE;
         } else if (m.typ == K1_KOM_DZWIEK_ODTWORZONO && k->gra) {
             k->wolne += (uint32_t)m.a;
             if (m.b) {

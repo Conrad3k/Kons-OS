@@ -9,10 +9,13 @@
 # (45 %, bez wyciszenia, D5) i próba z Ustawień. Potem słucha pliku: dokładnie pięć dźwięków (wyciszona próba — cisza),
 # w każdym nuty 660 i 880 Hz, 50 % ≈ 1/8 amplitudy 100 % (krzywa sześcienna), po restarcie tak samo jak przed, 40 % i 45 %
 # w stosunku sześcianów do 50 %; węzły karty ma tylko usługa dźwięku.
+# Krok 3: zamknięcie Ustawień — program testowy uruchamia strefę próbną z tonem 480 Hz (karta virtio-snd VMM-a → usługa
+# dźwięku): głośnik na pasku okna sesji i „Grają teraz” w okienku, kliknięcie głośnika — sesja wyciszona (4 s ciszy), drugie
+# — znów gra; potem gość złośliwy dla karty (VMM kończy jego maszynę). W pliku po pięciu próbach — ton 480 Hz z przerwą.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
-CZAS=${K1_TEST_CZAS:-900}
+CZAS=${K1_TEST_CZAS:-1500}
 WAV=$TESTY/dzwiek.wav
 mkdir -p "$TESTY"
 rm -f "$TESTY"/dzwiek-*.png "$TESTY/dzwiek.log" "$TESTY/dzwiek.sock" "$WAV"
@@ -138,6 +141,39 @@ q.sprawdz("pulpit zabity (program testowy, SIGKILL) i uruchomiony od nowa: gło�
 n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
 q.klik_w("Ustawienia", "Odtwórz próbę")
 q.sprawdz("próba z Ustawień po nowym pulpicie (45 %)", q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
+
+# ---- 0.12.0 step 3: a zone plays (D6: A — the speaker on its bar, the list "Grają teraz"); the hostile one ----
+q.klik_w("Ustawienia", "Zamknij", "przycisk")  # the cue: the test program starts the test zone with a tone
+SZ = "Strefa próbna"
+q.sprawdz("strefa próbna gra ton przez kartę virtio-snd swojego VMM-a (kanał do usługi dźwięku od nadzorcy)",
+          q.czekaj(r"K1-TEST: dźwięk: strefa próbna gra ton — uruchomiona", czas=120) and
+          q.czekaj(r"K1-STREFA: dźwięk: kanał do usługi dźwięku", czas=240) and
+          q.czekaj(r"K1-GOSC: dźwięk: gram ton 480 Hz", czas=240) and
+          q.czekaj(r"K1-DZWIEK: klient strefa: strumień otwarty", czas=120))
+q.sprawdz("sesja gra: głośnik na pasku okna strefy (opis ekranu: „Wycisz sesję”), ekran wie od pulpitu",
+          q.czekaj(r"K1-EKRAN: strefa 1: gra(?!,)", czas=120) and q.czekaj_na_element(SZ, "Wycisz sesję", czas=60))
+q.zrzut("strefa-gra", gdy=lambda w, h, px: True)
+q.klik_w("Pasek górny", "Dźwięk")
+q.sprawdz("okienko „Dźwięk”: „Grają teraz” z sesją (wycisz, głośność sesji)",
+          q.czekaj_na_element(OK, "Głośność sesji 1", czas=30) and q.element(OK, "Wycisz sesję 1"))
+q.zrzut("grajace-sesje", gdy=lambda w, h, px: True)
+q.klik_w("Pasek górny", "Dźwięk")
+q.czekaj_na(lambda: q.element(OK) is None, czas=30)
+q.klik_w(SZ, "Wycisz sesję")
+q.sprawdz("głośnik na pasku: sesja wyciszona (usługa dźwięku, nie strefa), znak przekreślony",
+          q.czekaj(r"K1-DZWIEK: sesja 1: głośność 100%, wyciszona", czas=60) and
+          q.czekaj(r"K1-EKRAN: strefa 1: gra, wyciszona", czas=60) and
+          q.czekaj_na(lambda: (q.element(SZ, "Wycisz sesję") or {}).get("stan", 0) & 1, czas=30))
+q.cisza(r"K1-DZWIEK: sesja 1: głośność 100%(?!,)", 4)  # four seconds of the muted session: silence in the WAV
+q.klik_w(SZ, "Wycisz sesję")
+q.sprawdz("drugie kliknięcie: sesja znów gra", q.czekaj(r"K1-DZWIEK: sesja 1: głośność 100%(?!,)", czas=60))
+q.sprawdz("strefa kończy ton i maszynę; sesja przestaje grać — znak znika",
+          q.czekaj(r"K1-GOSC: dźwięk: koniec", czas=240) and q.czekaj(r"K1-EKRAN: strefa 1: nie gra", czas=120))
+q.sprawdz("NEGATYWNY: gość złośliwy dla karty — format, którego K1 nie gra: „nieobsługiwane”, maszyna żyje; prośba bez "
+          "miejsca na odpowiedź — VMM kończy tylko tę maszynę",
+          q.czekaj(r"K1-TEST: dźwięk: strefa złośliwa dla karty — uruchomiona", czas=240) and
+          q.czekaj(r"K1-GOSC: tryb 22: dźwięk — format, którego K1 nie gra: odpowiedź 0x8002", czas=240) and
+          q.czekaj(r"K1-STREFA: strefa 1: koniec — dźwięk: prośba bez miejsca na odpowiedź", czas=120))
 q.czysty_log()
 q.koniec()
 PY
@@ -148,8 +184,13 @@ dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
 SPRZET="-drive if=none,id=znak,file=$ZNAK,format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-opis-dzwieku,addr=0x1e"
 SPRZET="$SPRZET -audiodev wav,id=dz,path=$WAV,out.frequency=48000,out.channels=2,out.format=s16"
 SPRZET="$SPRZET -device ich9-intel-hda,id=hda -device hda-output,audiodev=dz,bus=hda.0"
+# 0.12.0 step 3: the test zone runs in K1 (its KVM: nested, else emulated — as test-strefa.sh)
+EMULACJA=
+if [ -w /dev/kvm ]; then
+    grep -qsE '^(1|Y)$' /sys/module/kvm_intel/parameters/nested /sys/module/kvm_amd/parameters/nested || EMULACJA=--emulacja
+fi
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$TESTY/dzwiek.log" --monitor "$TESTY/dzwiek.sock" --czas "$CZAS" \
-    --obraz "$K1_WYNIK/rdzen-test.squashfs" --qemu "$SPRZET" &
+    --obraz "$K1_WYNIK/rdzen-test.squashfs" --pamiec 1024 --qemu "$SPRZET" $EMULACJA &
 QPID=$!
 K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/dzwiek.py" "$TESTY/dzwiek.log" "$TESTY/dzwiek.sock" "$TESTY" "$CZAS" || r=1
 zamknij_qemu "$TESTY/dzwiek.sock" $QPID

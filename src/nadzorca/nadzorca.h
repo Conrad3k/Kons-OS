@@ -371,7 +371,8 @@ extern int dzwiek_kanal;
 extern int uevent_dzwiek;
 void dzwiek_nowy_kanal(void); /* KANAL_DZWIEKU: a new service — the card and the clients again */
 void dzwiek_nowy_gui(void);   /* a new gui: its channel again */
-void dzwiek_nowe_ustawienia(void); /* 0.12.0 step 2: new Ustawienia (KANAL_USTAWIEN): its channel again */
+void dzwiek_nowe_ustawienia(void);
+void dzwiek_strefa_koniec(int nr); /* step 3: zone nr's channel ended — its next VMM gets a channel again */ /* 0.12.0 step 2: new Ustawienia (KANAL_USTAWIEN): its channel again */
 int dzwiek_dla_testu(void);   /* TEST_DZWIEK: the test program's channel, or -1 */
 void dzwiek_okresowe(double t);
 
