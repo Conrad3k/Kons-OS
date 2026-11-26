@@ -1,6 +1,7 @@
 /* K1 — the update package and its waiting room. See k1_paczka.h. */
 #include "k1_paczka.h"
 #include "k1_bajty.h"
+#include "k1_ogloszenie.h"
 
 #include <string.h>
 
@@ -89,9 +90,11 @@ int k1_pocz_czytaj(const uint8_t *b, struct k1_pocz *z)
     uint8_t s[16];
     memset(z, 0, sizeof *z);
     crypto_blake2b(s, sizeof s, b, SKROT_OFF);
-    if (memcmp(b, "K1W1", 4) != 0 || k1_c32(b + 4) != 1 || k1_c32(b + 12) != 0 || k1_c32(b + 28) != 0 ||
-        !zera(b, 80, SKROT_OFF) || memcmp(s, b + SKROT_OFF, sizeof s) != 0)
+    if (memcmp(b, "K1W1", 4) != 0 || (k1_c32(b + 4) != 1 && k1_c32(b + 4) != 2) || k1_c32(b + 12) != 0 ||
+        k1_c32(b + 28) != 0 || !zera(b, k1_c32(b + 4) == 1 ? 80 : 96, SKROT_OFF) || memcmp(s, b + SKROT_OFF, sizeof s) != 0)
         goto zle;
+    z->widziane = k1_c64(b + 80);
+    z->potwierdzone = k1_c64(b + 88);
     z->wersja = k1_c32(b + 8);
     z->paczka_bajty = k1_c64(b + 16);
     z->ogl_bajty = k1_c32(b + 24);
@@ -110,11 +113,28 @@ void k1_pocz_zbuduj(const struct k1_pocz *z, uint8_t *b)
 {
     memset(b, 0, K1_POCZ_ZNAK);
     memcpy(b, "K1W1", 4);
-    k1_z32(b + 4, 1);
+    k1_z32(b + 4, 2);
+    k1_z64(b + 80, z->widziane);
+    k1_z64(b + 88, z->potwierdzone);
     k1_z32(b + 8, z->wersja);
     k1_z64(b + 16, z->paczka_bajty);
     k1_z32(b + 24, z->ogl_bajty);
     memcpy(b + 32, z->sha256, 32);
     memcpy(b + 64, z->wydanie, 16);
     crypto_blake2b(b + SKROT_OFF, 16, b, SKROT_OFF);
+}
+
+int k1_pocz_zwloka(struct k1_pocz *z, uint64_t teraz)
+{
+    if (z->potwierdzone != 0)
+        return 0;
+    if (z->widziane == 0 || teraz + 3600u < z->widziane) { /* not seen yet, or seen "in the future": from now */
+        z->widziane = teraz;
+        return 1;
+    }
+    if (teraz >= z->widziane + K1_OGL_ZWLOKA) {
+        z->potwierdzone = teraz != 0 ? teraz : 1;
+        return 1;
+    }
+    return 0;
 }

@@ -5,7 +5,7 @@
  *   not use; nadzorca's pamiec_stref.c),
  *   argv[4] = the session's name as the user set it (0.10.2 step 1: the start screen says it; none: the row's); the
  *   download zone (0.10.5 step 2, ADR 0046: a row without a window) — what it downloads, e.g. "latest/download/
- *   k1-ogloszenie.bin" (lacznik_cel_dobry), and fd 3 is not a channel to ekran,
+ *   k1-ogloszenie2.bin" (lacznik_cel_dobry; 0.13.0), and fd 3 is not a channel to ekran,
  *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
  *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither,

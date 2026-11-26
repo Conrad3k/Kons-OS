@@ -5,7 +5,10 @@
  * through the relay too (--socks5-hostname: names are looked up by K1's connector, which knows only GitHub's hosts) and
  * writes the file straight into that connection. TLS is curl's; what K1 trusts is the signature it checks itself.
  * In the test of updates (k1.tryb = K1_STREFA_TRYB_AKTUALIZACJA): the test server on QEMU's "router", its certificate
- * not checked (-k). The log has curl's exit code only — never an address. */
+ * not checked (-k). The log has curl's exit code only — never an address.
+ * 0.13.0 (ADR 0056 point 3, Issue #238 p. 2): curl writes the server's header "Date" of the last answer into a file of the
+ * zone's tmpfs (--write-out %output{…}%header{date}); after a whole file (curl's code 0) the zone sends its footer
+ * (k1_stopka.h) with that time — what K1 counts the freshness of an announcement and the waiting of a release by. */
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -21,6 +24,7 @@
 #include <unistd.h>
 
 #include "gosc.h"
+#include "k1_stopka.h"
 
 #define PRZEKAZNIK "/usr/lib/k1/przekaznik"
 #define CURL "/usr/bin/curl"
@@ -28,6 +32,7 @@
 #define ADRES_TESTU "https://10.0.2.2:8443/"
 #define UZYTKOWNIK 1000
 #define POBRANE "pobrane.k1" /* LACZNIK_POBRANE (src/strefa/lacznik.h) */
+#define DATA "/tmp/k1-data"     /* the header "Date" curl wrote (0.13.0) */
 
 int pobieranie_cel(char *cel, size_t n)
 {
@@ -114,13 +119,33 @@ static pid_t uruchom(const char *program, char *const argv[], int wyjscie)
     return p;
 }
 
+/* 0.13.0: the footer after the file — the server's time from curl's DATA (0 when there is none or it is not one). */
+static void stopka(int fd)
+{
+    char t[96];
+    uint8_t b[K1_STOPKA];
+    ssize_t n = -1;
+    uint64_t czas;
+    int f = open(DATA, O_RDONLY | O_CLOEXEC);
+    if (f >= 0) {
+        n = read(f, t, sizeof t);
+        close(f);
+    }
+    czas = n > 0 ? k1_data_http(t, (size_t)n) : 0;
+    k1_stopka_zbuduj(czas, b);
+    if (pelny_zapis(fd, b, sizeof b) != 0)
+        loguj("pobieranie: stopka nie poszła do K1");
+    else
+        loguj("pobieranie: stopka (czas serwera %s)", czas ? "jest" : "brak");
+}
+
 void pobieranie(const char *cel, int test)
 {
     char *a_prze[] = { "przekaznik", NULL }, adres[160];
     char *a_curl[] = { "curl", "--fail", "--silent", "--show-error", "--location", "--max-redirs", "5", "--proto", "=https",
                        "--proto-redir", "=https", "--tlsv1.2", "--socks5-hostname", "127.0.0.1:1080", "--connect-timeout",
                        "30", "--speed-limit", "1024", "--speed-time", "120", "--max-filesize", "600000000", "--output",
-                       "-", adres, test ? "--insecure" : NULL, NULL };
+                       "-", "--write-out", "%output{" DATA "}%header{date}", adres, test ? "--insecure" : NULL, NULL };
     pid_t curl;
     int fd, st = 0;
     katalog_tmpfs("/tmp", "mode=1777", 0);
@@ -140,6 +165,8 @@ void pobieranie(const char *cel, int test)
         loguj("pobieranie: curl się nie uruchomił");
     else
         loguj("pobieranie: curl zakończył się (kod %d)", WIFEXITED(st) ? WEXITSTATUS(st) : 128 + WTERMSIG(st));
+    if (curl > 0 && WIFEXITED(st) && WEXITSTATUS(st) == 0)
+        stopka(fd); /* only after a whole file: without it K1 takes nothing */
     /* the end of the file: K1 gets it once the relay has passed on everything — it closes when the writing program
      * has read all and ended (at most 2 min more) */
     shutdown(fd, SHUT_WR);

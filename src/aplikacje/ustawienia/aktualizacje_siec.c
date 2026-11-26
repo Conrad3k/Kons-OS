@@ -2,7 +2,9 @@
  * on a disk with K1 — "Sprawdzono dziś o 14:05 — masz najnowszą wersję", "Pobieram K1 0.10.6… 45 %", "K1 0.10.6 jest
  * gotowa" with what it changes (the announcement, k1_ogl_wybierz) and "Zainstaluj i uruchom ponownie", "Sprawdź teraz",
  * the switch "Sprawdzaj sam", "Wróć do poprzedniej wersji" (asked once more before it is sent); on a stick — "nagraj
- * nowy pendrive" (D5). From nadzorca on fd 7: AKT_STAN, AKT_ETAP, AKT_OPIS (a sealed memfd, read again with
+ * nowy pendrive" (D5); 0.13.0 (ADR 0056): "K1 0.13.1 jest pobrana. Za kilka minut będzie gotowa." while a downloaded
+ * version waits out its 20 minutes (D1: A), "Nie mogę sprawdzić, czy masz najnowszą wersję." for an announcement older
+ * than 7 days (T1). From nadzorca on fd 7: AKT_STAN, AKT_ETAP, AKT_OPIS (a sealed memfd, read again with
  * k1_ogloszenie_czytaj: fail closed). To it: AKT_PROSBA. Part of Ustawienia (ustawienia.h). */
 #include <stdio.h>
 #include <string.h>
@@ -60,9 +62,10 @@ int akt_siec_pendrive(char *buf, size_t n) /* D5: the line under a stick's state
 }
 
 enum widok { W_SPRAWDZA, W_POBIERA, W_INSTALUJE, W_GOTOWA, W_WROC, W_NAJNOWSZA, W_BRAK_SIECI, W_NIEUDANE, W_ODRZUCONE,
-             W_NIGDY };
+             W_NIGDY, W_ZWLOKA, W_STARE };
 static const char *const nazwy[] = { "sprawdzam", "pobieram", "instaluję", "gotowa", "wrócić?", "najnowsza",
-                                     "brak połączenia", "nie udało się", "odrzucona", "nie sprawdzano" };
+                                     "brak połączenia", "nie udało się", "odrzucona", "nie sprawdzano", "zwłoka wydania",
+                                     "ogłoszenie za stare" };
 
 static enum widok widok(void)
 {
@@ -76,7 +79,9 @@ static enum widok widok(void)
         return W_WROC;
     if (st.b != 0)
         return W_GOTOWA;
-    return et.c == K1_AKT_W_OK ? W_NAJNOWSZA : et.c == K1_AKT_W_BRAK_SIECI ? W_BRAK_SIECI
+    if ((st.e & K1_AKT_FL_ZWLOKA) && st.c != 0) /* 0.13.0 (ADR 0056, D1: A): downloaded, waits out the 20 minutes */
+        return W_ZWLOKA;
+    return et.c == K1_AKT_W_OK ? W_NAJNOWSZA : et.c == K1_AKT_W_STARE ? W_STARE : et.c == K1_AKT_W_BRAK_SIECI ? W_BRAK_SIECI
            : et.c == K1_AKT_W_NIEUDANE ? W_NIEUDANE : et.c == K1_AKT_W_ODRZUCONE ? W_ODRZUCONE : W_NIGDY;
 }
 
@@ -88,6 +93,7 @@ static const char *etykieta(void)
     case W_WROC: return "Wróć i uruchom ponownie";
     case W_SPRAWDZA:
     case W_POBIERA:
+    case W_ZWLOKA:
     case W_INSTALUJE: return NULL;
     default: return "Sprawdź teraz";
     }
@@ -192,6 +198,8 @@ static int32_t zdania(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, i
     case W_BRAK_SIECI: snprintf(t, sizeof t, "Nie udało się sprawdzić (brak połączenia)."); break;
     case W_NIEUDANE: snprintf(t, sizeof t, "Nie udało się sprawdzić, czy jest nowa wersja."); break;
     case W_ODRZUCONE: snprintf(t, sizeof t, "Przyszło ogłoszenie bez podpisu K1. Odrzucone."); break;
+    case W_ZWLOKA: snprintf(t, sizeof t, "K1 %s jest pobrana. Za kilka minut będzie gotowa.", w); break;
+    case W_STARE: snprintf(t, sizeof t, "Nie mogę sprawdzić, czy masz najnowszą wersję."); break;
     default: snprintf(t, sizeof t, "K1 sprawdza nowe wersje, gdy jest połączenie z internetem."); break;
     }
     k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y, t, k1_kolor(m->tekst, 255), szer);
@@ -208,6 +216,12 @@ static int32_t zdania(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, i
                        k1_kolor(m->akcent_tekst, 255), szer);
     } else if (v == W_WROC) {
         y = akapit(o, y, "Wersja, z której wrócisz, nie będzie proponowana ponownie. Dopiero następna.",
+                   k1_kolor(m->tekst2, 255), szer);
+    } else if (v == W_ZWLOKA) { /* 0.13.0 (D1: A): why it waits */
+        y = akapit(o, y, "Nowa wersja czeka 20 minut od pojawienia się. Gdyby ktoś wydał ją bez zgody, w tym czasie "
+                         "można ją zatrzymać. Potem K1 sprawdzi ją jeszcze raz.", k1_kolor(m->tekst2, 255), szer);
+    } else if (v == W_STARE) { /* 0.13.0 (T1): an announcement signed more than 7 days ago */
+        y = akapit(o, y, "Informacja o wydaniach jest starsza niż 7 dni. K1 spróbuje ponownie później.",
                    k1_kolor(m->tekst2, 255), szer);
     } else if (v == W_NAJNOWSZA || v == W_NIGDY) {
         k1_el(K1_EL_ZMIENNE, "Czas sprawdzenia", TRESC_X - 4, y - 42, szer + 8, 24, 0);

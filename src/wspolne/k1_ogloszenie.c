@@ -105,8 +105,10 @@ int k1_ogloszenie_czytaj(const uint8_t *b, size_t n, struct k1_ogloszenie *o)
     size_t p = K1_OGL_NAGLOWEK;
     uint32_t i;
     memset(o, 0, sizeof *o);
-    if (n < K1_OGL_NAGLOWEK + 64 || n > K1_OGL_MAKS || memcmp(b, "K1O1", 4) != 0 || k1_c32(b + 4) != 1)
+    if (n < K1_OGL_NAGLOWEK + 64 || n > K1_OGL_MAKS || memcmp(b, "K1O1", 4) != 0 || (k1_c32(b + 4) != 1 && k1_c32(b + 4) != 2))
         goto zle;
+    o->format = k1_c32(b + 4);
+    o->podpisano = k1_c64(b + 96);
     o->wersja = k1_c32(b + 8);
     o->flagi = k1_c32(b + 12);
     memcpy(o->wydanie, b + 16, 16);
@@ -118,7 +120,7 @@ int k1_ogloszenie_czytaj(const uint8_t *b, size_t n, struct k1_ogloszenie *o)
     o->dl = k1_c32(b + 92);
     if (o->wersja == 0 || o->wersja > 0xffffffu || (o->flagi & ~K1_OGL_NOWA_LINIA) != 0 || o->paczka_bajty == 0 ||
         o->paczka_bajty > K1_OGL_PACZKA_MAKS || o->n > K1_OGL_OPISOW_MAKS || (size_t)o->dl + 64 != n ||
-        !zera(b, 96, K1_OGL_NAGLOWEK))
+        (o->format == 2) != (o->podpisano != 0) || !zera(b, 104, K1_OGL_NAGLOWEK))
         goto zle;
     for (i = 0; i < o->n; i++) {
         struct k1_ogl_opis *d = &o->opis[i];
@@ -149,7 +151,9 @@ zle:
 size_t k1_ogloszenie_zbuduj(struct k1_ogloszenie *o, uint8_t *b, size_t maks)
 {
     size_t p = K1_OGL_NAGLOWEK;
-    uint32_t i;
+    uint32_t i, format = o->format == 0 ? 1 : o->format;
+    if (format > 2 || (format == 2) != (o->podpisano != 0))
+        return 0;
     if (o->wersja == 0 || o->wersja > 0xffffffu || (o->flagi & ~K1_OGL_NOWA_LINIA) != 0 || o->paczka_bajty == 0 ||
         o->paczka_bajty > K1_OGL_PACZKA_MAKS || maks < K1_OGL_NAGLOWEK + 64 || !opisy_dobre(o))
         return 0;
@@ -168,7 +172,8 @@ size_t k1_ogloszenie_zbuduj(struct k1_ogloszenie *o, uint8_t *b, size_t maks)
     }
     o->dl = (uint32_t)p;
     memcpy(b, "K1O1", 4);
-    k1_z32(b + 4, 1);
+    k1_z32(b + 4, format);
+    k1_z64(b + 96, format == 2 ? o->podpisano : 0);
     k1_z32(b + 8, o->wersja);
     k1_z32(b + 12, o->flagi);
     memcpy(b + 16, o->wydanie, 16);
@@ -179,6 +184,11 @@ size_t k1_ogloszenie_zbuduj(struct k1_ogloszenie *o, uint8_t *b, size_t maks)
     k1_z32(b + 88, o->n);
     k1_z32(b + 92, o->dl);
     return p;
+}
+
+int k1_ogl_swieze(const struct k1_ogloszenie *o, uint64_t teraz)
+{
+    return o->format == 2 && o->podpisano != 0 && (teraz <= o->podpisano || teraz - o->podpisano <= K1_OGL_WAZNE);
 }
 
 void k1_ogl_wybierz(const struct k1_ogloszenie *o, uint32_t dziala, struct k1_ogl_wybor *w)

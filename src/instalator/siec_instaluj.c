@@ -1,5 +1,6 @@
 /* K1 instalator — "Zainstaluj" and "Wróć do poprzedniej wersji" (0.10.5 step 2, ADR 0046 T7, D7; siec.h).
- * Zainstaluj: the package waiting in the waiting room is checked again whole (the mark, the announcement's signature,
+ * Zainstaluj (0.13.0, ADR 0056: only a version whose waiting ended — the mark says confirmed): the package waiting in the
+ * waiting room is checked again whole (the mark, the announcement's signature,
  * the SHA-256 of every byte, the manifests' signatures, the system's digest, the boot files' digest from the front and
  * the back in memory) — then the boot files beside the old ones (start.c, ADR 0038), the system into the slot that
  * does not run (read back and compared), its two manifests, grubenv "try it once" (k1_nowy), the mark zeroed. Until the
@@ -85,13 +86,20 @@ static int blake_dysku(uint64_t od, uint64_t n, uint8_t out[32])
 static int sprawdz_paczke(const struct siec_dysk *d, int test, struct k1_paczka *p)
 {
     static struct k1_ogloszenie o;
-    uint8_t sha[32], sha2[32], naglowek[K1_PACZKA_NAGLOWEK];
+    uint8_t sha2[32], naglowek[K1_PACZKA_NAGLOWEK];
     uint64_t bajty, od = d->pocz + K1_POCZ_PACZKA_OFF, i;
     struct k1_sha256 c;
-    if (!siec_czeka(d, test, &o, sha, &bajty)) {
+    struct k1_pocz z;
+    if (!siec_czeka(d, test, &o, &z)) {
         k1_log(TAG, "zainstaluj: w poczekalni nie czeka żadna nowsza wersja");
         return K1_INST_BLAD_MIEJSCE;
     }
+    if (z.potwierdzone == 0) { /* 0.13.0 (ADR 0056, D1: A): the release must still be there after the waiting */
+        k1_log(TAG, "zainstaluj: nowa wersja czeka jeszcze na koniec zwłoki wydania (%u min) — nic nie zmieniono",
+               K1_OGL_ZWLOKA / 60u);
+        return K1_INST_BLAD_MIEJSCE;
+    }
+    bajty = z.paczka_bajty;
     k1_sha256_init(&c);
     for (i = 0; i < bajty; i += KAWALEK) {
         size_t ile = bajty - i < KAWALEK ? (size_t)(bajty - i) : KAWALEK;
@@ -101,7 +109,7 @@ static int sprawdz_paczke(const struct siec_dysk *d, int test, struct k1_paczka 
         etap((int)(1 + 19 * (i + ile) / bajty), K1_INST_ETAP_SPRAWDZANIE);
     }
     k1_sha256_koniec(&c, sha2);
-    if (crypto_verify32(sha, sha2) != 0 || k1_czytaj_calosc(FD_CEL, naglowek, sizeof naglowek, od) != 0 ||
+    if (crypto_verify32(z.sha256, sha2) != 0 || k1_czytaj_calosc(FD_CEL, naglowek, sizeof naglowek, od) != 0 ||
         k1_paczka_czytaj(naglowek, p) != 0 || p->wersja != o.wersja || k1_paczka_bajty(p) != bajty ||
         !siec_man_dobry(p->man_slot, test) || !siec_man_dobry(p->man_start, test)) {
         k1_log(TAG, "zainstaluj: paczka w poczekalni uszkodzona albo niepodpisana — nic nie zmieniono");

@@ -16,9 +16,13 @@
  *
  * The waiting room: the bytes of the disk's K1-EFI partition after its FAT32 (the partition has 512 MiB, the FAT 280 —
  * src/instalator/gpt.h). From K1_POCZ_OD (the FAT's end rounded up to 1 MiB):
- *     0 the mark (K1_POCZ_ZNAK bytes): "K1W1"  4 format 1  8 version  12 flags 0  16 package bytes (u64)
- *       24 announcement bytes (u32)  28 zeros  32 SHA-256 of the package  64 build id (16)  80..4079 zeros
- *       4080 BLAKE2b-128 of bytes 0..4079 (damage, not attacks: everything is checked again before it is used)
+ *     0 the mark (K1_POCZ_ZNAK bytes): "K1W1"  4 format 1 or 2  8 version  12 flags 0  16 package bytes (u64)
+ *       24 announcement bytes (u32)  28 zeros  32 SHA-256 of the package  64 build id (16)
+ *       format 2 (0.13.0, ADR 0056 — the owner's D1: A): 80 seen (u64, s: when K1 first had this version, by the time
+ *       of HTTPS), 88 confirmed (u64, s, 0: not yet — an announcement still named it K1_OGL_ZWLOKA after it was seen);
+ *       format 1: zeros there (written by K1 up to 0.12.x: seen and confirmed 0)
+ *       96..4079 zeros   4080 BLAKE2b-128 of bytes 0..4079 (damage, not attacks: everything is checked again before it
+ *       is used)
  *  4096 the announcement it came with (k1_ogloszenie.h)
  *  1 MiB the package
  * The mark is written last and zeroed first: no mark = nothing waits. Nothing that starts reads these bytes.
@@ -75,8 +79,15 @@ struct k1_pocz {
     uint32_t wersja, ogl_bajty;
     uint64_t paczka_bajty;
     uint8_t sha256[32], wydanie[16];
+    uint64_t widziane, potwierdzone; /* format 2 (0.13.0): when K1 first had it; when the waiting ended (0: not yet) */
 };
-int k1_pocz_czytaj(const uint8_t *b, struct k1_pocz *z); /* K1_POCZ_ZNAK bytes; 0 or -1 */
-void k1_pocz_zbuduj(const struct k1_pocz *z, uint8_t *b);
+int k1_pocz_czytaj(const uint8_t *b, struct k1_pocz *z); /* K1_POCZ_ZNAK bytes, format 1 or 2; 0 or -1 */
+void k1_pocz_zbuduj(const struct k1_pocz *z, uint8_t *b); /* always format 2 */
+
+/* The waiting of a new version (0.13.0, ADR 0056; the owner's D1: A) at `teraz` (s), when an announcement fresh and
+ * signed still names this very version (the same SHA-256 and build id — the caller checks that): not seen yet (a mark of
+ * K1 up to 0.12.x), or a clock far behind it — seen now; K1_OGL_ZWLOKA after it was seen — confirmed. 1 when the mark
+ * changed (the caller writes it). Pure. */
+int k1_pocz_zwloka(struct k1_pocz *z, uint64_t teraz);
 
 #endif

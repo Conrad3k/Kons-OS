@@ -6,9 +6,11 @@
 #include <string.h>
 
 #include "k1_manifest.h"
+#include "k1_ogloszenie.h"
 #include "k1_paczka.h"
 #include "k1_test_host.h"
 #include "k1_uklad.h"
+#include "monocypher.h"
 
 #define SLOT (128ull << 20) /* the slots of these images: the size up to 0.10.9 step 4 (still read) */
 
@@ -175,10 +177,50 @@ static void poczekalnia(void)
     EXPECT(k1_pocz_czytaj(b, &r) != 0);
 }
 
+/* 0.13.0 (ADR 0056, D1: A): the mark of format 2 — when K1 first had the version, when its waiting ended; a mark of
+ * format 1 (K1 up to 0.12.x) still read, as not seen; the waiting itself. */
+static void zwloka(void)
+{
+    uint8_t b[K1_POCZ_ZNAK];
+    struct k1_pocz z, r;
+    memset(&z, 0, sizeof z);
+    z.wersja = W;
+    z.paczka_bajty = 133u << 20;
+    z.ogl_bajty = 700;
+    z.widziane = 1795719669ull;
+    z.potwierdzone = 1795720869ull;
+    k1_pocz_zbuduj(&z, b);
+    EXPECT(b[4] == 2 && k1_pocz_czytaj(b, &r) == 0 && r.widziane == z.widziane && r.potwierdzone == z.potwierdzone);
+    z.widziane = z.potwierdzone = 0;
+    k1_pocz_zbuduj(&z, b);
+    b[4] = 1; /* format 1, as K1 0.12.3 wrote it: the same bytes, the checksum again */
+    crypto_blake2b(b + K1_POCZ_ZNAK - 16, 16, b, K1_POCZ_ZNAK - 16);
+    EXPECT(k1_pocz_czytaj(b, &r) == 0 && r.wersja == W && r.widziane == 0 && r.potwierdzone == 0);
+    b[80] = 1; /* NEGATIVE: format 1 with something where format 2 has its times */
+    crypto_blake2b(b + K1_POCZ_ZNAK - 16, 16, b, K1_POCZ_ZNAK - 16);
+    EXPECT(k1_pocz_czytaj(b, &r) != 0);
+    b[4] = 3;
+    b[80] = 0;
+    crypto_blake2b(b + K1_POCZ_ZNAK - 16, 16, b, K1_POCZ_ZNAK - 16);
+    EXPECT(k1_pocz_czytaj(b, &r) != 0); /* NEGATIVE: format 3 */
+    memset(&z, 0, sizeof z);
+    EXPECT(k1_pocz_zwloka(&z, 1000000) == 1 && z.widziane == 1000000 && z.potwierdzone == 0); /* seen now */
+    EXPECT(k1_pocz_zwloka(&z, 1000000 + K1_OGL_ZWLOKA - 1) == 0 && z.potwierdzone == 0);   /* 19:59 later: waits */
+    EXPECT(k1_pocz_zwloka(&z, 1000000 + K1_OGL_ZWLOKA) == 1 && z.potwierdzone == 1000000 + K1_OGL_ZWLOKA);
+    EXPECT(k1_pocz_zwloka(&z, 5000000) == 0 && z.potwierdzone == 1000000 + K1_OGL_ZWLOKA); /* confirmed stays */
+    memset(&z, 0, sizeof z);
+    z.widziane = 9000000; /* seen "in the future" (a clock that was ahead): from now */
+    EXPECT(k1_pocz_zwloka(&z, 1000000) == 1 && z.widziane == 1000000 && z.potwierdzone == 0);
+    z.widziane = 1000000 + 3000; /* a clock a little behind: still waits from the time seen */
+    EXPECT(k1_pocz_zwloka(&z, 1000000) == 0 && z.widziane == 1003000);
+    EXPECT(K1_OGL_ZWLOKA == 1200u); /* the owner's D1: 20 minutes */
+}
+
 int main(void)
 {
     naglowek();
     uklad();
     poczekalnia();
+    zwloka();
     return K1_TEST_KONIEC("test_paczka");
 }
