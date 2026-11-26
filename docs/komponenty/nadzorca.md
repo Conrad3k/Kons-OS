@@ -206,7 +206,7 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   ponowne uruchomienie po udanej aktualizacji. Każde okno ma swoją listę dysków; postęp i wynik idą do okna, które
   zadanie zaczęło. Zapis naraz najwyżej jeden: prośba, gdy program zapisujący działa → `INST_WYNIK` z
   `K1_INST_BLAD_TRWA` („Trwa już zapis K1 na dysk w drugim oknie”). `OTWORZ_AKTUALIZACJE` (od Instalatora albo pulpitu):
-  nadzorca uruchamia Ustawienia, jeśli nie działają, wysyła im `AKT_POKAZ` (pokaż sekcję) i pulpitowi `POKAZ_APL`
+  nadzorca uruchamia Ustawienia, jeśli nie działają, wysyła im `USTAWIENIA_MIEJSCE` (Aktualizacje — pokaż sekcję; kanał aktualizacji) i pulpitowi `POKAZ_APL`
   (okno na wierzch). `INST_AB` e = 1: manifest działającego miejsca jest podpisany (kafel wersji: „Zweryfikowano”).
 - Bateria (0.5.3, ADR 0014): co 15 s `src/nadzorca/bateria.c` czyta `sys/class/power_supply` (baterie
   systemowe: procent z energii/ładunku/`capacity`, stan, zasilacz) i przy zmianie wysyła `BATERIA` do
@@ -215,7 +215,7 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   zmianie, tylko do gui (UID 102), dla okienka baterii na górnym pasku. Gui mówi `BATERIA_OKIENKO` (fd 4), gdy okienko się
   otwiera i zamyka: póki jest otwarte, odczyt co 5 s (`BATERIA_CO_ZASOBY`, jak przy otwartych Zasobach) i raz od razu przy
   otwarciu; log „okienko baterii otwarte: odczyt baterii co 5 s” / „zamknięte: … co 15 s”. a = 2 („Ustawienia baterii”):
-  Ustawienia, `BATERIA_POKAZ` do nich (pokaż sekcję Bateria), `POKAZ_APL` do gui; log „otwieram Ustawienia → Bateria”.
+  Ustawienia, `USTAWIENIA_MIEJSCE` (Bateria) do nich, `POKAZ_APL` do gui; log „otwieram Ustawienia → Bateria”.
   Od 0.12.3 krok 2 tak samo `POKAZ_USTAWIENIA` od gui (a = miejsce `K1_UST_MIEJSCA`: KOREKTOR) — `USTAWIENIA_MIEJSCE` do
   Ustawień; log „otwieram Ustawienia → Dźwięk → Korektor”.
   Nowy kanał do gui: okienko uznane za zamknięte, pomiar idzie od nowa.

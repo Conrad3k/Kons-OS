@@ -250,7 +250,7 @@ int inst_siec(int tryb, int zrodlo, int ogl, int test)
  * needed, the section shown, its window brought up by gui. */
 void otworz_aktualizacje(void)
 {
-    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_AKT_POKAZ, 0, 0, 0, 0, 0, 0);
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_USTAWIENIA_MIEJSCE, 0, K1_UST_MIEJSCE_AKTUALIZACJE, 0, 0, 0, 0);
     uruchom_aplikacje(K1_APL_USTAWIENIA);
     wyslij(OKNO_USTAWIENIA, k);
     if (bateria_kanal >= 0) {

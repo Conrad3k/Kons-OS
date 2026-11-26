@@ -209,7 +209,7 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   panele: górny pasek, dolny pasek, menu Start, okienka paska (0.11.8; do niej okienko dźwięku), menu kontekstowe (memfd, ADR 0008; na nim także okienka
   pytań i „Którą sesję otworzyć?”).
 - Do nadzorcy (fd 4) od 0.11.8 krok 3: `BATERIA_OKIENKO` — a = 1 okienko baterii otwarte, 0 zamknięte, 2 „Ustawienia
-  baterii” (nadzorca uruchamia Ustawienia, wysyła im `BATERIA_POKAZ` i pulpitowi `POKAZ_APL`, jak `OTWORZ_AKTUALIZACJE`);
+  baterii” (nadzorca uruchamia Ustawienia, wysyła im `USTAWIENIA_MIEJSCE` (Bateria) i pulpitowi `POKAZ_APL`, jak `OTWORZ_AKTUALIZACJE`);
   od ekranu hasła nadzorca go nie przyjmuje. Od 0.12.3 krok 2: `POKAZ_USTAWIENIA` — a = miejsce Ustawień z tabeli
   `K1_UST_MIEJSCA` (`k1_komunikat.h`; dziś KOREKTOR — wiersz „Korektor” okienka „Dźwięk”): nadzorca uruchamia Ustawienia,
   wysyła im `USTAWIENIA_MIEJSCE` i pulpitowi `POKAZ_APL`.

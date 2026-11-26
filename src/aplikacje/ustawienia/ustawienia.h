@@ -46,8 +46,10 @@ static inline void zmienne(const char *nazwa, int32_t y, int32_t h)
     k1_el(K1_EL_ZMIENNE, nazwa, TRESC_X - 4, y, apl.szer - TRESC_X - 12, h, 0);
 }
 
-/* Shows section `s` (as a click on its row; 0.10.5 step 1: also nadzorca's AKT_POKAZ). */
+/* Shows section `s` (as a click on its row). */
 void ustawienia_pokaz(int s);
+/* Shows a place nadzorca asked for (USTAWIENIA_MIEJSCE a: K1_UST_MIEJSCA — Korektor, Bateria, Aktualizacje). */
+void ustawienia_miejsce(int miejsce);
 
 /* The title of a section (0.10.7 step 1: without a description, the owner's Z2). */
 void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul);

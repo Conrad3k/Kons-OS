@@ -2,8 +2,8 @@
  * from, what is in the other slot (A/B), the result of the last try, and the update of K1 on a disk from a K1 stick
  * (moved here from Instalator — D3). Its own channel from nadzorca (fd 7, KANAL_AKTUALIZACJI; sender UID 0 checked):
  * INST_DYSKI → INST_DYSK, INST_AB, INST_LISTA; INST_START (only K1_INST_AKTUALIZUJ — nadzorca refuses anything else from
- * Ustawienia) → INST_POSTEP, INST_WYNIK; WYLACZ a=1 after a finished update; AKT_POKAZ: show this section.
- * Part of Ustawienia (ustawienia.h). */
+ * Ustawienia) → INST_POSTEP, INST_WYNIK; WYLACZ a=1 after a finished update; USTAWIENIA_MIEJSCE (Aktualizacje): show
+ * this section. Part of Ustawienia (ustawienia.h). */
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -164,9 +164,9 @@ static void komunikat(const struct k1_komunikat *k)
 {
     int i;
     switch (k->typ) {
-    case K1_KOM_AKT_POKAZ:
+    case K1_KOM_USTAWIENIA_MIEJSCE: /* on this channel: Aktualizacje only (k1_kom_nadzorca.c checks the range) */
         k1_log(TAG, "aktualizacje: otwarte na prośbę nadzorcy");
-        ustawienia_pokaz(S_AKTUALIZACJE);
+        ustawienia_miejsce(k->a);
         break;
     case K1_KOM_INST_DYSK:
         if (!lista && (int)k->obiekt == n_dyskow + 1) {

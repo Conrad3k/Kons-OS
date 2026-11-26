@@ -74,11 +74,9 @@ int bateria_odbierz(void)
             close(fd);
             continue;
         }
-        if (w == K1_ODB_JEST && (k.typ == K1_KOM_BATERIA_POKAZ || k.typ == K1_KOM_USTAWIENIA_MIEJSCE)) {
-            if (k.typ == K1_KOM_BATERIA_POKAZ) /* 0.11.8 step 3: "Ustawienia baterii" in gui */
-                ustawienia_pokaz(S_BATERIA);
-            else if (k.a == K1_UST_MIEJSCE_KOREKTOR) /* 0.12.3 step 2: the row "Korektor" of gui's popover */
-                dzwiek_korektor_pokaz();
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_USTAWIENIA_MIEJSCE) { /* a row of a popover of gui ("Ustawienia baterii",
+                                                                       * "Korektor") */
+            ustawienia_miejsce(k.a);
             continue;
         }
         if (w != K1_ODB_JEST ||
