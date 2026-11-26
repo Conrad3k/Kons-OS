@@ -315,7 +315,7 @@ void akt_okresowe(double t)
         /* 0.13.0 (D1: A): the waiting of a downloaded version is over — is the release still on GitHub? (also with
          * "Sprawdzaj sam" off: it ends what the owner started with "Sprawdź teraz") */
         potwierdz = -1;
-        k1_log(TAG, "aktualizacja: koniec zwłoki wydania — sprawdzam, czy wydanie wciąż jest na GitHubie");
+        k1_log(TAG, "aktualizacja: koniec zwłoki wydania — sprawdzam, czy wydanie wciąż jest najnowsze");
         sprawdz();
     }
     if (praca >= 0 && t - praca_od > LIMIT_S) {

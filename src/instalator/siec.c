@@ -193,7 +193,7 @@ static uint32_t zwloka(const struct siec_dysk *d, struct k1_pocz *z, const struc
         if (k1_pocz_zwloka(z, teraz) && zapisz_znak(d, z) != 0)
             k1_log(TAG, "poczekalnia: zapis znaku nieudany");
         if (z->potwierdzone != 0)
-            k1_log(TAG, "%s: wydanie wciąż jest na GitHubie %llu min po pierwszym zobaczeniu — gotowe do instalacji", w,
+            k1_log(TAG, "%s: wydanie wciąż jest najnowsze %llu min po pierwszym zobaczeniu — gotowe do instalacji", w,
                    (unsigned long long)((z->potwierdzone - z->widziane) / 60u));
         else
             k1_log(TAG, "%s czeka (zwłoka wydania: jeszcze %llu min)", w,
@@ -202,7 +202,7 @@ static uint32_t zwloka(const struct siec_dysk *d, struct k1_pocz *z, const struc
     }
     if (o->wersja > z->wersja)
         return z->wersja; /* a newer one: downloaded over it */
-    k1_log(TAG, "%s nie jest już najnowszym wydaniem na GitHubie (wycofane) — usuwam je z poczekalni", w);
+    k1_log(TAG, "%s nie jest już najnowszym wydaniem (wycofane) — usuwam je z poczekalni", w);
     if (zapisz_znak(d, NULL) != 0)
         k1_log(TAG, "poczekalnia: zapis znaku nieudany");
     return 0;

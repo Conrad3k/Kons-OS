@@ -151,19 +151,18 @@ sprawdz("strefa pobierania nie ma okna (ekran jej nie zna)", "strefa bez okna" i
         "bez kanału do ekranu" in q.tekst())
 p = czekaj(r"K1-INSTALATOR: gotowe: (\S+) czeka w poczekalni", czas=1200)
 sprawdz("paczka pobrana do poczekalni (skrót i podpisy sprawdzone)", p and p.group(1) == wersja, p.group(0) if p else "brak")
-sprawdz("0.13.0: strefa dokleja stopkę z czasem serwera HTTPS (nagłówek Date)",
-        czekaj(r"K1-GOSC: pobieranie: stopka \(czas serwera jest\)", czas=60))
 sprawdz("0.13.0 (D1: A): nowa wersja czeka 20 minut (zwłoka wydania) — K1 sprawdzi wydanie jeszcze raz",
         czekaj(r"K1-INSTALATOR: aktualizacja przez sieć: .* \(zwłoka wydania\)", czas=120) and
         czekaj(r"K1-NADZORCA: aktualizacja: nowa wersja czeka — sprawdzę wydanie jeszcze raz", czas=60))
-pt = czekaj(r"K1-INSTALATOR: (\S+): wydanie wciąż jest na GitHubie (\d+) min po pierwszym zobaczeniu — gotowe do instalacji",
+pt = czekaj(r"K1-INSTALATOR: (\S+): wydanie wciąż jest najnowsze (\d+) min po pierwszym zobaczeniu — gotowe do instalacji",
             czas=900)
-sprawdz("koniec zwłoki: K1 sprawdza jeszcze raz, wydanie wciąż jest (serwer 25 min później) — gotowe do instalacji",
+# the minutes come from the server's Date (25 min ahead after the package) through the zone's footer: the footer works
+sprawdz("koniec zwłoki: K1 sprawdza jeszcze raz, wydanie wciąż jest (czas ze stopki strefy: serwer 25 min później)",
         pt and pt.group(1) == wersja and int(pt.group(2)) >= 20 and
         "koniec zwłoki wydania — sprawdzam" in q.tekst(), pt.group(0) if pt else "brak")
 b = czekaj(r"K1-GUI: okienko \(jest nowa wersja\): Zainstaluj (\d+),(\d+); Później (\d+),(\d+)", czas=120)
 sprawdz("okienko „Jest nowa wersja K1” na pulpicie — dopiero po zwłoce (NEGATYWNE: nie wcześniej)", b and pt and
-        q.tekst().find("okienko (jest nowa wersja)") > q.tekst().find("wydanie wciąż jest na GitHubie"))
+        q.tekst().find("okienko (jest nowa wersja)") > q.tekst().find("wydanie wciąż jest najnowsze"))
 if b:
     q.zrzut("2-okienko")
     q.klik(int(b.group(1)), int(b.group(2)))
