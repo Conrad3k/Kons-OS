@@ -6,18 +6,32 @@ ogłoszenia, paczki aktualizacji) ani kodu.
 | Workflow | Kiedy | Co usuwa |
 |---|---|---|
 | **Sprzątanie artefaktów** (`.github/workflows/sprzatanie-artefaktow.yml`) | codziennie 03:17 UTC, ręcznie, przy zmianie pliku na `main` | artefakty starego Kons-OS i artefakty K1 (logi testów, obrazy z PR-ów) starsze niż 3 dni — zwalnia limit miejsca konta |
-| **Sprzątanie przebiegów** (`.github/workflows/sprzatanie-przebiegow.yml`) | tylko ręcznie | stare przebiegi workflow — wpisy na liście Actions razem z ich logami i artefaktami |
+| **Sprzątanie przebiegów** (`.github/workflows/sprzatanie-przebiegow.yml`) | tylko ręcznie | stare przebiegi workflow i śmieci (nieudane, anulowane, pominięte) — wpisy na liście Actions razem z ich logami i artefaktami |
 
 ## Sprzątanie przebiegów — jak uruchomić
 1. GitHub → repo → **Actions** → po lewej **„Sprzątanie przebiegów”** → **Run workflow**.
 2. Pola:
    - **dni** — przebiegi z ostatnich tylu dni zostają (domyślnie 30; 0 = usuń wszystkie stare);
+   - **Usuń też od razu nieudane, anulowane i pominięte** — domyślnie zaznaczone (niżej, „Co usuwa”);
    - **Których przebiegów** — wszystkie albo tylko jednego workflow (np. `k1.yml`);
    - **Tylko policz** — zaznaczone: pokazuje, ile by usunął, i nic nie usuwa.
-3. Zielony **Run workflow**. Wynik („Usunięto N z M przebiegów”) jest na stronie przebiegu, w podsumowaniu.
+3. Zielony **Run workflow**. Wynik („Usunięto N z M przebiegów” z podziałem: stary, nieudany, anulowany, pominięty) jest
+   na stronie przebiegu, w podsumowaniu.
+
+## Co usuwa
+| Powód | Które przebiegi | Wiek |
+|---|---|---|
+| **stary** | każdy zakończony | starszy niż „dni” |
+| **pominięty** (skipped — np. CI na PR-ze bez etykiety `testy`) | wszystkie | każdy |
+| **anulowany** (cancelled, stale — np. starszy przebieg zastąpiony nowszym) | wszystkie | każdy |
+| **nieudany** (failure, timed_out, startup_failure, action_required) | oprócz najnowszego przebiegu każdej gałęzi | każdy |
+
+Śmieci (trzy ostatnie wiersze) — tylko przy zaznaczonym polu „Usuń też od razu nieudane…”.
 
 ## Czego nie usuwa
 - najnowszego przebiegu każdego workflow — na liście Actions zawsze widać ostatni stan CI, robota, ogłoszenia dnia;
+- najnowszego przebiegu każdej gałęzi, także nieudanego — czerwone CI na `main` i log błędu PR-a, nad którym ktoś
+  pracuje, zostają, dopóki nie przyjdzie nowszy zakończony przebieg (pominięte i anulowane się nie liczą);
 - przebiegów, które jeszcze trwają (robot sprawdza trwające budowy na `main`), i samego siebie.
 
 ## Ograniczenia
