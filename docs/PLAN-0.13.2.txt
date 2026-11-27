@@ -352,14 +352,14 @@ Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
   - HEVC i VP8 kartą na IdeaPadzie (nowy wiersz K1_KODEKI i jego sprawdzanie) — gdy pokaże się strona, która ich używa.
   - Klatka prosto na ekran K1 (poziom 2 z T9 planu 0.10.9, warstwa sprzętowa).
   - Filmy kartą poza przeglądarką (odtwarzacz wideo w Plikach — DO_ZROBIENIA, „Później”).
-  - Robot dla FFmpeg strefy; długi fuzzing sterownika VA i i965 — 0.14 Audyt (R98, R99).
+  - Robot dla FFmpeg strefy; długi fuzzing sterownika VA i i965 — 0.15 Audyt (R98, R99).
 
 
 7. RYZYKA (wiersze w docs/RYZYKA.md — zmienia krok, który je dotyka)
 -------------------------------------------------------------------
   - R98 (krok 3, 4): prośby dekodera filmów pierwszy raz naprawdę przychodzą ze strefy — sprawdzanie pole po polu już
     jest; dochodzi dma-buf od VMM-a (T3 a) i dekoder na prośbę.
-  - R99 (krok 4): i965 w zasięgu stron internetowych — bez zmian w łagodzeniu, przegląd w 0.14.
+  - R99 (krok 4): i965 w zasięgu stron internetowych — bez zmian w łagodzeniu, przegląd w 0.15.
   - Nowy (krok 2): FFmpeg (H.264) i libva w strefie — obce dane ze stron, ale wewnątrz strefy i piaskownicy RDD; FFmpeg
     bez robota (aktualizuje człowiek).
   - Nowy (krok 4): nasz sterownik VA w procesie RDD Firefoksa — błąd w nim psuje tylko filmy tej sesji; odpowiedzi od K1
