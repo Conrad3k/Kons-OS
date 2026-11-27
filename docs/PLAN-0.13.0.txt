@@ -132,8 +132,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
         zachęta do hasła — PR #254
 [x]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
         ekranie K1 — PR #258
-[ ]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
-        — [w toku: Claude, gałąź claude/wizardly-mccarthy-66pxbz]
+[x]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
+        — PR #@PR@
 [ ]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
 (ADR: 0056 to następny wolny po 0055; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
 
@@ -528,3 +528,18 @@ Krok 6 (2026-11-27, Claude, PR #258, CI przebieg 400 zielony; ADR 0061):
   - Testy lokalnie: test-m1, test-m4, test-m5, test-strefa, test-wzorce; na hoście `test_komunikat`; w systemie `t_okna`.
   - Do listy „co sprawdzić” (krok 8): Ctrl+Alt+Del na X230 i IdeaPadzie (przy pulpicie, przy przeglądarce, na pełnym
     ekranie), ustawienie hasła na ekranie zabezpieczeń, „Zablokuj”.
+Krok 7 (2026-11-27, Claude; ADR 0062 — decyzja, jądro bez zmian):
+  - T12: RANDSTRUCT — nie. Pomiar: z wtyczką GCC i stałym ziarnem (`make gen-randstruct-seed=<skrypt>`) jądro jest
+    powtarzalne (dwie budowy — ten sam SHA-256), +8 KiB, ta sama długość budowy. Ale wydanie jest publiczne: układ
+    struktur zna każdy, kto ma `k1.efi` (jawne ziarno albo sama binarka), a tajne ziarno zabrałoby sprawdzalną
+    powtarzalność — korzyść bliska zeru, ryzyko w sterownikach laptopów, których CI nie uruchamia.
+  - T13: kCFI → audyt 0.15 (wpis w DO_ZROBIENIA). Próba: GCC 13 nie ma `-fsanitize=kcfi`, Clang 18 ma, ale nie ma
+    `-fsanitize-coverage-stack-depth-callback-min` — z Clangiem 18 jądro straciłoby `KSTACK_ERASE` (i `LATENT_ENTROPY`,
+    tylko GCC). Laptopy właściciela nie mają IBT (FineIBT odpada). Kolejność w 0.15: Clang z zachowanym `KSTACK_ERASE`,
+    `CFI_PERMISSIVE` na laptopach z raportem, potem pełne kCFI.
+  - „Piętro niżej”: później — po 1.0 albo gdy do jądra wejdzie pKVM / ochrona przez hiperwizor dla x86 (w 7.3.6 pKVM
+    tylko arm64 — ze źródeł). Wpis w DO_ZROBIENIA („Później” → Jądro).
+  - Przy okazji: robot padał na nieaktualnym spisie pakietów runnera (Issue #253, `libelf-dev` 404) — `apt-get update`
+    przed instalacją narzędzi.
+  - Komentarz przy wtyczkach GCC w `jadro/k1.config` zmienia krok 8 (zmiana pliku jądra = pełne testy, a krok 7 to same
+    dokumenty).

@@ -67,6 +67,9 @@
   a gdy nowszej od obecnej nie ma — najnowsza stabilna (nigdy rc); poprawki tej linii i przejście na nową długoterminową
   robi robot (ADR 0047), koniec krótkiej linii bez nowszej długoterminowej — Issue dla człowieka. Konfiguracja bez zmian
   w zasadzie (allnoconfig + fragment); przy zmianie linii porównanie `scripts/porownaj-jadro.sh` (T19).
+- **[korekta: ADR 0062; 2026-11-27]** „Świadomie bez” rozstrzygnięte w 0.13.0: `RANDSTRUCT` — nie (układ struktur
+  publicznego, powtarzalnego wydania zna każdy); kCFI (`CFI`, dawniej `CFI_CLANG`) — w audycie 0.15, z Clangiem, który
+  zachowa `KSTACK_ERASE`; ochrona jądra przez hiperwizor — po 1.0.
 
 ## Konsekwencje
 - Jądro ma ~3,8 MiB i buduje się w ~2–3 min na 4 rdzeniach.
