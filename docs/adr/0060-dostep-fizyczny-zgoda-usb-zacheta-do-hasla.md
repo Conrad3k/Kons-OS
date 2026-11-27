@@ -4,7 +4,7 @@
 - Data: 2026-11-27
 - Dotyczy: ADR 0013 (USB: klawiatury, myszy, pamięci — **uzupełniony**: urządzenie wejścia z USB po pierwszym pulpicie
   czeka na zgodę), ADR 0017 (hasło przy starcie), ADR 0007 (jeden właściciel zasobu: urządzenia wejścia otwiera nadzorca);
-  plan `docs/PLAN-0.13.0.txt` (krok 5, D6, D7, T10); Issue #235 (p. 3, 4); RYZYKA R33, R41; opisy:
+  plan `docs/archiwum/PLAN-0.13.0.txt` (krok 5, D6, D7, T10); Issue #235 (p. 3, 4); RYZYKA R33, R41; opisy:
   `docs/komponenty/nadzorca.md`, `docs/komponenty/wejscie.md`, `docs/komponenty/gui.md`
 
 ## Kontekst

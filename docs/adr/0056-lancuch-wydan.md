@@ -4,7 +4,7 @@
 - Data: 2026-11-26
 - Dotyczy: ADR 0046 (aktualizacje przez sieć — ogłoszenie, poczekalnia, strefa pobierania; **uzupełniony**), ADR 0047
   (robot — jego wydania też czekają), ADR 0021 (klucz wydania w CI — bez zmian); Issue #230, #238 (p. 2); plan
-  `docs/PLAN-0.13.0.txt` (krok 1, D1, T1, T2); opisy: `docs/komponenty/aktualizacja.md`, `docs/komponenty/robot.md`,
+  `docs/archiwum/PLAN-0.13.0.txt` (krok 1, D1, T1, T2); opisy: `docs/komponenty/aktualizacja.md`, `docs/komponenty/robot.md`,
   `docs/komponenty/instalator.md`
 
 ## Kontekst

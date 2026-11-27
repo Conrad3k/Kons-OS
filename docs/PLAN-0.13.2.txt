@@ -7,13 +7,13 @@ idiotyczne, że robi to CPU”. To powrót „może: filmy kartą” z docs/DO_Z
 z 0.10.9 (decyzja właściciela 2026-11-20), a strona K1 — usługa „dekoder filmów” — jest w systemie od 0.10.9 krok 2
 i czeka uśpiona (docs/komponenty/filmy.md). Brakuje całej strony strefy: drogi VMM → dekoder filmów, sterownika VA
 w strefie, FFmpeg w strefie, prefów Firefoksa i linii w Ustawieniach.
-Wersja stoi na 0.13.0 „Bezpieczny start” (docs/PLAN-0.13.0.txt — jest w trakcie) i na 0.10.9–0.10.11 (szybka grafika:
+Wersja stoi na 0.13.0 „Bezpieczny start” (docs/archiwum/PLAN-0.13.0.txt — wydana 2026-11-27) i na 0.10.9–0.10.11 (szybka grafika:
 pośrednik grafiki, most native context, bufory karty strefy na ekranie K1; ADR 0049, 0051). Numer 0.13.2 wybrał właściciel
 (robot może zająć 0.13.1 i dalsze — punkt 0). Źródła: docs/archiwum/PLAN-0.10.9.txt (krok 3 — zadania strony strefy, luki
 S18–S25, decyzje D4, D9, T3–T9), ADR 0049 (pkt 4–6, 8), docs/komponenty/filmy.md, posrednik.md, strefa.md.
 Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany w ADR 0049 (droga w strefie, kiedy startuje dekoder strefy, bramka zysku)
-ustala ADR kroku 1 (następny wolny numer — 0.13.0 przewiduje 0056–0062, więc tu prawdopodobnie 0063).
+ustala ADR kroku 1 (następny wolny numer — 0.13.0 zajęła 0056–0062, więc 0063).
 
 
 CEL WERSJI (jednym akapitem)

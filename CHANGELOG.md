@@ -3,6 +3,64 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.13.0] — 2026-11-27
+
+**Bezpieczny start** (wersja 0.13, plan napisany z przeglądu bezpieczeństwa — zgłoszenia #230–#238). K1 jest odporny na
+to, co dotąd najłatwiej by go złamało. Nowa wersja trafia do laptopa dopiero 20 minut po wydaniu — gdyby ktoś przejął
+konto GitHub, jest czas, żeby ją zatrzymać. Starsza wersja z poprawioną dziurą nie otworzy danych (TPM 2.0), a dysk
+z danymi cofnięty do starszej kopii K1 zauważy i zapyta. Gdy K1 nie wstaje, jest **tryb ratunkowy** (Esc przy starcie albo
+sam po dwóch nieudanych startach): poprzednia wersja i raport na pendrive. Wydanie nie pisze już nic na port szeregowy,
+a błąd krytyczny widać na ekranie. Nowa klawiatura albo mysz z USB czeka na „Pozwól”. **Ctrl+Alt+Del** zawsze prowadzi do
+ekranu zabezpieczeń K1 — tylko tam ustawiasz i zmieniasz hasło, więc żadna strona nie podrobi prośby K1 o hasło.
+
+Opis w K1: Bezpieczny start: Ctrl+Alt+Del zawsze otwiera ekran K1 (tam hasło), nowa klawiatura z USB czeka na
+Twoją zgodę, a gdy K1 nie wstaje, Esc przy starcie daje tryb ratunkowy z poprzednią wersją i raportem na pendrive.
+
+### Dodane
+- **Łańcuch wydań** (krok 1, PR #245, ADR 0056; Twoja decyzja D1: zwłoka 20 minut): laptop liczy zwłokę od pobrania
+  i instaluje wydanie dopiero, gdy świeże ogłoszenie po 20 minutach je potwierdza; ogłoszenie formatu 2
+  (`k1-ogloszenie2.bin`) ma czas podpisu i termin 7 dni, workflow „Ogłoszenie dnia” podpisuje je co dzień; terminy liczone
+  według czasu z serwera HTTPS; Ustawienia → Aktualizacje mówią „Nie mogę sprawdzić…”, gdy ogłoszenie jest stare.
+  K1 do 0.12.x czyta dalej stare ogłoszenie (format 1, bez zmian).
+- **TPM i odwoływanie starszych wersji** (krok 2, PR #250, ADR 0057): generacja K1 w TPM 2.0 — wersja starsza niż zapisana
+  generacja nie otwiera danych (okienko „Ta wersja K1 jest za stara”); stan magazynu w TPM — dane cofnięte do starszej
+  kopii: okienko z „To moje dane”; sekcja `.sbat` w `k1.efi`. X230 (TPM 1.2) zostaje bez tych ochron.
+- **Tryb ratunkowy** (krok 3, PR #251, ADR 0058; D2, D3: A): Esc w pierwszej sekundzie startu albo dwa starty bez obrazu
+  → menu GRUB-a z trybem ratunkowym; ekran ratunkowy: „Uruchom K1 normalnie”, „Uruchom poprzednią wersję”, „Zapisz raport
+  na pendrive” (FAT16/FAT32). GRUB zostaje (koniec „tymczasowego”).
+- **Obraz wydania** (krok 4, PR #252, ADR 0059; D4: A, D5: A): `console=ttynull` — nic na porcie szeregowym, log w pamięci;
+  ekran awarii (opis błędu krytycznego na ekranie, restart po 60 s); „Zapisz raport na pendrive” w Ustawieniach →
+  Informacje; udawane karty Wi-Fi tylko w jądrze testów; testy QEMU biorą kopię testową (`k1-test.efi`, obrazy `-test`).
+- **Dostęp fizyczny** (krok 5, PR #254, ADR 0060; D6: A, D7: A): klawiatura albo mysz z USB podłączona po pierwszym
+  pulpicie czeka na „Pozwól” (nie odcina jedynej klawiatury); okienko „Ustaw hasło” przy pierwszym starcie bez hasła.
+- **Zaufany ekran K1** (krok 6, PR #258, ADR 0061; D8: A): Ctrl+Alt+Del nie trafia do żadnego okna — ekran zabezpieczeń
+  nad wszystkim (Zablokuj, Hasło, Uruchom ponownie, Wyłącz); hasło K1 ustawia się i zmienia tylko tam; Ustawienia → Hasło
+  pokazują stan.
+- Testy: `test-tpm` (swtpm), `test-ratunek`, `test-wydanie` (obraz wydania: port pusty, ekran awarii, raport), `test-m5`
+  (zgoda USB), `test-m4` i `test-wzorce` (ekran zabezpieczeń); na hoście `test_tpm`, `test_raport`, `test_urz_wejscia`,
+  `test_stopka`; fuzzing `fuzz_tpm`, `fuzz_raport`, `fuzz_stopka`; zgodność ogłoszenia formatu 1 z czytnikiem 0.12.3.
+
+### Zmienione
+- **Jądro** (krok 7, PR #260, ADR 0062 — decyzja, jądro bez zmian): RANDSTRUCT — nie (układ struktur publicznego,
+  powtarzalnego wydania zna każdy); kCFI — w audycie 0.15; ochrona jądra przez hiperwizor — po 1.0. Jądro K1: TPM 2.0,
+  `DRM_PANIC`, `NULL_TTY`.
+- Akcje GitHuba przypięte skrótem commita (Dependabot). Kons Spatial Audio i korektor zachowują głośność (ADR 0055 pkt 21).
+- PID 1 przy błędzie krytycznym kończy się, a jądro pokazuje ekran awarii (niezmiennik 5, ADR 0059).
+- RYZYKA: R10, R11, R17, R21, R26, R33, R38, R40, R41, R44 i inne zmienione; nowe R111 (ogłoszenie dnia), R112 (TPM),
+  R113 (tryb ratunkowy pisze na pendrive).
+
+### Naprawione
+- Robot nie wydawał (Issue #253): instalował narzędzia ze starego spisu pakietów runnera.
+
+### Porządki
+- Nadzorca: jedno otwarcie K1-EFI i jeden zapis grubenv (`k1efi_otworz`, `k1efi_zapisz_env` w `rozruch.c`) zamiast kopii
+  w zatwierdzaniu wersji i trybie ratunkowym; obraz przeglądarki pyta o identyfikator wydania `rozruch.c` zamiast czytać
+  go drugi raz.
+- Przegląd „Tymczasowe”: GRUB — zamknięte decyzją (ADR 0058); w kodzie nie ma żadnego rozwiązania tymczasowego.
+- Formularz hasła w jednym miejscu (gui) zamiast w Ustawieniach; Ustawienia podzielone przed rozbudową (`wyglad.c`), raport
+  z nadzorcy wydzielony z trybu ratunkowego (`raport.c`), urządzenia wejścia z `urzadzenia.c` (`wejscia.c`).
+- Plan 0.13.0 w `docs/archiwum/`; README i lista „co sprawdzić” na laptopach.
+
 ## [0.12.3] — 2026-11-26
 
 **Dźwięk wysokiej jakości** (drugi plan tematu 0.12, ADR 0055; Twoja prośba z 2026-11-26). Dźwięk jest czystszy: K1 liczy

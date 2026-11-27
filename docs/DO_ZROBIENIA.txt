@@ -4,38 +4,31 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
-Stan: 0.12.3 „Dźwięk wysokiej jakości” — czystszy dźwięk (liczenie z zapasem, 24 bity do karty), korektor systemowy
-i Kons Spatial Audio (dźwięk przestrzenny ze sceną do przeciągania). Temat 0.12 Dźwięk zamknięty. Następna — 0.13
-„Bezpieczny start” (docs/PLAN-0.13.0.txt, punkt 1).
-Data: 2026-11-26.
+Stan: 0.13.0 „Bezpieczny start” — zwłoka wydania 20 minut i ogłoszenie z terminem, TPM 2.0 (starsza wersja nie otwiera
+danych, cofnięte dane wykryte), tryb ratunkowy, obraz wydania bez portu szeregowego, zgoda na nowe klawiatury i myszy
+USB, Ctrl+Alt+Del i ekran zabezpieczeń K1. Następna — 0.13.2 „Filmy kartą” (docs/PLAN-0.13.2.txt, punkt 1).
+Data: 2026-11-27.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — po wydaniu 0.12.3 „Dźwięk wysokiej jakości”: następna 0.13 „Bezpieczny start”
----------------------------------------------------------------------------------------
-Wersja 0.12.3 wydana 2026-11-26 (plan w docs/archiwum/PLAN-0.12.3.txt, ADR 0055; Twoje decyzje D1: A — korektor
-w Ustawieniach, w okienku „Dźwięk” jeden wiersz; D2: A — 10 pasm; D3: A — na głośnikach szerszy dźwięk, wokół głowy
-w słuchawkach; D4: A — scena z góry; D5: cała lista scen; D6: A — jedna „Własna”; D7: A — „Kons Spatial Audio”). Pięć
-kroków, PR #229, #239, #240, #241 i #242. Posłuchaj jej na laptopach — punkt 4, „Najpierw — nowe w 0.12.3”.
+1. TERAZ — po wydaniu 0.13.0 „Bezpieczny start”: następna 0.13.2 „Filmy kartą”
+-------------------------------------------------------------------------------
+Wersja 0.13.0 wydana 2026-11-27 (plan w docs/archiwum/PLAN-0.13.0.txt, ADR 0056–0062; Twoje decyzje D1: zwłoka 20 minut,
+D2: poprzednia wersja i raport, D3: A, D4: A, D5: A, D6: A, D7: A, D8: A). Osiem kroków, PR #245, #250, #251, #252, #254,
+#258, #260 i PR wydania. Sprawdź ją na laptopach — punkt 4, „Najpierw — nowe w 0.13.0” (najpierw Secure Boot i TPM
+włączone w BIOS-ie — punkt 5). Reszta zgłoszeń bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox,
+kCFI) — 0.15 Audyt.
 
-Plan następnej: docs/PLAN-0.13.0.txt (Twoja prośba z 2026-11-26: na podstawie tego pliku i zgłoszeń bezpieczeństwa
-#230–#238). Osiem kroków: 1 — łańcuch wydań (poczekalnia albo drugi podpis, termin ogłoszenia, data z HTTPS), 2 — TPM
-i odwoływanie starszych wersji (SBAT, licznik wersji, cofnięcie danych), 3 — tryb ratunkowy (GRUB zostaje — ADR),
-4 — obraz wydania bez portu szeregowego, błąd startu na ekranie, 5 — zgoda na nowe klawiatury USB i zachęta do hasła,
-6 — zaufany ekran K1 (skrót, hasło tylko na ekranie K1), 7 — RANDSTRUCT i decyzja o ochronie jądra „piętro niżej”,
-8 — porządki i wydanie. Twoje decyzje D1–D8 i działania (Secure Boot i TPM w BIOS-ie) — punkt 4 planu. Reszta zgłoszeń
-bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox) — 0.15 Audyt (punkt 6 planu).
-Po 0.13 (2026-11-27, ADR 0064): 0.14 Aplikacje — Sklep i Discord, plan docs/PLAN-0.14.0.txt (zaczyna się po 0.13.2).
+Plan następnej: docs/PLAN-0.13.2.txt „Filmy kartą” (Twoja prośba z 2026-11-26: film w przeglądarce ma rozpakowywać karta,
+nie procesor). Pięć kroków: 1 — próba ze źródeł i na stanowisku, ADR (także: czy X230 może — D4), 2 — FFmpeg i libva
+w strefie (H.264 zaczyna grać), 3 — droga w K1 (VMM → dekoder filmów, dekoder przy pierwszym filmie), 4 — sterownik VA
+w strefie, prośba o H.264, przełącznik „Szybka grafika i filmy”, Twój test na IdeaPadzie, 5 — porządki i wydanie.
 Co wpisać w nowym czacie:
-    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.0.txt.”
+    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.2.txt.”
 
-Po 0.13.0: 0.13.2 „Filmy kartą” — docs/PLAN-0.13.2.txt (Twoja prośba z 2026-11-26: film w przeglądarce ma rozpakowywać
-karta, nie procesor). Pięć kroków: 1 — próba ze źródeł i na stanowisku, ADR (także: czy X230 może — D4), 2 — FFmpeg
-i libva w strefie (H.264 zaczyna grać), 3 — droga w K1 (VMM → dekoder filmów, dekoder przy pierwszym filmie),
-4 — sterownik VA w strefie, prośba o H.264, przełącznik „Szybka grafika i filmy”, Twój test na IdeaPadzie, 5 — porządki
-i wydanie. Zaczyna się po wydaniu 0.13.0: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.2.txt.”
+Po 0.13.2 (ADR 0064): 0.14 Aplikacje — Sklep i Discord, plan docs/PLAN-0.14.0.txt.
 
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
@@ -48,9 +41,9 @@ i wydanie. Zaczyna się po wydaniu 0.13.0: „Korzystając ze skilla kons-dev, w
     0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.5, 0.11.8 Menu Start i górny pasek  (M9)
     0.12     Dźwięk — gotowe: 0.12.0 (głośność, klawisze, słuchawki, dźwięk z przeglądarki)  (część dawnego M5.3)
              0.12.3 Dźwięk wysokiej jakości — gotowe (korektor, czystszy tor, Kons Spatial Audio)
-    0.13     Bezpieczny start — NASTĘPNA (docs/PLAN-0.13.0.txt: łańcuch wydań, TPM, tryb ratunkowy, obraz wydania,
-             dostęp fizyczny, zaufany ekran K1, jądro)                              (M10)
-             0.13.2 Filmy kartą — PLAN (docs/PLAN-0.13.2.txt; krok tematu 0.10 Strefy, po 0.13.0)
+    0.13     Bezpieczny start — gotowe: 0.13.0 (łańcuch wydań, TPM, tryb ratunkowy, obraz wydania, dostęp fizyczny,
+             zaufany ekran K1, decyzje o jądrze)                                    (M10)
+             0.13.2 Filmy kartą — NASTĘPNA (docs/PLAN-0.13.2.txt; krok tematu 0.10 Strefy)
     0.14     Aplikacje — PLAN (docs/PLAN-0.14.0.txt, ADR 0064): Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi
     0.15     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
@@ -61,9 +54,8 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
 
 3. NASTĘPNE WERSJE I PÓŹNIEJ (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 -------------------------------------------------------------------------------------------------------------------
-0.13 Bezpieczny start — plan: docs/PLAN-0.13.0.txt (stąd wziął: tryb ratunkowy, licznik wersji w TPM i odwoływanie
-    starszych wersji — R44, świeżość ogłoszenia, GRUB — ADR, obraz bez portu szeregowego — R10, R17, R21, klucze — R91,
-    R94, RANDSTRUCT, ochrona jądra „piętro niżej” — decyzja; ze zgłoszeń: #230, #235, #236, część #231, #234, #237, #238)
+0.13.2 Filmy kartą — plan: docs/PLAN-0.13.2.txt (stąd wziął: filmy kartą, które wypadły z 0.10.9 — Twoja decyzja
+    z 2026-11-20)
 
 0.14 Aplikacje — plan: docs/PLAN-0.14.0.txt (stąd wziął: wspólny obraz bazowy, mikrofon; Twoje decyzje z 2026-11-27 —
     tylko Sklep, bez pendrive'a; robot pomaga, nie warunkuje; pierwsza aplikacja Discord; pamięć na start przy każdej
@@ -131,12 +123,31 @@ Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej czę�
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.12.3;
+Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.13.0;
 aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
 0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
 [!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
-Najpierw — nowe w 0.12.3 (dźwięk wysokiej jakości; najlepiej w słuchawkach i na głośnikach obu laptopów):
+Najpierw — nowe w 0.13.0 (bezpieczny start; najpierw w BIOS-ie obu laptopów Secure Boot z kluczem K1 i TPM — punkt 5;
+log K1 czytasz teraz z raportu: Ustawienia → Informacje → „Zapisz raport na pendrive”, plik na pendrivie z FAT32):
+    [ ] Ctrl+Alt+Del przy pulpicie, przy przeglądarce i na pełnym ekranie przeglądarki: zawsze ekran zabezpieczeń K1
+        (reszta przyciemniona), strona nic nie dostaje; Esc wraca; „Hasło” → ustaw hasło → po wyłączeniu i włączeniu ekran
+        hasła; „Zablokuj” zamyka aplikacje i pokazuje ekran hasła; Ustawienia → Hasło pokazują tylko stan
+    [ ] pierwszy start z nowego pendrive'a: okienko „Ustaw hasło” (z „Później”) — „Ustaw hasło” otwiera ekran zabezpieczeń
+    [ ] mysz albo klawiatura USB podłączona po włączeniu: okienko „Pozwolić?” — „Pozwól” działa od razu, „Nie pozwalaj”
+        — urządzenie martwe do wyłączenia; ta sama mysz drugi raz w tym starcie — bez pytania; wbudowana klawiatura
+        i touchpad — nigdy nie pytają
+    [ ] Esc w pierwszej sekundzie po wybraniu K1 (zaraz po logo firmy): menu startu → „Tryb ratunkowy” → ekran ratunkowy:
+        „Zapisz raport na pendrive” (plik na pendrivie), „Uruchom poprzednią wersję” (po aktualizacji — poprzednia),
+        „Uruchom K1 normalnie”; bez Esc start jak dotąd (ekran startowy bez zmian)
+    [ ] raport z Ustawień → Informacje: plik na pendrivie; w nim „TPM 2.0: …” na IdeaPadzie (X230: „TPM 1.2: K1 korzysta
+        tylko z TPM 2.0”), wiersze DMAR / IOMMU (czy ochrona przed urządzeniami działa) — wyślij go, jeśli coś dziwne
+    [ ] IdeaPad z włączonym TPM: wszystko działa jak przed 0.13.0 (dane otwarte, bez okienek „za stara” ani „dane cofnięte”)
+    [ ] aktualizacja przez sieć do kolejnej wersji (po 0.13.0): okienko „Jest nowa wersja K1” najwcześniej ok. 20 minut po
+        pobraniu; Ustawienia → Aktualizacje bez sieci przez ponad tydzień — „Nie mogę sprawdzić, czy masz najnowszą wersję”
+    [ ] ekran awarii — na razie nie da się go wywołać ręcznie; jeśli kiedyś zobaczysz ciemny ekran z opisem błędu po
+        angielsku bez polskich liter (np. uszkodzony pendrive) — zrób zdjęcie; komputer sam uruchomi się ponownie po 60 s
+Nowe w 0.12.3 (dźwięk wysokiej jakości; najlepiej w słuchawkach i na głośnikach obu laptopów):
     [ ] log K1-DZWIEK „karta gra … bity” — 24 czy 16 bitów na X230 i IdeaPadzie; cicha muzyka przy 5–10 % — bez „ziarna”
         i szumu; dwie głośne rzeczy naraz (film i „Odtwórz próbę”) — bez trzasków
     [ ] film w przeglądarce: log K1-STREFA „gość gra w formacie …”; usta zgadzają się z głosem
@@ -175,8 +186,9 @@ Nowe w 0.11.8:
         „Ustawienia baterii” otwiera Ustawienia na sekcji Bateria; drugie kliknięcie baterii, kliknięcie obok i Start
         zamykają okienko
 Nowe w 0.11.5:
-    [ ] bez hasła: menu Start ma tylko „Uruchom ponownie” i „Wyłącz”; Ustawienia → Hasło → ustaw hasło → menu Start
-        od razu ma „Zablokuj” → kliknij: aplikacje się zamykają, wraca ekran hasła; po wyłączeniu hasła przycisk znika
+    [ ] bez hasła: menu Start ma tylko „Uruchom ponownie” i „Wyłącz”; Ctrl+Alt+Del → Hasło → ustaw hasło (od 0.13.0 tylko
+        tam) → menu Start od razu ma „Zablokuj” → kliknij: aplikacje się zamykają, wraca ekran hasła; po wyłączeniu hasła
+        przycisk znika
 Nowe w 0.11.4:
     [ ] prawy przycisk na obrazku → „Zapisz obraz jako…”: okno zapisu całe w oknie sesji (pole nazwy u góry, „Zapisz”
         widoczne — bez Entera); „Zapisz” → okienko K1 „Zapisz w Pobranych”
@@ -268,8 +280,11 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     GitHub Actions to create and approve pull requests” (docs/komponenty/robot.md) — bez tego nie wyda poprawek jądra.
 [x] 0.12.0 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.12.0.txt, punkt 4).
 [x] 0.12.3 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.12.3.txt, punkt 4).
-[!] 0.13.0 — decyzje D1–D8 (docs/PLAN-0.13.0.txt, punkt 4): czat zada je na początku kroków. Przed krokiem 2: Secure
-    Boot i TPM włączone w BIOS-ie obu laptopów (punkt 4 planu, „Działania”).
+[x] 0.13.0 — decyzje D1–D8 podjęte (docs/archiwum/PLAN-0.13.0.txt, punkt 4).
+[!] Bezpieczny start na sprzęcie (z planu 0.13.0, „Działania”): Secure Boot włączony na X230 i IdeaPadzie (klucz K1 przez
+    MokManagera — Instalator → „Secure Boot…”), TPM włączony w BIOS-ie (X230: Security → Security Chip → Active; IdeaPad:
+    Intel PTT albo TPM); GitHub: logowanie dwuetapowe kluczem sprzętowym i „Watch → Releases” (powiadomienie o każdym
+    wydaniu — w ciągu 20 minut możesz je zatrzymać, usuwając wydanie).
 [!] 0.13.2 — decyzje D1, D3, D4 (docs/PLAN-0.13.2.txt, punkt 4; D2 — prośba o H.264 — przyjęta z 0.10.9): czat zada
     je na początku kroków 1 i 4.
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
@@ -306,8 +321,9 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 ---------------------------------------------------------------------------------------------------
     Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
-    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.13 po ADR 0053); od 0.7.0 GRUB jest też częścią
-        startu A/B (grubenv, ADR 0022), więc w 0.13 decyzja: zostaje czy zastępujemy (ADR)
+    [x] przegląd przy porządkach 0.13.0 (2026-11-27): GRUB w ISO i obrazie USB („tymczasowy do M10” = 0.13, ADR 0010) —
+        zamknięte decyzją: GRUB zostaje (ADR 0058 pkt 1; potrzebny do Secure Boot z kluczami Microsoftu, liczy starty
+        i prowadzi do trybu ratunkowego); w kodzie nie ma żadnego rozwiązania tymczasowego.
     [x] przegląd przy porządkach 0.12.3 i 0.12.0 (2026-11-26): w kodzie nie ma żadnego rozwiązania tymczasowego (dźwięk
         wszedł bez nich). Przegląd przed 0.12 (2026-11-22): termin GRUB-a przesunięty z 0.12 na 0.13 (ADR 0053). Wcześniejsze
         przeglądy (0.7.5–0.11.0) i usunięte rozwiązania — CHANGELOG, „Porządki”.
@@ -315,6 +331,5 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.13   (docs/PLAN-0.13.0.txt, T1–T13): termin ogłoszenia, TPM bez TSS, SBAT, licznik wersji, tryb ratunkowy, dwie linie
-           poleceń, zgoda USB, RANDSTRUCT, Clang/kCFI, ochrona jądra przez wirtualizację — tak/nie
+    0.13.2 (docs/PLAN-0.13.2.txt, punkt 4, T1–T8): VA w strefie, FFmpeg, droga VMM → dekoder filmów — ADR 0063
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

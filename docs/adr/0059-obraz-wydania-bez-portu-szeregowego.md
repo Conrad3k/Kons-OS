@@ -5,7 +5,7 @@
 - Dotyczy: ADR 0022 (zamknięte jądro `k1.efi` — **uzupełniony**: dwie linie poleceń, testowa kopia `k1-test.efi`),
   ADR 0058 (tryb ratunkowy — raport ten sam, teraz także z Ustawień), ADR 0041 (Wi-Fi — `mac80211_hwsim` tylko w jądrze
   testów), niezmiennik 5 z `.claude/skills/kons-dev/SKILL.md` (PID 1 przy błędzie krytycznym — **zmieniony**: kończy się,
-  jądro panikuje); plan `docs/PLAN-0.13.0.txt` (krok 4, D4, D5, T8, T9); Issue #234 (p. 3), #231 (p. 1), #237 (p. 1, 2);
+  jądro panikuje); plan `docs/archiwum/PLAN-0.13.0.txt` (krok 4, D4, D5, T8, T9); Issue #234 (p. 3), #231 (p. 1), #237 (p. 1, 2);
   RYZYKA R10, R17, R21; opisy: `docs/komponenty/jadro.md`, `init.md`, `initramfs.md`, `nadzorca.md`, `aplikacje.md`
 
 ## Kontekst

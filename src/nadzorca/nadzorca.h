@@ -414,6 +414,10 @@ extern char ab_nieudana[32];
 void obsluz_ekran(void); /* 0.10.9 step 2 (S3): EKRAN_OBRAZ on ekran's control channel */
 void rozruch_wydanie(void);
 void rozruch_po_starcie(double t);
+int rozruch_to_wydanie(const struct k1_manifest *m);
+int rozruch_wydanie_jest(void);
+int k1efi_otworz(const char *efi, int zapis, struct k1_efi *e, int *fd); /* a K1-EFI with grubenv (also ratunek.c) */
+int k1efi_zapisz_env(int fd, const struct k1_efi *p, const struct k1_grubenv *env);
 /* tpm.c (0.13.0 step 2, ADR 0057): the generation of K1 and the state of the vaults in the TPM */
 void tpm_start(void);
 int tpm_blokada(void); /* 1: an older K1 than the TPM knows — skarbiec gets no K1-DANE */
@@ -435,7 +439,6 @@ void ratunek_prosba(int a);
 void ratunek_raport_wynik(int wynik, int numer);
 void ratunek_nowy_ekran(void);
 void ratunek_okresowe(void);
-int rozruch_to_wydanie(const struct k1_manifest *m);
 /* instalacja.c: the writing program with the report and the USB stick; its result to window `okno` (OKNO_USTAWIENIA:
  * INST_WYNIK), or — okno < 0 — to the rescue mode (ratunek_raport_wynik) */
 int inst_raport(int fd_raport, uint32_t dl, int okno);

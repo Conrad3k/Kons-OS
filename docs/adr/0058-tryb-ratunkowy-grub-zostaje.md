@@ -4,7 +4,7 @@
 - Data: 2026-11-27
 - Dotyczy: ADR 0010 (GRUB „tymczasowy do M10” — **zamknięte tą decyzją**), ADR 0022 (A/B, grubenv, zamknięte jądro —
   **uzupełniony**: dwie nowe zmienne grubenv), ADR 0018 (Instalator — program zapisujący dostaje trzecie zadanie), ADR 0031
-  (czytnik pendrive'a — jego czytnik FAT użyty do zapisu raportu); plan `docs/PLAN-0.13.0.txt` (krok 3, D2, D3, T7); opisy:
+  (czytnik pendrive'a — jego czytnik FAT użyty do zapisu raportu); plan `docs/archiwum/PLAN-0.13.0.txt` (krok 3, D2, D3, T7); opisy:
   `docs/komponenty/ratunek.md`, `docs/komponenty/logowanie.md`, `docs/komponenty/instalator.md`,
   `docs/komponenty/nadzorca.md`
 

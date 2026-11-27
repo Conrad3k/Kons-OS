@@ -48,7 +48,7 @@ priorytet 1 (najsłabsze ogniwo dziś). Kroki 2 i 3 dotykają startu (GRUB, `k1.
 Kroki 5, 6 i 7 nie zależą od siebie. Krok 8 (wydanie) — po wszystkich.
 
 Właściciel: co wpisać w nowym czacie (podmień N):
-    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.13.0.txt.”
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/archiwum/PLAN-0.13.0.txt.”
 Decyzje [!] (punkt 4) czat zada na początku kroku; przy wyglądzie najpierw pokaże szkice. Twoje działania (punkt 4,
 „Działania”) — najlepiej przed krokiem 2: bez Secure Boot i TPM włączonych w BIOS-ie kroków 2–3 nie sprawdzisz na
 sprzęcie.
@@ -134,7 +134,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
         ekranie K1 — PR #258
 [x]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
         — PR #260
-[ ]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
+[x]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
+        — PR #@PR@
 (ADR: 0056 to następny wolny po 0055; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
 
 
@@ -543,3 +544,13 @@ Krok 7 (2026-11-27, Claude; ADR 0062 — decyzja, jądro bez zmian):
     przed instalacją narzędzi.
   - Komentarz przy wtyczkach GCC w `jadro/k1.config` zmienia krok 8 (zmiana pliku jądra = pełne testy, a krok 7 to same
     dokumenty).
+Krok 8 (2026-11-27, Claude; wydanie 0.13.0):
+  - Porządki: nadzorca otwiera K1-EFI i zapisuje grubenv w jednym miejscu (`k1efi_otworz`, `k1efi_zapisz_env`
+    w `rozruch.c` — były kopie w zatwierdzaniu wersji i w trybie ratunkowym z kroku 3); obraz przeglądarki pyta
+    `rozruch.c` o identyfikator wydania zamiast czytać go drugi raz; komentarz RANDSTRUCT w `jadro/k1.config` (ADR 0062).
+  - „Tymczasowe”: GRUB zamknięty decyzją (ADR 0058); w kodzie nic tymczasowego.
+  - Lista „co sprawdzić” w DO_ZROBIENIA (punkt 4, „Najpierw — nowe w 0.13.0”) z kroków 3–6; Twoje działania (Secure Boot,
+    TPM, „Watch → Releases”) — punkt 5.
+  - Zgłoszenia: #235 i #236 zamknięte (części tej wersji zrobione, reszta zapisana w 0.15 — punkt 6); #230 zamknięte
+    w kroku 1; #231, #232, #233, #234, #237, #238 zostają do 0.15 z komentarzem.
+  - Robot stoi dalej (uprawnienie z #216/#217); numer 0.13.0 wolny.

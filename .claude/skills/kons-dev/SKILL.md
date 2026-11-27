@@ -64,11 +64,11 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
 Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). Obraz przeglądarki (0.10.9 krok 4, ADR 0050) nie
 jest w rdzeniu: leży w miejscu A/B zaraz za k1.efi (na końcu obrazu miejsca, manifest go obejmuje), w rdzeniu tylko jego
 skrót; nadzorca zakłada dm-verity i daje go VMM-owi (fd 6). W testach z rdzeniem na `/dev/vda` — drugi dysk virtio
-(`uruchom-qemu.sh --obraz-strefy`). ISO nie ma obrazu przeglądarki (jądro bez napędu CD). ISO/USB mają GRUB-a do 0.13 (ADR 0010, 0053; dawne M10).
+(`uruchom-qemu.sh --obraz-strefy`). ISO nie ma obrazu przeglądarki (jądro bez napędu CD). ISO/USB mają GRUB-a — zostaje (ADR 0058; „tymczasowy do 0.13” z ADR 0010 zamknięty).
 
 **System plików po starcie** (ADR 0004): `/` — tmpfs tylko do odczytu z trzema katalogami: `rdzen`
 (SquashFS ro, nosuid, nodev; w nim `init`, `system/`, `aplikacje/`, `jadro/{dev,proc,sys}`), `aplikacje`
-(pusty do 0.13), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
+(pusty; aplikacje ze Sklepu — 0.14, ADR 0064), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
 (partycja GPT „K1-DANE”, własny format, Monocypher; ADR 0015), nie w systemie plików. `/proc` ma
 `hidepid=invisible,subset=pid`. Nie używaj ścieżek `/dev`, `/proc`, `/sys`, `/tmp`, `/etc`.
 

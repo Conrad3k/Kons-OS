@@ -32,10 +32,40 @@ void rozruch_wydanie(void)
     wydanie_jest = 1;
 }
 
-/* 1: the slot's manifest names the very build that runs now (0.13.0 step 3: ratunek.c). */
+/* 1: the build id of this K1 is known (/rdzen/system/wydanie, read once by rozruch_wydanie). */
+int rozruch_wydanie_jest(void)
+{
+    return wydanie_jest;
+}
+
+/* 1: the slot's manifest names the very build that runs now (0.13.0: also ratunek.c, obraz_strefy.c). */
 int rozruch_to_wydanie(const struct k1_manifest *m)
 {
     return wydanie_jest && m->wersja != 0 && memcmp(m->wydanie, wydanie, sizeof wydanie) == 0;
+}
+
+/* A K1-EFI partition with grubenv (format 2): 0, *e and *fd open (`zapis`: for writing, exclusively), or -1. One place
+ * for rozruch.c and ratunek.c (0.13.0 tidy-up). */
+int k1efi_otworz(const char *efi, int zapis, struct k1_efi *e, int *fd)
+{
+    off_t rozm;
+    *fd = otworz_urzadzenie(efi, zapis ? O_RDWR | O_EXCL : O_RDONLY);
+    rozm = *fd < 0 ? -1 : lseek(*fd, 0, SEEK_END);
+    if (rozm <= 0 || k1_efi_czytaj(*fd, (uint64_t)rozm, e) != 0 || e->format != 2 || !e->env_ok) {
+        if (*fd >= 0)
+            close(*fd);
+        *fd = -1;
+        return -1;
+    }
+    return 0;
+}
+
+/* Writes `env` as the grubenv of K1-EFI `p` (open for writing in fd): 0, or -1 with errno. */
+int k1efi_zapisz_env(int fd, const struct k1_efi *p, const struct k1_grubenv *env)
+{
+    uint8_t g[K1_GRUBENV_BAJTY];
+    k1_grubenv_zbuduj(env, g);
+    return k1_pisz_calosc(fd, g, sizeof g, p->uklad.grubenv_off) == 0 && fdatasync(fd) == 0 ? 0 : -1;
 }
 
 /* 1: a try A/B waits on this disk and it is not this build (the next start may still go back). */
@@ -44,20 +74,15 @@ static int sprawdz_dysk(const char *efi)
     struct k1_efi p;
     struct k1_grubenv e;
     const struct k1_manifest *m;
-    uint8_t g[K1_GRUBENV_BAJTY];
     char w[16];
     enum k1_ab d;
-    int fd = otworz_urzadzenie(efi, O_RDWR | O_EXCL), nr;
-    off_t rozm = fd < 0 ? -1 : lseek(fd, 0, SEEK_END);
-    if (rozm <= 0 || k1_efi_czytaj(fd, (uint64_t)rozm, &p) != 0 || p.format != 2 || !p.env_ok) {
-        if (fd >= 0)
-            close(fd);
+    int fd, nr;
+    if (k1efi_otworz(efi, 1, &p, &fd) != 0)
         return 0;
-    }
     e = p.env;
     nr = k1_slot_nr(e.start);
     m = nr >= 0 ? &p.slot[nr] : NULL;
-    d = k1_ab_decyzja(&e, wydanie_jest && m != NULL && m->wersja != 0 && memcmp(m->wydanie, wydanie, sizeof wydanie) == 0);
+    d = k1_ab_decyzja(&e, m != NULL && rozruch_to_wydanie(m));
     if (d == K1_AB_POTWIERDZ) { /* logged once it is on the disk (the tests read the disk right after the line) */
         e.slot = e.start;
         e.proba = 0;
@@ -72,8 +97,7 @@ static int sprawdz_dysk(const char *efi)
         snprintf(ab_nieudana, sizeof ab_nieudana, "%s", efi);
     }
     if (d != K1_AB_NIC) {
-        k1_grubenv_zbuduj(&e, g);
-        if (k1_pisz_calosc(fd, g, sizeof g, p.uklad.grubenv_off) != 0 || fdatasync(fd) != 0)
+        if (k1efi_zapisz_env(fd, &p, &e) != 0)
             k1_log(TAG, "A/B: zapis grubenv nieudany (%s): %s", efi, strerror(errno));
         else if (d == K1_AB_POTWIERDZ)
             k1_log(TAG, "A/B: nowa wersja %s wystartowała — potwierdzona (%s, miejsce %c)", w, efi, e.slot);
