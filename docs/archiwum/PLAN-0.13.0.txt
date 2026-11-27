@@ -135,7 +135,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
         — PR #260
 [x]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
-        — PR #@PR@
+        — PR #261
 (ADR: 0056 to następny wolny po 0055; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
 
 
