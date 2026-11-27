@@ -81,7 +81,8 @@ w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz pod�
 najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
 od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis; od 0.11.8 krok 3 `USTAWIENIA_MIEJSCE` (Bateria; do 0.12.3 krok 3: `BATERIA_POKAZ`) od nadzorcy —
 przycisk „Ustawienia baterii” w okienku baterii na górnym pasku — pokazuje tę sekcję), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
-przez skarbiec — fd 5), Mysz (prędkość),
+przez skarbiec — fd 5; od 0.13.0 krok 6, ADR 0061: tylko stan „Hasło przy włączaniu: włączone / wyłączone” i podpowiedź
+„naciśnij Ctrl+Alt+Del i wybierz „Hasło”” — formularz jest na ekranie zabezpieczeń, okno nigdy nie prosi o hasło K1), Mysz (prędkość),
 Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`; od 0.8.2 krok 5 — **każdy** typ pliku i jego
 domyślna aplikacja: „Dokument tekstowy — Notatki”, „Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd” (typy jednej rodziny
 w jednym wierszu), „Plik”, „Dokument PDF”, „Archiwum ZIP” — „K1 nie ma jeszcze aplikacji do tego typu pliku”; typ, który
@@ -191,7 +192,7 @@ Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciel
 Od 0.10.7 krok 2 (`docs/WYGLAD.md`, „Ustawienia: sekcje w środku”): bez baterii sekcji „Bateria” nie ma na liście
 (`na_liscie()` w `main.c`; numery `S_*` bez zmian, log „sekcje na liście: …” dla testów); Ekran — tryby w rzędach po 3,
 od największej, „zalecana” w przycisku, tryby i karty tapet w opisie ekranu; Informacje — wizytówka, wersja jądra
-z `jadro/wersja.env` (`K1_JADRO`, Makefile); Hasło — karta z przełącznikiem i wyjaśnieniem; Aplikacje — wiersze.
+z `jadro/wersja.env` (`K1_JADRO`, Makefile); Hasło — karta ze stanem i wyjaśnieniem, pod nią podpowiedź „Ctrl+Alt+Del → Hasło” (0.13.0 krok 6); Aplikacje — wiersze.
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,

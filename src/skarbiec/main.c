@@ -257,8 +257,8 @@ static void wykonaj(struct klient *k, const struct k1_komunikat *m, int fd)
     case K1_KOM_SKARB_ODBLOKUJ: /* only the login screen */
         odpowiedz(k, 1, m->typ, k->wlasciciel == K1_PROFIL_LOGOWANIE ? haslo_odblokuj(fd, (size_t)m->a) : K1_MAG_ARG);
         break;
-    case K1_KOM_SKARB_HASLO: /* only Ustawienia */
-        odpowiedz(k, 1, m->typ, k->wlasciciel == K1_PROFIL_USTAWIENIA ? haslo_zmien(fd, (size_t)m->a) : K1_MAG_ARG);
+    case K1_KOM_SKARB_HASLO: /* only gui's security screen (0.13.0 step 6, ADR 0061; until then Ustawienia) */
+        odpowiedz(k, 1, m->typ, k->wlasciciel == K1_PROFIL_GUI ? haslo_zmien(fd, (size_t)m->a) : K1_MAG_ARG);
         break;
     case K1_KOM_SKARB_INFO:
         odpowiedz(k, 1, m->typ, K1_MAG_OK);

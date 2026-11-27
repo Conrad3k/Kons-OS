@@ -3,7 +3,7 @@
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
 # „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki (pusty folder, zaznaczony folder, Kosz — 0.10.7 krok 3), Zasoby,
-# Kalkulator, przełącznik okien (0.10.5 krok 6), okienko „Dźwięk” (0.12.0 krok 1, z kartą dźwiękową QEMU; od 0.12.3 krok 2 z wierszem „Korektor”), Ustawienia → Dźwięk → Korektor (0.12.3 krok 2), Ustawienia → Dźwięk → Kons Spatial Audio (krok 3); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
+# Kalkulator, przełącznik okien (0.10.5 krok 6), okienko „Dźwięk” (0.12.0 krok 1, z kartą dźwiękową QEMU; od 0.12.3 krok 2 z wierszem „Korektor”), Ustawienia → Dźwięk → Korektor (0.12.3 krok 2), Ustawienia → Dźwięk → Kons Spatial Audio (krok 3); ekran zabezpieczeń i jego „Hasło” (0.13.0 krok 6); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
 # baterii (0.11.8 krok 3) — w osobnym przebiegu z tablicą ACPI baterii (z baterią Ustawienia i Zasoby wyglądają inaczej).
 # Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
@@ -113,11 +113,28 @@ def okienko_dzwieku(motyw):
     q.czekaj_na(lambda: q.element("Okienko paska") is None, czas=30)
 
 
+def ekran_zabezpieczen():
+    """0.13.0 step 6 (D8: A): Ctrl+Alt+Del — the security screen (its menu; "Hasło": the form of a vault without a
+    password). It has the dark look in both themes: one pass."""
+    q.monitor("sendkey ctrl-alt-delete")
+    if q.sprawdz("Ctrl+Alt+Del: ekran zabezpieczeń", q.czekaj_na_element("Ekran zabezpieczeń", "Hasło", "przycisk", czas=30)):
+        q.wzorzec("ekran-zabezpieczen", "Ekran zabezpieczeń")
+        q.klik_w("Ekran zabezpieczeń", "Hasło", "przycisk")
+        if q.sprawdz("ekran zabezpieczeń → Hasło: formularz",
+                     q.czekaj_na_element("Ekran zabezpieczeń", "Powtórz nowe hasło", "pole", czas=30)):
+            q.wzorzec("ekran-zabezpieczen-haslo", "Ekran zabezpieczeń")
+    q.klawisze(("esc", 1), ("esc", 0))
+    q.klawisze(("esc", 1), ("esc", 0))
+    q.sprawdz("Esc: ekran zabezpieczeń zamknięty", q.czekaj_na(lambda: q.element("Ekran zabezpieczeń") is None, czas=30))
+
+
 def pulpit(motyw):
     """The bars, the desktop's icons, the Start menu, the sessions' window, Pliki, Zasoby, Kalkulator."""
     q.wzorzec(f"pasek-dolny-{motyw}", "Pasek")
     q.wzorzec(f"pasek-gorny-{motyw}", "Pasek górny")
     okienko_dzwieku(motyw)
+    if motyw == "jasny":
+        ekran_zabezpieczen()
     q.wzorzec(f"pulpit-ikony-{motyw}", "Pulpit", elementy=True)
     q.klik_w("Pasek", "Start", "ikona")
     if q.czekaj_na_element("Menu Start", "Wyłącz", czas=30):

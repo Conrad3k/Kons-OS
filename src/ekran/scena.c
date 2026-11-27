@@ -85,7 +85,9 @@ static struct prost cale_okno(const struct pow *p)
 void uszkodz_pow(const struct pow *p)
 {
     struct prost r = cale_okno(p);
-    if (p->rodzaj == K1_POW_OKNO)
+    if (p->rodzaj == K1_POW_ZABEZPIECZENIA) /* 0.13.0 step 6: the darkened screen around it comes and goes with it */
+        uszkodz(0, 0, s.W, s.H);
+    else if (p->rodzaj == K1_POW_OKNO)
         uszkodz(r.x - CIEN, r.y - CIEN, r.w + 2 * CIEN, r.h + 2 * CIEN);
     else
         uszkodz(r.x, r.y, r.w, r.h);
@@ -99,9 +101,12 @@ int widac(const struct pow *p)
     return p->uzyta && p->widoczna && !p->zmin && p->polowa >= 0;
 }
 
-/* Order: the desktop layer, windows by z, then panels by z; a zone's window in full screen above all (0.11.0 step 1). */
+/* Order: the desktop layer, windows by z, then panels by z; a zone's window in full screen above them (0.11.0 step 1);
+ * the security screen above all (0.13.0 step 6). */
 static int warstwa(const struct pow *p)
 {
+    if (p->rodzaj == K1_POW_ZABEZPIECZENIA) /* 0.13.0 step 6: the security screen above all, a full screen too */
+        return 4;
     return pelny_jest(p) ? 3 : p->rodzaj == K1_POW_PULPIT ? 0 : p->rodzaj == K1_POW_OKNO ? 1 : 2;
 }
 
@@ -217,6 +222,8 @@ static void skomponuj(void)
                                   (uint32_t)p->w, (uint32_t)p->h, (uint32_t)p->w };
             if (p->rodzaj == K1_POW_OKNO && !pelny_jest(p))
                 cien(p, &r);
+            if (p->rodzaj == K1_POW_ZABEZPIECZENIA)
+                zab_zaslona(&r); /* 0.13.0 step 6: everything under the security screen darkened */
             if (okno_strefy(p))
                 strefa_ramka(p, &r); /* before the zone's picture: outside it, never covered by it */
             if (strefa_bufor(idx[i]) != NULL) { /* 0.10.11 step 2: from its buffer of the card, or on the layer */

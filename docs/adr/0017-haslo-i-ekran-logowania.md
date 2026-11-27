@@ -1,6 +1,7 @@
 # 0017. Hasło i ekran logowania (M5e)
 
-- Status: Przyjęty
+- Status: Przyjęty; od 0.13.0 hasło ustawia się i zmienia tylko na ekranie zabezpieczeń (Ctrl+Alt+Del), nie w Ustawieniach
+  — ADR 0061
 - Data: 2026-11-07
 - Dotyczy: ADR 0015 (klucz owinięty Argon2id), ADR 0016, ADR 0008 (role w ekranie), SPEC §7, etap M5e
 

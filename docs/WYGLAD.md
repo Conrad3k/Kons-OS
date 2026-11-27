@@ -487,8 +487,16 @@ z firmware) — wyjaśnienie i wskazówka dla VirtualBoxa.
   Od 0.13.0 krok 4 (ADR 0059, D4: A) pod nimi przycisk „Zapisz raport na pendrive” (zwykły, 36 px, 8 px pod ostatnim
   wierszem; w trakcie zapisu wyszarzony), 24 px pod nim jedno zdanie `K1_CZ_MALA`: co jest w raporcie (`tekst2`) albo
   co raport zrobił — te same zdania co ekran ratunkowy (`k1_raport_opis`); brak pendrive'a i błąd — `akcent_tekst`.
-- **Hasło:** przełącznik i to, co znaczy, na jednej karcie (`pole`, obrys `tekst` 24, zaokrąglenie 10); wyjaśnienie
-  8 px pod przełącznikiem. Z otwartym formularzem karta ma sam przełącznik, pola pod nią.
+- **Hasło:** od 0.13.0 krok 6 (ADR 0061) karta stanu (`pole`, obrys `tekst` 24, zaokrąglenie 10): kłódka, „Hasło przy
+  włączaniu: włączone / wyłączone” (`K1_CZ_TEKST_MOCNA`), pod nim co to znaczy i „Zapomniane hasło…” (`tekst2`); 24 px pod
+  kartą „Hasło ustawisz, zmienisz albo wyłączysz na ekranie zabezpieczeń:” i w następnej linii „naciśnij Ctrl+Alt+Del
+  i wybierz „Hasło”.” (`akcent_tekst`, mocna); na dole małym `tekst2`: „Okno, także to, nigdy nie prosi o hasło K1…”.
+- **Ekran zabezpieczeń** (0.13.0 krok 6, D8: A): cały ekran przyciemniony (ćwierć obrazu na `#1C1714`), na środku
+  panel 480 × 560 bez tła — zawsze wygląd ciemny: znak K1 40 px, tytuł „Ekran zabezpieczeń” (`K1_CZ_TYTUL`), dwie linie
+  `K1_CZ_MALA` (krem 200), wiersze 360 × 52 co 64 (krem 20/255, obrys krem 40, wybrany: obrys terakota 2 px): nazwa
+  z lewej, opis małym z prawej („ustaw, zmień, wyłącz”); na dole „Esc: wróć do pulpitu”. „Hasło”: pola 40 px co 64
+  (kropki), „Wróć” (cichy) i „Zapisz” (główny), komunikat pod nimi (błąd — terakota jasna). Wzorce `ekran-zabezpieczen`,
+  `ekran-zabezpieczen-haslo` (jeden przebieg — wygląd ten sam w obu motywach).
 - **Aktualizacje:** ikona w kafelku bez terakotowego kwadratu — `tekst` na polu `zaznaczenie` 40 × 40 (zaokrąglenie 10;
   plan mówił `najechanie`, ale w ciemnym motywie nie odróżnia się od `pole`).
 - **Przeglądarka:** „Zmień nazwę”, „Wyczyść dane…” — odmiana przycisku `K1_PRZ_NA_KARCIE` (przycisk na karcie:

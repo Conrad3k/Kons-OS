@@ -75,10 +75,7 @@ int haslo_start(void);      /* fd 5 when there is a channel to skarbiec, else -1
 void haslo_odbierz(void);   /* what skarbiec said */
 void haslo_info(void);      /* asks skarbiec for its state */
 void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
-int haslo_klik(int32_t x, int32_t y);                    /* 1 = handled */
-void haslo_klawisz(unsigned kod, int wartosc, unsigned mody);
-void haslo_zamknij(void);   /* leaving the section: the form closes, typed text is wiped */
-void haslo_loguj(void);     /* the tests click by this line */
+void haslo_loguj(void);     /* the state (0.13.0 step 6: the form is on the security screen) */
 const char *haslo_gdzie_dane(void); /* Informacje: where the data is (the value, without its label) */
 int skarbiec_kanal(void);   /* fd 5 while it is open, else -1 */
 int haslo_tylko_pamiec(void); /* no K1-DANE: the data only in memory */

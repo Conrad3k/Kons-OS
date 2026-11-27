@@ -29,7 +29,7 @@
 
 struct k1_klient k;
 struct k1_powierzchnia gora, dok, menu, okienko_paska, pulpit, kontekst;
-static struct k1_powierzchnia *wszystkie[] = { &gora, &dok, &menu, &okienko_paska, &pulpit, &kontekst };
+static struct k1_powierzchnia *wszystkie[] = { &gora, &dok, &menu, &okienko_paska, &pulpit, &kontekst, &zab };
 int32_t dok_x, dok_y, menu_x, menu_y;
 struct rozmieszczenie rozm;
 
@@ -67,7 +67,7 @@ void rozm_zmienione(const char *co)
 
 static void rysuj_wszystko(void)
 {
-    gora.brudna = dok.brudna = menu.brudna = okienko_paska.brudna = kontekst.brudna = 1;
+    gora.brudna = dok.brudna = menu.brudna = okienko_paska.brudna = kontekst.brudna = zab.brudna = 1;
     pulpit_wszystko();
 }
 
@@ -85,6 +85,8 @@ static void odswiez(void)
         rysuj_okienko_paska();
     if (kontekst.brudna)
         rysuj_kontekst();
+    if (zab.brudna && zab_otwarty())
+        rysuj_zab();
 }
 
 /* Positions of the panels for the current screen size. The first time it creates the surfaces;
@@ -109,6 +111,7 @@ static void uloz(int pierwszy)
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_MENU, 0, 0, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 0, 0, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_KONTEKST, 0, 0, 0, 0, 0));
+        zab_utworz(1); /* 0.13.0 step 6: the security screen, hidden until Ctrl+Alt+Del */
     } else {
         pokaz_menu(0);
         okienko_paska_zamknij();
@@ -117,6 +120,7 @@ static void uloz(int pierwszy)
         k1_pow_utworz(&k, &gora, P_GORA, W, K1_PASEK_GORNY, K1_POW_PANEL, 0, 0);
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DOK, dok_x, dok_y, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_MENU, menu_x, menu_y, 0, 0, 0));
+        zab_utworz(0);
         rysuj_wszystko();
     }
     dok_zmiana();
@@ -158,6 +162,9 @@ static void wskaznik(const struct k1_komunikat *m)
     case P_OKIENKO_PASKA: /* 0.11.8 step 3: the battery's popover has a button */
         wskaznik_okienka_paska(m);
         break;
+    case P_ZABEZPIECZENIA: /* 0.13.0 step 6: ekran gives it every click while it shows */
+        wskaznik_zab(m);
+        break;
     default:
         break;
     }
@@ -187,6 +194,10 @@ static void komunikat(struct k1_komunikat *m)
             pulpit_koniec(m->a, (uint32_t)m->b);
         break;
     case K1_KOM_KLAWISZ:
+        if (m->obiekt == P_ZABEZPIECZENIA) { /* 0.13.0 step 6: Ctrl+Alt+Del, and every key while the screen shows */
+            zab_klawisz(m);
+            break;
+        }
         if (dzwiek_klawisz(m)) /* 0.12.0 step 2: the volume keys (ekran gives them to the shell only) */
             break;
         if ((m->a == KEY_LEFTMETA || m->a == KEY_RIGHTMETA) && m->b == 1) {
@@ -245,7 +256,7 @@ int main(void)
             odbierz_skarbiec();
         if (p[3].revents != 0)
             dzwiek_odbierz();
-        while (k1_odbierz(&k, wszystkie, 6, &m))
+        while (k1_odbierz(&k, wszystkie, 7, &m))
             komunikat(&m);
         clock_gettime(CLOCK_REALTIME, &t);
         if ((int32_t)(t.tv_sec % (k.ustawienia[K1_UST_SEKUNDY] ? 1 : 60)) == 0 && sek != (int32_t)t.tv_sec) {

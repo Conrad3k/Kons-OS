@@ -12,6 +12,8 @@
  *   sesje.c           "Którą sesję otworzyć?" when the browser opens (0.10.1 step 4), on the panel of kontekst.c
  *   przelacznik.c     the window switcher, Alt+Tab (0.10.5 step 6), on the panel of kontekst.c
  *   zapis.c           the desktop arrangement in skarbiec (fd 6)
+ *   ochrona.c         K1's windows of protection: the TPM's, a new USB device, "Ustaw hasło" (0.13.0)
+ *   zabezpieczenia.c  the security screen of Ctrl+Alt+Del (0.13.0 step 6), haslo.c its password form
  *   rozmieszczenie.c  the rules of the arrangement (pure, host tests)
  *
  * Every panel is one surface (P_*) drawn only when it is `brudna`; a module sets that flag on the
@@ -40,6 +42,7 @@
 #define P_OKIENKO_PASKA 4 /* the popovers under the top bar's icons (0.11.8 step 2; until then the sound one only) */
 #define P_PULPIT 5    /* the desktop layer (K1_POW_PULPIT) */
 #define P_KONTEKST 6  /* the right-click menu, above every other panel (created last) */
+#define P_ZABEZPIECZENIA 7 /* the security screen (K1_POW_ZABEZPIECZENIA; 0.13.0 step 6): ekran keeps it above all */
 
 #define MARG K1_PANEL_MARGINES /* shadow margin inside panel surfaces (k1_okno.h: ekran's work area too) */
 
@@ -271,6 +274,30 @@ void pamiec_fokus(void);                             /* the windows changed: the
 void wersja_nieudana(const struct k1_komunikat *m); /* AB_NIEUDANA: the window "Nowa wersja K1 nie uruchomiła się" */
 void ochrona_stan(const struct k1_komunikat *m); /* OCHRONA: the TPM's windows, the USB question (ochrona.c, 0.13.0) */
 void ochrona_bez_hasla(int bez_hasla);           /* SESJA b (0.13.0 step 5): "Ustaw hasło" on the first start */
+/* zabezpieczenia.c (0.13.0 step 6, ADR 0061, D8: A) — Ctrl+Alt+Del: the menu and the password's form */
+extern struct k1_powierzchnia zab;
+void zab_utworz(int pierwszy);                  /* the panel (hidden); after a mode change: centred again */
+void zab_otworz(int na_hasle);                  /* shown — on the menu, or on the password's form */
+int zab_otwarty(void);
+void rysuj_zab(void);
+void zab_klawisz(const struct k1_komunikat *m); /* keys on P_ZABEZPIECZENIA (Ctrl+Alt+Del opens it) */
+void wskaznik_zab(const struct k1_komunikat *m);
+void zab_wynik_skarbca(const struct k1_komunikat *w); /* SKARB_WYNIK on fd 6: the vault's state, the password's result */
+/* haslo.c — the password's form (since 0.13.0 step 6 on the security screen; M5e–0.13.0 step 5 in Ustawienia) */
+enum { HF_BRAK, HF_USTAW, HF_ZMIEN, HF_WYLACZ };
+struct haslo_stan {
+    int znane, tryb, wlaczone, usb; /* the vault as skarbiec said (K1_SKARB_* tryb) */
+    int formularz, pole, czeka, blad;
+    char komunikat[120];
+};
+extern struct haslo_stan hasla;
+void haslo_info(void);                 /* SKARB_INFO: the state comes as SKARB_WYNIK */
+int haslo_pola(const char **nazwy);   /* the fields of the form: how many, their labels */
+size_t haslo_znaki(int pole);          /* characters typed in a field (the dots) */
+void haslo_formularz(int f);           /* HF_*: a new form, what was typed wiped */
+void haslo_wyslij(void);
+int haslo_wynik(const struct k1_komunikat *w); /* 1: the password was changed */
+int haslo_klawisz(unsigned kod, int wartosc, unsigned mody); /* 1: taken */
 /* aktualizacja.c (0.10.5 step 2b): AKT_STAN, AKT_OPIS — the window "Jest nowa wersja K1", the dot at Start */
 void akt_komunikat(const struct k1_komunikat *m, int fd);
 int akt_czeka(void); /* 1: a new version waits for "Zainstaluj" */

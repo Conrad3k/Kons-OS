@@ -67,9 +67,7 @@ void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul)
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
-    if (sekcja == S_HASLO)
-        haslo_klawisz(kod, wartosc, mody);
-    else if (sekcja == S_SIEC)
+    if (sekcja == S_SIEC)
         wifi_haslo_klawisz(kod, wartosc, mody); /* 0.9.1 step 2: the password of a Wi-Fi network */
     else if (sekcja == S_PRZEGLADARKA)
         przegladarka_klawisz(kod, wartosc, mody); /* 0.10.0 step 5: a session's new name */
@@ -182,7 +180,6 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 void ustawienia_pokaz(int s)
 {
     if (s != sekcja) {
-        haslo_zamknij();
         wifi_zamknij(); /* a typed Wi-Fi password is wiped */
         przegladarka_zamknij();
     }
@@ -218,8 +215,6 @@ void ustawienia_miejsce(int miejsce)
         ustawienia_pokaz(S_BATERIA);
     else if (miejsce == K1_UST_MIEJSCE_AKTUALIZACJE) /* 0.10.5 step 1: the Instalator's link, gui's failed try */
         ustawienia_pokaz(S_AKTUALIZACJE);
-    else if (miejsce == K1_UST_MIEJSCE_HASLO) /* 0.13.0 step 5: gui's window "Ustaw hasło" */
-        ustawienia_pokaz(S_HASLO);
 }
 
 static int segmenty(int32_t *w)
@@ -256,8 +251,6 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         k1_apl_odswiez(&apl);
     }
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY)
-        return;
-    if (sekcja == S_HASLO && nav < 0 && haslo_klik(x, y))
         return;
     if (sekcja == S_APLIKACJE && nav < 0 && aplikacje_klik(x, y))
         return;

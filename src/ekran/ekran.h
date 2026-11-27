@@ -195,6 +195,13 @@ struct k1_opis_el;
 int opis_rekord(struct k1_opis_el *e, int rodzaj, unsigned stan, uint32_t okno, int32_t x, int32_t y, int32_t w,
                 int32_t h, const char *nazwa);
 
+/* zabezpieczenia.c — the security screen, Ctrl+Alt+Del (0.13.0 step 6, ADR 0061) */
+struct k1_zdarzenie;
+int zabezpieczenia(void);                         /* the shell's security screen while it shows, else -1 */
+int zab_ctrl_alt_del(const struct k1_zdarzenie *z); /* 1: Ctrl+Alt+Del (or its Delete going up) — taken, to the shell */
+int zab_klawisz(const struct k1_zdarzenie *z);    /* 1: the security screen shows — the key went to it */
+void zab_zaslona(const struct prost *r);          /* the scene under the security screen darkened, inside r */
+
 /* wylaczanie.c — the screen "Wyłączanie" (0.10.7 step 6, T7) */
 void wylaczanie_start(int restart);         /* WYLACZANIE from nadzorca: from now on until the end */
 int wylaczanie_trwa(void);

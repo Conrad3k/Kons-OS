@@ -78,7 +78,8 @@ static int nowa_powierzchnia(const struct k1_komunikat *k)
         return k->d == 0 && w(k->e, 0, 1);
     if (k->c == K1_POW_PULPIT)
         return k->d == 0 && k->e == 0;
-    return k->c == K1_POW_PANEL && w(k->d, K1_POZ_MIN, K1_POZ_MAKS) && w(k->e, K1_POZ_MIN, K1_POZ_MAKS);
+    return (k->c == K1_POW_PANEL || k->c == K1_POW_ZABEZPIECZENIA) && w(k->d, K1_POZ_MIN, K1_POZ_MAKS) &&
+           w(k->e, K1_POZ_MIN, K1_POZ_MAKS);
 }
 
 /* 0.11.0 steps 4, 5 (ADR 0052, T6, T8): between windows — dragging, the clipboard */

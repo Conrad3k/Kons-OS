@@ -1,6 +1,6 @@
 /* K1 ekran — input routing: the pointer (speed, hit testing against the pixels of the surfaces,
  * implicit grab, dragging windows), the keyboard (modifiers, focus, the Super key and Alt+Tab for the shell,
- * arrows as a keyboard-only pointer). Split out of main.c in M4.1. */
+ * arrows as a keyboard-only pointer; Ctrl+Alt+Del and the security screen — zabezpieczenia.c). Split out of main.c in M4.1. */
 #include <string.h>
 
 #include <linux/input-event-codes.h>
@@ -29,6 +29,8 @@ int pod_kursorem(int *ramka)
 {
     int idx[MAKS_POW], n = kolejnosc(idx), i;
     *ramka = 0;
+    if ((i = zabezpieczenia()) >= 0) /* 0.13.0 step 6: the security screen takes the pointer everywhere */
+        return i;
     for (i = n - 1; i >= 0; i--) {
         const struct pow *p = &s.p[idx[i]];
         if (okno_strefy(p) && (*ramka = strefa_trafienie(p, s.x, s.y)) != 0)
@@ -189,9 +191,13 @@ static void do_fokusu(const struct k1_zdarzenie *z)
         pelny_gest(s.fokus); /* 0.11.0 step 1: the user's gesture in that window */
 }
 
+static void strzalki(const struct k1_zdarzenie *z);
+
 static void klawisz(const struct k1_zdarzenie *z)
 {
     int bit = 0, i;
+    if (zab_ctrl_alt_del(z)) /* 0.13.0 step 6 (ADR 0061): never to a window — the shell's security screen */
+        return;
     switch (z->kod) {
     case KEY_LEFTSHIFT:
     case KEY_RIGHTSHIFT:
@@ -210,7 +216,7 @@ static void klawisz(const struct k1_zdarzenie *z)
     default:
         break;
     }
-    if (bit && logowanie() < 0 && przelaczanie(z)) /* Alt let go: the shell shows the window picked */
+    if (bit && logowanie() < 0 && zabezpieczenia() < 0 && przelaczanie(z)) /* Alt let go: the shell shows the window picked */
         return;
     if (bit) {
         s.mody = z->wartosc ? (s.mody | bit) : (s.mody & ~bit);
@@ -218,7 +224,7 @@ static void klawisz(const struct k1_zdarzenie *z)
             return;
         /* K1's applications read the modifiers from each key's message (c). A zone's guest has a keyboard of its own:
          * it must see Shift, Ctrl and Alt go down and up, or nothing typed there is a capital, ":" or Ctrl+C. */
-        if (logowanie() < 0 && s.fokus >= 0 && s.kl[s.p[s.fokus].kl].rola == K1_ROLA_STREFA)
+        if (logowanie() < 0 && zabezpieczenia() < 0 && s.fokus >= 0 && s.kl[s.p[s.fokus].kl].rola == K1_ROLA_STREFA)
             wyslij(s.p[s.fokus].kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, s.p[s.fokus].id, z->kod, z->wartosc, s.mody, 0, 0));
         return;
     }
@@ -232,6 +238,8 @@ static void klawisz(const struct k1_zdarzenie *z)
             }
         return;
     }
+    if (zab_klawisz(z)) /* 0.13.0 step 6: the security screen takes every key, as the password screen does */
+        return;
     /* 0.12.0 step 2: the volume keys are the shell's (gui changes the volume of K1, ekran shows the pill) — never the
      * focused window's, a zone's neither; the microphone's key (X230) too: no effect while K1 has no microphone (D1). */
     if (z->kod == KEY_VOLUMEUP || z->kod == KEY_VOLUMEDOWN || z->kod == KEY_MUTE || z->kod == KEY_MICMUTE) {
@@ -250,7 +258,12 @@ static void klawisz(const struct k1_zdarzenie *z)
         do_fokusu(z);
         return;
     }
-    /* No focused window: the arrows move the pointer (keyboard-only fallback). */
+    strzalki(z);
+}
+
+/* No focused window: the arrows move the pointer (keyboard-only fallback). */
+static void strzalki(const struct k1_zdarzenie *z)
+{
     if (z->wartosc == 0)
         return;
     if (z->kod == KEY_LEFT)

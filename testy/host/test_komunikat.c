@@ -67,7 +67,10 @@ static void powierzchnie(void)
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 0, 480, K1_POW_OKNO, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 4097, 480, K1_POW_OKNO, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, -1, K1_POW_OKNO, 0, 0), K1_KIER_DO_EKRANU));
-    EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, 480, 4, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, 480, 5, 0, 0), K1_KIER_DO_EKRANU));
+    /* 0.13.0 step 6: the security screen — placed like a panel (who may have it: ekran — the shell only) */
+    EXPECT(ok(K(K1_KOM_POWIERZCHNIA, 7, 480, 560, K1_POW_ZABEZPIECZENIA, 400, 120), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 7, 480, 560, K1_POW_ZABEZPIECZENIA, 9000, 120), K1_KIER_DO_EKRANU));
     /* 0.7.5: the desktop layer — at 0,0 only (its position is not the client's choice) */
     EXPECT(ok(K(K1_KOM_POWIERZCHNIA, 5, 1280, 800, K1_POW_PULPIT, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 5, 1280, 800, K1_POW_PULPIT, 0, 40), K1_KIER_DO_EKRANU));

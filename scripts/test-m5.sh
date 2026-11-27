@@ -10,7 +10,8 @@
 #    jej klawisze nie przesuwają kursora; po jej odłączeniu pierwsza klawiatura działa dalej,
 # 5. (0.5.8) pendrive z partycją K1-DANE podłączony po starcie → skarbiec i pulpit od nowa; (0.13.0 krok 5, D7: A)
 #    to pierwszy start na trwałym magazynie bez hasła — okienko „Ustaw hasło” (dysk-znak k1-test-haslo: kopia testowa
-#    pokazuje je tylko z nim; zrzut m5-ustaw-haslo), „Ustaw hasło” otwiera Ustawienia → Hasło,
+#    pokazuje je tylko z nim; zrzut m5-ustaw-haslo), „Ustaw hasło” otwiera ekran zabezpieczeń na „Hasło” (0.13.0
+#    krok 6: hasło tylko tam; Esc zamyka),
 #    (0.8.0) obraz na pendrive większym od obrazu: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a,
 # 6. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
 #    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut),
@@ -193,25 +194,27 @@ sprawdz("pendrive z K1-DANE podłączony po starcie → nadzorca uruchamia skarb
 sprawdz("skarbiec: nowy magazyn na tej partycji, pulpit od nowa",
         czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=60)
         and czekaj(r"K1-GUI: pulpit gotowy", od=n_pulpit, czas=60))
-# 0.13.0 step 5 (D7: A): the first start on a lasting vault without a password — "Ustaw hasło" opens Ustawienia → Hasło
+# 0.13.0 step 5 (D7: A): the first start on a lasting vault without a password — "Ustaw hasło"; since step 6 it opens the
+# security screen on "Hasło" (the only place that asks for the password, D8: A); Esc twice: back to the desktop
 o = czekaj(OCHRONA % "bez hasła", czas=60)
 sprawdz("pierwszy start bez hasła: okienko „Ustaw hasło” (z „Później”)", o and o.group(1) == "Ustaw hasło" and o.group(4) == "Później",
         o.group(0) if o else "brak")
-ustawienia_otwarte = False
 if o:
     q.zrzut("ustaw-haslo")
     klik(int(o.group(2)), int(o.group(3)))
-    ustawienia_otwarte = bool(czekaj(r"K1-NADZORCA: otwieram Ustawienia → Hasło", czas=30) and
-                              czekaj(r"K1-USTAWIENIA: hasło: przełącznik (\d+),(\d+);", czas=60))
-    sprawdz("„Ustaw hasło” → Ustawienia na sekcji Hasło", ustawienia_otwarte)
+    sprawdz("„Ustaw hasło” → ekran zabezpieczeń z formularzem hasła",
+            czekaj(r"K1-GUI: ekran zabezpieczeń otwarty \(hasło\)", czas=30) and
+            czekaj(r"K1-GUI: ekran zabezpieczeń: pola 2 od", czas=30))
+    q.klawisze(("esc", 1), ("esc", 0))
+    q.klawisze(("esc", 1), ("esc", 0))
+    sprawdz("Esc: ekran zabezpieczeń zamknięty", czekaj(r"K1-GUI: ekran zabezpieczeń zamknięty", czas=30))
 
 # 0.5.5: Ustawienia → Bateria — the charge chart since boot (samples every 30 s)
 q.kursor[:] = list(kursor() or (0, 0))
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=5)
 if g:
     ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
-    if not ustawienia_otwarte:  # 0.13.0 step 5: already open on Hasło (a click on its bar icon would minimise it)
-        klik(ax + 2 * krok, ay)
+    klik(ax + 2 * krok, ay)
     u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
     sek = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if u and sek:

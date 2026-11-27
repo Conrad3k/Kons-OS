@@ -9,6 +9,8 @@
 ## Cel
 Przy starcie, gdy magazyn danych jest chroniony hasłem: pełnoekranowy ekran z zegarem i datą, polem
 hasła (kropki), baterią i wyłączaniem. Po poprawnym haśle nadzorca uruchamia pulpit.
+Od 0.13.0 krok 6 (ADR 0061) ekran hasła przy włączaniu i ekran zabezpieczeń pulpitu (Ctrl+Alt+Del) to jedyne miejsca,
+gdzie wpisuje się hasło K1; tutaj Ctrl+Alt+Del jest zwykłym klawiszem (cały ekran i tak należy do K1).
 
 ## Granica zaufania
 Dostaje klawisze (od ekranu), stan baterii (od nadzorcy) i wynik od skarbca. Hasła nie sprawdza sam —
