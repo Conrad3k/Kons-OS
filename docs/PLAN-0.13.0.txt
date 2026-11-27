@@ -126,7 +126,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  3  Tryb ratunkowy; GRUB zostaje (ADR)                     L12–L14          1, 2        D2, D3, T7     L        0058
         — PR #251
 [ ]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
-        ekranie, hwsim tylko w testach, mniej kodu z zewnątrz                                                                #231 (p. 1), #237
+        ekranie, hwsim tylko w testach, mniej kodu z zewnątrz
+        — [w toku: Claude, gałąź claude/plan-0-13-0-krok-4-tilc5z]                                                               #231 (p. 1), #237
 [ ]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
         zachęta do hasła
 [ ]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
