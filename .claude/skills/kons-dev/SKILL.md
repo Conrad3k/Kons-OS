@@ -448,10 +448,10 @@ więc nowy krok dodany do planu bierze numer kroku wydania, a wydanie przesuwa s
 zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
 Etapy to wersje MINOR z tematem: **0.8 Pliki** → **0.9 Sieć** → **0.10 Strefy** (mikro-maszyny, ramka, przeglądarka,
 aktualizacje przez sieć; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Dźwięk** (ADR 0053) →
-**0.13 Bezpieczny start** (recovery, TPM) → **0.14 Audyt** → 1.0. Co gotowe, co teraz i który plan jest bieżący — tylko
+**0.13 Bezpieczny start** (recovery, TPM) → **0.14 Aplikacje** (Sklep, Discord; ADR 0064) → **0.15 Audyt** → 1.0. Co gotowe, co teraz i który plan jest bieżący — tylko
 w `docs/DO_ZROBIENIA.txt` (tu tego nie powtarzamy). Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9,
-M8 = 0.10, M9 = 0.11, M5.3 Laptop = PATCH w dowolnej wersji) z poprawką ADR 0053 (M10 = 0.13, M12 = 0.14; „0.12” i „0.13”
-w dokumentach sprzed 2026-11-22 to Bezpieczny start i Audyt).
+M8 = 0.10, M9 = 0.11, M5.3 Laptop = PATCH w dowolnej wersji) z poprawką ADR 0053 (M10 = 0.13, M12 = 0.14 — od ADR 0064: 0.15; „0.12” i „0.13”
+w dokumentach sprzed 2026-11-22 to Bezpieczny start i Audyt, „0.14” sprzed 2026-11-27 — Audyt).
 **Robot a plany (od 0.10.5):** robot wydaje z `main` codziennie — scalony krok planu musi być gotowy dla użytkownika,
 a numer wydania z planu może zająć robot (zasady: `AGENTS.md`, „Robot aktualizacji”; plany, punkt 0 „Robot i wydania”).
 
