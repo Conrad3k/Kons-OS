@@ -37,17 +37,27 @@ static int klient(const struct k1_komunikat *k)
     return k->b == 0;
 }
 
+/* INST_ZADANIE c: 0.10.5 a test of a network update (0/1); 0.13.0 step 3 the report's bytes. */
+static int inst_c(const struct k1_komunikat *k)
+{
+    return k->a == K1_INST_RAPORT ? w(k->c, 1, K1_RAPORT_BAJTY) : w(k->c, 0, k->a >= K1_INST_SIEC_STAN);
+}
+
 /* K1_KOM_OCHRONA: the state of the TPM to gui and Ustawienia; "To moje dane" from gui; a generation from the test program
  * (never 0). */
 static int ochrona(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     if (k->obiekt != 0)
         return 0;
+    if (kier == K1_KIER_OD_NADZORCY && k->a == K1_OCHR_RATUNEK) /* 0.13.0 step 3 */
+        return w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 0, K1_INST_WERSJA - 1) && w(k->d, K1_RAP_NIC, K1_RAP_MAKS) &&
+               (k->d == K1_RAP_ZAPISANY ? w(k->e, 0, 9) : k->d == K1_RAP_BLAD ? w(k->e, K1_INST_BLAD_MIN, -1) : k->e == 0);
     if (kier == K1_KIER_OD_NADZORCY)
         return k->a == K1_OCHR_STAN && w(k->b, K1_TPM_BRAK, K1_TPM_ZAJETY) && w(k->c, 0, K1_OCHR_FL_MAKS) &&
                w(k->d, 0, K1_GEN_MAKS) && k->e == 0;
     return kier == K1_KIER_DO_NADZORCY &&
-           ((k->a == K1_OCHR_MOJE_DANE && zera(k, 1)) || (k->a == K1_OCHR_TEST && w(k->b, 1, K1_GEN_MAKS) && zera(k, 2)));
+           ((w(k->a, K1_OCHR_NORMALNIE, K1_OCHR_RAPORT) && zera(k, 1)) || (k->a == K1_OCHR_MOJE_DANE && zera(k, 1)) ||
+            (k->a == K1_OCHR_TEST && w(k->b, 1, K1_GEN_MAKS) && zera(k, 2)));
 }
 
 /* Messages of nadzorca's control channels and the installer (Instalator, Ustawienia → Aktualizacje ↔ nadzorca ↔ instalator); 0 also for a type of another group. */
@@ -74,7 +84,7 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     }
     case K1_KOM_INST_ZADANIE:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, K1_INST_INSTALUJ, K1_INST_TRYB_MAKS) &&
-               (k->b == 512 || k->b == 4096) && w(k->c, 0, k->a >= K1_INST_SIEC_STAN) && zera(k, 3);
+               (k->b == 512 || k->b == 4096) && inst_c(k) && zera(k, 3);
     case K1_KOM_AKT_STAN:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_WERSJA - 1) &&
                w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 0, K1_INST_WERSJA - 1) && w(k->d, 0, K1_INST_WERSJA - 1) &&
@@ -100,8 +110,8 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
         return kier == (k->typ == K1_KOM_INST_ETAP ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 &&
                w(k->a, 0, 100) && w(k->b, 1, K1_INST_ETAP_MAKS) && zera(k, 2);
     case K1_KOM_INST_GOTOWE:
-        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) && w(k->b, 0, 1) &&
-               (k->a == 0 || k->b == 0) && zera(k, 2);
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) && w(k->b, 0, 9) &&
+               (k->a == 0 || k->b == 0) && zera(k, 2); /* b: a new slot 0/1; the report's file 0..9 (0.13.0 step 3) */
     case K1_KOM_INST_WYNIK:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) &&
                w(k->b, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && w(k->c, 0, 1) && (k->a == 0 || k->c == 0) && zera(k, 3);

@@ -73,11 +73,23 @@ int k1_slot_nr(char slot)
     return slot == 'a' ? 0 : slot == 'b' ? 1 : -1;
 }
 
-static const char *const NAZWY[4] = { "k1_slot", "k1_start", "k1_nowy", "k1_proba" };
+/* Our variables in the order save_env writes them, with the letters each may hold (one, or none). */
+static const struct {
+    const char *nazwa, *litery;
+    size_t pole;
+} ZMIENNE[] = {
+    { "k1_slot", "ab", offsetof(struct k1_grubenv, slot) },
+    { "k1_start", "ab", offsetof(struct k1_grubenv, start) },
+    { "k1_nowy", "ab", offsetof(struct k1_grubenv, nowy) },
+    { "k1_proba", "ab", offsetof(struct k1_grubenv, proba) },
+    { "k1_licznik", "12", offsetof(struct k1_grubenv, licznik) }, /* 0.13.0 step 3 (ADR 0058) */
+    { "k1_tryb", "r", offsetof(struct k1_grubenv, tryb) },
+};
+#define N_ZMIENNYCH (int)(sizeof ZMIENNE / sizeof ZMIENNE[0])
 
 static char *pole(struct k1_grubenv *e, int i)
 {
-    return i == 0 ? &e->slot : i == 1 ? &e->start : i == 2 ? &e->nowy : &e->proba;
+    return (char *)e + ZMIENNE[i].pole;
 }
 
 int k1_grubenv_czytaj(const uint8_t *buf, struct k1_grubenv *e)
@@ -112,13 +124,13 @@ int k1_grubenv_czytaj(const uint8_t *buf, struct k1_grubenv *e)
         if (p == K1_GRUBENV_BAJTY || rown == 0 || rown == start)
             goto zle;
         n = rown - start;
-        for (k = 0; k < 4; k++) {
-            if (strlen(NAZWY[k]) != n || memcmp(buf + start, NAZWY[k], n) != 0)
+        for (k = 0; k < N_ZMIENNYCH; k++) {
+            if (strlen(ZMIENNE[k].nazwa) != n || memcmp(buf + start, ZMIENNE[k].nazwa, n) != 0)
                 continue;
             if ((widziane & 1 << k) != 0)
                 goto zle; /* twice */
             widziane |= 1 << k;
-            if (p - rown == 2 && (buf[rown + 1] == 'a' || buf[rown + 1] == 'b'))
+            if (p - rown == 2 && buf[rown + 1] != 0 && strchr(ZMIENNE[k].litery, buf[rown + 1]) != NULL)
                 *pole(e, k) = (char)buf[rown + 1];
             else if (p - rown != 1)
                 goto zle;
@@ -139,13 +151,13 @@ void k1_grubenv_zbuduj(const struct k1_grubenv *e, uint8_t *buf)
     memcpy(buf, NAGLOWEK, p);
     memcpy(buf + p, UWAGA, sizeof UWAGA - 1);
     p += sizeof UWAGA - 1;
-    for (k = 0; k < 4; k++) {
+    for (k = 0; k < N_ZMIENNYCH; k++) {
         char v = *pole((struct k1_grubenv *)e, k);
-        size_t n = strlen(NAZWY[k]);
-        memcpy(buf + p, NAZWY[k], n);
+        size_t n = strlen(ZMIENNE[k].nazwa);
+        memcpy(buf + p, ZMIENNE[k].nazwa, n);
         p += n;
         buf[p++] = '=';
-        if (v == 'a' || v == 'b')
+        if (v != 0 && strchr(ZMIENNE[k].litery, v) != NULL)
             buf[p++] = (uint8_t)v;
         buf[p++] = '\n';
     }

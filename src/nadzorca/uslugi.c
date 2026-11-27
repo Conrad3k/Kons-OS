@@ -543,13 +543,18 @@ void obsluz_gui(void)
              k.typ != K1_KOM_STREFA_FOKUS && k.typ != K1_KOM_OTWORZ_AKTUALIZACJE && k.typ != K1_KOM_POBRANIE_DECYZJA &&
              k.typ != K1_KOM_BATERIA_OKIENKO && k.typ != K1_KOM_POKAZ_USTAWIENIA && /* 0.11.8, 0.12.3: popovers */
              (k.typ != K1_KOM_OCHRONA || k.a != K1_OCHR_MOJE_DANE) && /* 0.13.0 step 2: "To moje dane" */
+             (k.typ != K1_KOM_OCHRONA || !tryb_ratunkowy || gui_kanal_uid != K1_UID_LOGOWANIE) && /* step 3 */
              (k.typ != K1_KOM_AKT_PROSBA || k.a != K1_AKT_P_ZAINSTALUJ)) || /* 0.10.5 step 2b: the window's button */
-            ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
+            ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI &&
+             (k.typ != K1_KOM_OCHRONA || !tryb_ratunkowy)) ||
             (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
-        if (k.typ == K1_KOM_OCHRONA) {
+        if (k.typ == K1_KOM_OCHRONA && tryb_ratunkowy) {
+            if (gui_kanal_uid == K1_UID_LOGOWANIE)
+                ratunek_prosba(k.a);
+        } else if (k.typ == K1_KOM_OCHRONA) {
             tpm_moje_dane();
         } else if (k.typ == K1_KOM_BATERIA_OKIENKO) {
             bateria_okienko_prosba(k.a);

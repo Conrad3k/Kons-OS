@@ -32,6 +32,12 @@ void rozruch_wydanie(void)
     wydanie_jest = 1;
 }
 
+/* 1: the slot's manifest names the very build that runs now (0.13.0 step 3: ratunek.c). */
+int rozruch_to_wydanie(const struct k1_manifest *m)
+{
+    return wydanie_jest && m->wersja != 0 && memcmp(m->wydanie, wydanie, sizeof wydanie) == 0;
+}
+
 /* 1: a try A/B waits on this disk and it is not this build (the next start may still go back). */
 static int sprawdz_dysk(const char *efi)
 {
@@ -85,8 +91,10 @@ void obsluz_ekran(void)
         if (w == K1_ODB_PUSTO || w == K1_ODB_KONIEC) /* its end: the restart of ekran closes ours (uslugi.c) */
             return;
         if (w == K1_ODB_JEST && k.typ == K1_KOM_EKRAN_OBRAZ) {
-            if (!obraz)
+            if (!obraz) {
                 k1_log(TAG, "ekran pokazuje obraz — od teraz liczy się czas do potwierdzenia nowej wersji (A/B)");
+                ratunek_obraz(); /* 0.13.0 step 3: the start reached the screen */
+            }
             obraz = 1;
         } else {
             k1_log(TAG, "odrzucono komunikat od ekranu");
@@ -104,7 +112,7 @@ void rozruch_po_starcie(double t)
             k1_log(TAG, "A/B: okienko o nieudanej próbie — do pulpitu");
         ab_do_gui.typ = 0;
     }
-    if (ab_zrobione || (e != E_PULPIT && e != E_HASLO) || !obraz)
+    if (ab_zrobione || (e != E_PULPIT && e != E_HASLO) || !obraz || tryb_ratunkowy) /* the rescue mode: nothing */
         return;
     if (ab_od == 0) {
         ab_od = t;

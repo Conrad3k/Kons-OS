@@ -37,7 +37,7 @@ Krótko, dlaczego nie.
 | [0007](0007-nadzorca-klatki-uslug-m3.md) | Nadzorca, klatki usług i kanały między nimi (M3) | Przyjęty |
 | [0008](0008-pulpit-okna-i-aplikacje-m4.md) | Pulpit, okna i pierwsze aplikacje (M4) | Przyjęty |
 | [0009](0009-czcionki-i-tekst.md) | Czcionki i rysowanie tekstu | Przyjęty |
-| [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty (tymczasowy do M10) |
+| [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty; GRUB zostaje — ADR 0058 (0.13.0) |
 | [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Zastąpiony przez 0019 (kolejność), 0035 (mapa drogi) |
 | [0012](0012-przeglad-m4-1-tryby-ekranu-zasoby.md) | M4.1: przegląd bezpieczeństwa, tryby ekranu, aplikacja Zasoby | Przyjęty |
 | [0013](0013-dyski-i-usb-m5a.md) | M5a: sterowniki dysków i USB; pierwszy laptop — ThinkPad X230 | Przyjęty |
@@ -85,3 +85,4 @@ Krótko, dlaczego nie.
 | [0055](0055-tor-dzwieku-wysokiej-jakosci.md) | Tor dźwięku wysokiej jakości (0.12.3): liczby zmiennoprzecinkowe w usłudze dźwięku, ogranicznik zamiast przycinania, dither TPDF tylko gdy liczenie coś zmieniło, najlepszy format karty (24 bity HD Audio przez podformat), pierścień F32 strefy z S16, S32 i FLOAT gościa | Przyjęty, wdrożony (0.12.3); pkt 21 — poprawka poziomu i sceny na start (plan 0.13.0, krok 1) |
 | [0056](0056-lancuch-wydan.md) | Łańcuch wydań (0.13.0): zwłoka wydania 20 minut liczona przez laptop, ogłoszenie formatu 2 (k1-ogloszenie2.bin) z czasem podpisu i terminem 7 dni, „Ogłoszenie dnia”, czas z nagłówka Date za TLS-em (stopka strefy pobierania), akcje GitHuba przypięte skrótem | Przyjęty, wdrożony (plan 0.13.0, krok 1) |
 | [0057](0057-tpm-i-odwolywanie-starszych-wersji.md) | TPM i odwoływanie starszych wersji (0.13.0): generacja K1 w TPM 2.0 (tylko nadzorca, bez TSS), starsza wersja nie otwiera danych, stan magazynu w TPM — dane cofnięte do starszej kopii z pytaniem „To moje dane”, SBAT w `k1.efi` | Przyjęty, wdrożony (plan 0.13.0, krok 2) |
+| [0058](0058-tryb-ratunkowy-grub-zostaje.md) | Tryb ratunkowy (0.13.0): ten sam `k1.efi` z `k1_tryb=r` w grubenv, menu GRUB-a po Esc albo po dwóch nieudanych startach, ekran ratunkowy (poprzednia wersja, raport na pendrive FAT16/FAT32); GRUB zostaje (termin ADR 0010 zamknięty) | Przyjęty, wdrożony (plan 0.13.0, krok 3) |

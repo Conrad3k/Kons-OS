@@ -9,6 +9,7 @@
  *
  * fd 3: ekran, fd 4: requests to nadzorca (WYLACZ only), fd 5: battery (one way, from nadzorca),
  * fd 6: skarbiec. Sandbox: UID 104, seccomp (base + memfd_create, ftruncate), Landlock without paths.
+ * With "--ratunek" (0.13.0 step 3, ADR 0058): the rescue screen instead (ratunek.c) — no skarbiec in that mode.
  * Documentation: docs/komponenty/logowanie.md. */
 #include <errno.h>
 #include <fcntl.h>
@@ -32,11 +33,8 @@
 #include "k1_okno.h"
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
+#include "logowanie.h"
 
-#define TAG "K1-LOGOWANIE"
-#define FD_NADZORCA 4
-#define FD_BATERIA 5
-#define FD_SKARBIEC 6
 #define POLE_W 340
 #define POLE_H 48
 #define P_EKRAN 1
@@ -244,13 +242,15 @@ static void odbierz_wynik(void)
     ekran_pow.brudna = 1;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     struct k1_komunikat m;
     struct k1_powierzchnia *pow[] = { &ekran_pow };
     int minuta = -1;
 
     k1_klatka_w_usludze(TAG);
+    if (argc > 1 && strcmp(argv[1], "--ratunek") == 0)
+        return ratunek_main();
     if (fcntl(FD_SKARBIEC, F_GETFD) == 0 && fcntl(FD_SKARBIEC, F_SETFL, O_NONBLOCK) == 0)
         skarb = FD_SKARBIEC;
     else

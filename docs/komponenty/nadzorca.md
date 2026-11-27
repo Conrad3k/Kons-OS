@@ -301,6 +301,20 @@ Wiersze logu od usług (bufor 400 B, znaki sterujące zamieniane, limit 20/s), k
 - Zapisów do TPM najwyżej: jeden na start (stan danych) + jeden na generację + jeden na decyzję. W logu tylko generacje,
   nigdy identyfikator magazynu.
 
+## Tryb ratunkowy (0.13.0 krok 3, ADR 0058)
+- `ratunek.c`: `ratunek_sprawdz()` w `przygotuj()` — przed usługami: K1-EFI dysków i jednego pendrive'a z K1, których
+  uruchomione miejsce ma to wydanie (`rozruch_to_wydanie`), przy starcie przez UEFI do 3 s; grubenv `k1_tryb=r` → tryb
+  ratunkowy: z usług przy starcie tylko `ekran` i `wejscie` (pozostałe `wylaczona`), etap „hasło”, ekran hasła z
+  argumentem `--ratunek`; bez sieci (`siec_otworz`), `okresowe()` robi tylko urządzenia wejścia i stan dla ekranu
+  ratunkowego; A/B i TPM bez potwierdzeń. Log „TRYB RATUNKOWY …”.
+- Licznik nieudanych startów: pierwszy obraz ekranu (`EKRAN_OBRAZ`) → `k1_licznik` pusty na nośnikach startu (log „start
+  udany: licznik nieudanych startów wyzerowany”); w trybie ratunkowym nie.
+- Prośby ekranu ratunkowego (`OCHRONA` od UID ekranu hasła, tylko w tym trybie): `NORMALNIE` — licznik na zero, restart;
+  `POPRZEDNIA` — `k1_nowy` = drugie miejsce, restart; `RAPORT` — tekst raportu (wersja, nośnik, miejsca, grubenv, TPM
+  `tpm_opis()`, dyski, ostatnie wiersze logu z `logi.c`) w memfd → `inst_raport()` (instalacja.c: program zapisujący,
+  pierwszy pendrive bez K1). Stan `OCHRONA` a = `RATUNEK` do ekranu ratunkowego (fd 5, kanał baterii).
+- `logi.c`: ostatnie 40 KiB logu (nadzorcy przez `k1_log_kopia` i usług — ten sam tekst, co port szeregowy) w pamięci.
+
 ## Rozdzielacz — pamięć komputera dla wszystkich (0.10.1 krok 3, ADR 0044 T6, decyzja właściciela D3)
 Raz na sekundę, gdy działa strefa, którą rządzi rozdzielacz (każda uruchomiona przez gui; z programu testowego tylko
 w trybie 10), `strefy_balon.c` liczy, ile K1 ma wolnej pamięci (wolna + pamięć podręczna plików, którą jądro może

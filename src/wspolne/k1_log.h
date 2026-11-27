@@ -11,6 +11,10 @@
  * else to report them). Truncated messages end with "…". */
 void k1_log(const char *tag, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
+/* 0.13.0 step 3 (ADR 0058): when set, every line written (with its '\n') goes here too — nadzorca keeps the last ones in
+ * memory for the rescue mode's report (logi.c). */
+extern void (*k1_log_kopia)(const char *linia, size_t dl);
+
 /* Makes untrusted text (a log line of a service) safe for a terminal, in place: control
  * characters (C0, DEL and the C1 range U+0080..U+009F), invalid or overlong UTF-8 and surrogates
  * become '?' (one per byte); valid UTF-8 such as Polish letters stays. Returns the number of bytes

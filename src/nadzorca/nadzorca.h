@@ -417,6 +417,19 @@ void tpm_test(int generacja);
 void tpm_nowy_gui(void);
 void tpm_nowe_ustawienia(void);
 void tpm_okresowe(void);
+const char *tpm_opis(void);
+void logi_zapamietaj(const char *linia, size_t dl); /* logi.c (0.13.0 step 3): the last lines in memory */
+size_t logi_ostatnie(char *buf, size_t n);
+/* ratunek.c (0.13.0 step 3, ADR 0058): the rescue mode */
+extern int tryb_ratunkowy;
+void ratunek_sprawdz(void);
+void ratunek_obraz(void);
+void ratunek_prosba(int a);
+void ratunek_raport_wynik(int wynik, int numer);
+void ratunek_nowy_ekran(void);
+void ratunek_okresowe(void);
+int rozruch_to_wydanie(const struct k1_manifest *m);
+int inst_raport(int fd_raport, uint32_t dl); /* instalacja.c: the writing program with the report and the USB stick */
 /* obraz_strefy.c (0.10.9 step 4, ADR 0050): a zone image for the VMM (fd, read only), from the core or from the slot of
  * this build under dm-verity; -1 when there is none that verifies */
 int obraz_strefy_otworz(const char *nazwa);
