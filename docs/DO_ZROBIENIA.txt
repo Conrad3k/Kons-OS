@@ -73,6 +73,8 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
     [ ] Sklep, katalog i obrazy aplikacji, program startowy Discorda, UDP w moście, mikrofon (ADR 0064)
     [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa; „opakowanie” pośrednika grafiki
         (RYZYKA R100: węższe listy, limity czasu pracy karty)
+    [ ] kCFI w jądrze K1 (ADR 0062 pkt 2, RYZYKA R11): Clang, który zachowa `KSTACK_ERASE`; najpierw `CFI_PERMISSIVE`
+        na X230 i IdeaPadzie z raportem na pendrive, potem pełne kCFI; `UBSAN_LOCAL_BOUNDS` razem z nim
 
 Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
     [ ] jasność ekranu i klawisze Fn (sterownik i915 jest od 0.10.9); tablet USB w maszynie wirtualnej (pozycja
@@ -117,6 +119,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     pusty dysk jako miejsce na dane.
   Wi-Fi (z planu 0.9.1): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise, eduroam), sieci ukryte;
     karty Wi-Fi na USB; losowy adres karty; logowanie na stronie w sieciach otwartych; Bluetooth; IPv6.
+  Jądro: ochrona jądra „piętro niżej” (mały hiperwizor pod jądrem, jak VBS/HVCI, pKVM; ADR 0062 pkt 3) — po 1.0 albo gdy
+    do jądra wejdzie pKVM / ochrona przez hiperwizor dla x86; wymaga przebudowy stref (ADR 0042).
 
 Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej części:
     [ ] #208 jądro strefy: awaria gościa przy 48 połączeniach naraz (test-most)

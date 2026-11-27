@@ -82,7 +82,10 @@ jobs:
 
       - name: Narzędzia
         if: steps.start.outputs.stop != '1'
-        run: sudo apt-get install -y -qq gnupg gpgv xz-utils make gcc flex bison bc libelf-dev >/dev/null
+        # The runner's package index can be older than its mirror (Issue #253: libelf-dev 404) — refresh it first
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gnupg gpgv xz-utils make gcc flex bison bc libelf-dev >/dev/null
 
       # A new line needs the configuration of the kernel as K1 builds it today (scripts/porownaj-jadro.sh)
       - name: Konfiguracja obecnego jądra (tylko dla nowej linii)
