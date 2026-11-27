@@ -465,7 +465,7 @@ Krok 3 (2026-11-27, Claude, PR #251, CI przebieg 383 zielony; ADR 0058):
   - Testy lokalnie: test-ratunek (25 sprawdzeń), test-m1, test-m4, test-m5f, test-m6, testy na hoście (`test_uklad`,
     `test_raport`, `test_komunikat`), fuzzing raport 60 s.
 
-Krok 4 (2026-11-27, Claude, PR #252; ADR 0059):
+Krok 4 (2026-11-27, Claude, PR #252, CI przebieg 391 zielony; ADR 0059):
   - D4 właściciela: A (log w pamięci, „Zapisz raport na pendrive” w Ustawieniach → Informacje i w trybie ratunkowym);
     D5: A (szybka grafika w Ogólnej bez zmian — R100 do audytu 0.14). Wzorce Informacji przyjęte przez właściciela.
   - T8: `jadro/cmdline-wydanie` (`console=ttynull panic=60`) wbudowana w `k1.efi`; ten sam `zbuduj-k1efi.sh` składa kopię
@@ -484,4 +484,7 @@ Krok 4 (2026-11-27, Claude, PR #252; ADR 0059):
     na hoście `test_log`, `test_komunikat`, `test_inst_prawa`.
   - Do listy „co sprawdzić” (krok 8): ekran awarii na X230 i IdeaPadzie (np. uszkodzony pendrive — na razie nie ma jak go
     wywołać ręcznie; ewentualnie przy pierwszym prawdziwym błędzie), log DMAR/IOMMU (#237 p. 1), „Zapisz raport” z Ustawień.
+  - CI z KVM (przebiegi 385, 387): panika nie wypycha bufora konsoli — `k1_awaria` robi `tcdrain(2)` przed końcem PID 1;
+    klawisze ekranu ratunkowego przychodziły za wcześnie albo z opóźnieniem — test naciska Enter dopiero, gdy ustalony
+    obraz ma obwódkę na „Zapisz raport”; `test-strefa` — ponowne kliknięcie Start, gdy menu się nie pokazało.
   - „Później”: jądro wydania bez sterownika portu szeregowego (8250 zostaje, bo kopia testowa ma tę samą konfigurację).
