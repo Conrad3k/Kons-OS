@@ -130,8 +130,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
         — PR #252                                                               #231 (p. 1), #237
 [x]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
         zachęta do hasła — PR #254
-[ ]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
-        ekranie K1 — [w toku: Claude, gałąź claude/magical-curie-w0bgp2]
+[x]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
+        ekranie K1 — PR #258
 [ ]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
 [ ]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
 (ADR: 0056 to następny wolny po 0055; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
@@ -507,3 +507,23 @@ Krok 5 (2026-11-27, Claude, PR #254, CI przebieg 397 zielony; ADR 0060):
     `test_komunikat` (część `OCHRONA` w nowym pliku `test_komunikat_ochrona.c` — limit 600 wierszy).
   - Do listy „co sprawdzić” (krok 8): mysz albo klawiatura USB podłączona po włączeniu na X230 i IdeaPadzie — okienko,
     „Pozwól”, „Nie pozwalaj”; pierwszy start z pendrive'a — okienko „Ustaw hasło”.
+Krok 6 (2026-11-27, Claude, PR #258, CI przebieg 400 zielony; ADR 0061):
+  - D8 właściciela: A (sam skrót Ctrl+Alt+Del i ekran zabezpieczeń; hasło ustawia i zmienia się tylko tam; Ustawienia →
+    Hasło — stan i podpowiedź; bez znaku na górnym pasku przy fokusie strefy — punkt c planu odpada). Wzorce przyjęte
+    przez właściciela (`ekran-zabezpieczen`, `ekran-zabezpieczen-haslo`, `ustawienia-haslo-*`).
+  - Skrót rozpoznaje ekran, nie `wejscie` (jak Alt+Tab): ekran zna fokus i pełny ekran. Strefa z fokusem dostaje puszczenie
+    Ctrl i Alt (inaczej zostałyby „wciśnięte” w gościu), Delete — nigdy, także jego puszczenie.
+  - T11: ekran zabezpieczeń to nowy rodzaj powierzchni `K1_POW_ZABEZPIECZENIA` (4), nie ekran rysowany przez usługę ekran ani
+    przez logowanie: rysuje go gui (zna stan hasła, skarbiec — fd 6), a ekran gwarantuje „nad wszystkim”, przyciemnienie
+    i to, że klawisze nie idą nigdzie indziej. Poza limitem pamięci powłoki: przy 1024 × 768 powłoka miała już cały budżet.
+  - Formularz hasła przeniesiony z Ustawień do gui (`src/gui/haslo.c`); `SKARB_HASLO` tylko od profilu gui. Wiersz
+    `K1_UST_MIEJSCA` „Hasło” z kroku 5 usunięty — okienko „Ustaw hasło” otwiera ekran zabezpieczeń od razu na formularzu.
+  - `k1_pow_utworz` wysyłał położenie tylko dla paneli — ekran zabezpieczeń stał w rogu (0,0); teraz też dla niego.
+  - Lokalne `test-m4` dwa razy „padło” w losowych miejscach: raz został w tle drugi przebieg testu, raz w trakcie testu
+    przeglądałem logi — kontener stoi między wywołaniami i maszyna gubi kliknięcia (zasada z CLAUDE.md). Czysty przebieg:
+    137/137. Pułapka dopisana w skillu.
+  - Plan 0.14.0 (Aplikacje, ADR 0064) wszedł do `main` w trakcie kroku: audyt to teraz 0.15 — Issue #236 p. 3 (ścieżka
+    klawiszy hasła) idzie do audytu 0.15.
+  - Testy lokalnie: test-m1, test-m4, test-m5, test-strefa, test-wzorce; na hoście `test_komunikat`; w systemie `t_okna`.
+  - Do listy „co sprawdzić” (krok 8): Ctrl+Alt+Del na X230 i IdeaPadzie (przy pulpicie, przy przeglądarce, na pełnym
+    ekranie), ustawienie hasła na ekranie zabezpieczeń, „Zablokuj”.
