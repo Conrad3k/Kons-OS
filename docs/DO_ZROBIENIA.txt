@@ -65,6 +65,13 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
     [ ] Sklep, katalog i obrazy aplikacji, program startowy Discorda, UDP w moście, mikrofon (ADR 0064)
     [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa; „opakowanie” pośrednika grafiki
         (RYZYKA R100: węższe listy, limity czasu pracy karty)
+    [ ] zgłoszenia bezpieczeństwa z planu 0.13.0 (docs/archiwum/PLAN-0.13.0.txt, punkt 6): nadzorca w klatce — własny
+        seccomp, mniej capabilities, dane z zewnątrz (nl80211, GPT pendrive'a) w usługach w klatkach (#234); łącznik
+        SOCKS5/DNS w osobnym procesie, fuzzing wszystkich urządzeń VMM-a, GPU 3D w osobnym procesie (#232); opcje jądra
+        osiągalne z zewnątrz, radio Wi-Fi wyłączone przy kablu (#231 p. 2, 4); ścieżka klawiszy hasła (wejście → ekran →
+        gui → skarbiec; #236 p. 3); pilne wydanie przy krytycznej poprawce Firefoksa, znak „czeka poprawka przeglądarki”
+        (#233); wymiana albo wyłączenie i965 (#237 p. 3); DNS przez HTTPS/TLS w łączniku, Bank i Prywatna bez sieci
+        lokalnej (#238 p. 1, 3); koniec ogłoszenia formatu 1 (ADR 0056 T1)
     [ ] kCFI w jądrze K1 (ADR 0062 pkt 2, RYZYKA R11): Clang, który zachowa `KSTACK_ERASE`; najpierw `CFI_PERMISSIVE`
         na X230 i IdeaPadzie z raportem na pendrive, potem pełne kCFI; `UBSAN_LOCAL_BOUNDS` razem z nim
 
