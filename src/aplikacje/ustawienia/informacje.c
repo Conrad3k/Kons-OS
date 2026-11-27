@@ -54,7 +54,7 @@ void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
           26, 0); /* the robot releases a new kernel (ADR 0047) */
     k1_przycisk(o, m, &p, K1_CZ_TEKST_MOCNA, najechany, raport != K1_RAP_ZAPISUJE);
     k1_tekst(o, K1_CZ_MALA, TRESC_X, p.y + PRZ_H + 24,
-             t ? t : "Wersja, dyski i ostatnie wpisy logu, bez Twoich plików i haseł. Przyda się, gdy zgłaszasz błąd.",
+             t ? t : "Wersja, dyski i ostatnie wpisy logu. Bez Twoich plików i haseł.",
              k1_kolor(raport == K1_RAP_BLAD || raport == K1_RAP_BRAK_PENDRIVE ? m->akcent_tekst : m->tekst2, 255),
              apl.szer - TRESC_X - 28);
 }
