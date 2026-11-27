@@ -53,10 +53,13 @@ void k1_uklad_zbuduj(const struct k1_uklad *u, uint8_t *buf);
 
 struct k1_grubenv {
     char slot, nowy, start, proba; /* 'a', 'b' or 0 */
+    /* 0.13.0 step 3 (ADR 0058): written by GRUB, read by nadzorca */
+    char licznik; /* starts of the confirmed slot since its last confirmation: '1', '2' (then the rescue mode) or 0 */
+    char tryb;    /* 'r': GRUB started this K1 in the rescue mode (the menu, or two starts without confirmation); or 0 */
 };
 
-/* Parses 1024 bytes. Other variables (none are written today) are allowed but ignored; our four must be
- * empty, "a" or "b". 0 or -1. Missing variables are 0. */
+/* Parses 1024 bytes. Other variables are allowed but ignored; ours (K1_GRUBENV_ZMIENNE: the name and the letters it may
+ * hold) must be empty or one of their letters. 0 or -1. Missing variables are 0. */
 int k1_grubenv_czytaj(const uint8_t *buf, struct k1_grubenv *e);
 /* The same bytes GRUB's save_env writes for these values (variables in this order). */
 void k1_grubenv_zbuduj(const struct k1_grubenv *e, uint8_t *buf);

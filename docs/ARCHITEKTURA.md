@@ -64,7 +64,7 @@ asystentów — skill `kons-dev`, §3.
 | `zbuduj-obraz.sh` | kompiluje programy, sprawdza binaria, składa `initramfs.cpio` i obrazy SquashFS |
 | `uruchom-qemu.sh` | uruchamia K1 w QEMU (log szeregowy do pliku, monitor do gniazda); `--iso PLIK [--uefi] [--vga virtio]` — start z ISO |
 | `zrzut-ekranu.sh` | zrzut ekranu działającej maszyny (PNG) |
-| `testy.sh`, `test-*.sh`, `stanowisko.sh`, `przyjmij-wzorce.sh` | testy (to uruchamia CI) — co sprawdza każdy skrypt: [`docs/TESTY.md`](TESTY.md) |
+| `testy.sh`, `test-*.sh` (także `test-ratunek.sh`, `test-tpm.sh`), `stanowisko.sh`, `przyjmij-wzorce.sh` | testy (to uruchamia CI) — co sprawdza każdy skrypt: [`docs/TESTY.md`](TESTY.md) |
 | `robot.sh`, `porownaj-jadro.sh` | robot aktualizacji (ADR 0047): nowe jądro i pakiety strefy, porównanie konfiguracji przy nowej linii jądra (`docs/komponenty/robot.md`) |
 | `opisy-wersji.py` | „Opis w K1:” z `CHANGELOG.md` do ogłoszenia wydania (ADR 0046); sprawdza, że każdy wpis od 0.10.5 go ma |
 | `oprogramowanie-kart.sh` | pliki od producentów kart Wi-Fi i baza przepisów radiowych dla jądra (tabela `jadro/oprogramowanie-kart.txt`, sumy SHA-256; 0.9.1) |
@@ -114,6 +114,8 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — 
   albo ISO: firmware (UEFI/BIOS) → GRUB (tryb graficzny) → k1.efi
   albo pendrive/dysk (0.7.0): UEFI → shim (MS) → GRUB (Canonical) → grubenv (miejsce A/B, próba raz) →
        loopback /k1/<miejsce>.img → k1.efi (z Secure Boot: podpis sprawdzony przez shim, klucz K1 w MOK)
+       0.13.0 (ADR 0058): 1 s na Esc → menu (K1, tryb ratunkowy, poprzednia wersja); dwa starty bez obrazu
+       (k1_licznik) → menu z trybem ratunkowym; tryb ratunkowy = ten sam k1.efi z k1_tryb=r w grubenv
  └─ jądro 7.3 ─── otwiera /dev/console w initramfs, uruchamia /init
      └─ k1-initramfs (PID 1)
           /proc/cmdline → k1.rdzen=/dev/vda albo =wbudowany (/rdzen.squashfs przez loop) (walidacja)
@@ -130,6 +132,8 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — 
           ├─ skarbiec (uid 103) — partycja K1-DANE (dane zaszyfrowane; nadzorca czeka na nią do 3 s, z pendrive'em do 15 s), potem
           ├─ ekran (101; karta graficzna, składanie okien) → wejscie (100; klawiatura, mysz)
           ├─ gui (102; pulpit) albo logowanie (104), gdy jest hasło
+          │  [tryb ratunkowy (0.13.0, ADR 0058): tylko ekran, wejscie i ekran ratunkowy (logowanie --ratunek);
+          │   raport na pendrive pisze instalator (105)]
           ├─ siec (108) przy starcie: adres od routera, zegar z internetu, Wi-Fi
           ├─ na prośbę gui: aplikacje z K1_APLIKACJE (UID 200+); strefy (300+, VMM — przeglądarka);
           │  instalator (105) na prośbę okna Instalatora albo Ustawień → Aktualizacje (też po pobraniu wersji z sieci);

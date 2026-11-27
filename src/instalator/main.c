@@ -23,9 +23,11 @@
 #include <poll.h>
 #include <string.h>
 #include <sys/random.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "gpt.h"
+#include "raport.h"
 #include "k1_kanal.h"
 #include "k1_klatka.h"
 #include "k1_komunikat.h"
@@ -61,7 +63,7 @@ static int nowy_slot; /* the result is a new slot to try (A/B update) */
 
 static _Noreturn void koniec(int wynik)
 {
-    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_GOTOWE, 0, wynik, wynik == 0 && nowy_slot, 0, 0, 0);
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_GOTOWE, 0, wynik, wynik == 0 ? nowy_slot : 0, 0, 0, 0);
     k1_kanal_wyslij(FD_KANAL, &k, sizeof k, -1);
     _exit(wynik == 0 ? 0 : 1);
 }
@@ -82,7 +84,7 @@ static int zadanie(int *tryb, int *sektor, int *test)
         return -1;
     *tryb = k.a;
     *sektor = k.b;
-    *test = k.c;
+    *test = k.c; /* K1_INST_RAPORT: the report's bytes */
     return 0;
 }
 
@@ -177,7 +179,7 @@ static int pliki_startowe_zgodne(int fd, uint64_t od, uint64_t n)
 static int zapisz_efi(const struct k1_uklad *zr, uint64_t cel_off, int od, int do_)
 {
     static uint8_t env[K1_GRUBENV_BAJTY], zera[2 * K1_MANIFEST_BAJTY];
-    struct k1_grubenv g = { 'a', 0, 0, 0 };
+    struct k1_grubenv g = { .slot = 'a' };
     uint64_t b = zr->slot_off[1], za_b = b + zr->slot_bajty;
     int p = od + (int)((uint64_t)(do_ - 2 - od) * b / (zr->fat_bajty - zr->slot_bajty)), r;
     r = kopiuj(0, b, cel_off, od, od + (p - od) * 2 / 3, p);
@@ -422,6 +424,13 @@ int main(void)
     if (zadanie(&tryb, &sektor, &test) != 0) {
         k1_log(TAG, "brak poprawnego zadania od nadzorcy");
         return 1;
+    }
+    if (tryb == K1_INST_RAPORT) { /* 0.13.0 step 3 (ADR 0058): the rescue mode's report onto a USB stick — raport.c */
+        struct timespec t;
+        clock_gettime(CLOCK_REALTIME, &t);
+        r = raport_zadanie(FD_ZRODLO, FD_CEL, (uint32_t)test, raport_czas_fat((int64_t)t.tv_sec), &nowy_slot);
+        k1_log(TAG, "raport trybu ratunkowego: %s", r == 0 ? "zapisany" : "nie zapisany");
+        koniec(r);
     }
     if (tryb >= K1_INST_SIEC_STAN) { /* 0.10.5 step 2 (ADR 0046): updates through the network — siec.c */
         r = siec_zadanie(tryb, test, &nowy_slot);

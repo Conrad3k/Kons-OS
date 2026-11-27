@@ -875,7 +875,12 @@ enum { K1_INST_INSTALUJ = 1, K1_INST_AKTUALIZUJ = 2 };
  * checked (INST_SIEC out); POBIERZ — the package from the zone into the waiting room; ZAINSTALUJ — the waiting version
  * into the free slot, to try on the next start; WROC — the previous version (in the free slot) to try on the next start */
 enum { K1_INST_SIEC_STAN = 3, K1_INST_SIEC_POBIERZ = 4, K1_INST_SIEC_ZAINSTALUJ = 5, K1_INST_SIEC_WROC = 6 };
-#define K1_INST_TRYB_MAKS 6
+/* 0.13.0 step 3 (ADR 0058): the report of the rescue mode onto a USB stick — INST_ZADANIE c = its bytes
+ * 1..K1_RAPORT_BAJTY (fd 4: a memfd); fd 5: the whole stick; INST_GOTOWE b = the file's number (0: K1RAPORT.TXT,
+ * 1..9: K1RAPORn.TXT) */
+#define K1_INST_RAPORT 7
+#define K1_INST_TRYB_MAKS 7
+#define K1_RAPORT_BAJTY 65536
 /* INST_SIEC d: what the writing program found */
 #define K1_SIEC_FL_NOWA_LINIA 1  /* the version waiting or to download has a new line of the Linux kernel (T3) */
 #define K1_SIEC_FL_OGL 2         /* a fresh announcement came and was accepted */
@@ -895,7 +900,14 @@ enum { K1_INST_SIEC_STAN = 3, K1_INST_SIEC_POBIERZ = 4, K1_INST_SIEC_ZAINSTALUJ 
 #define K1_AKT_FL_ZWLOKA 32    /* 0.13.0 (ADR 0056, D1: A): c is downloaded and waits out the 20 minutes (K1_OGL_ZWLOKA) */
 #define K1_AKT_FL_MAKS 63
 /* 0.13.0 step 2 (ADR 0057): OCHRONA — the TPM and what it found */
-enum { K1_OCHR_STAN = 1, K1_OCHR_MOJE_DANE = 2, K1_OCHR_TEST = 3 };
+enum { K1_OCHR_STAN = 1, K1_OCHR_MOJE_DANE = 2, K1_OCHR_TEST = 3,
+       /* 0.13.0 step 3 (ADR 0058): the rescue mode — nadzorca → the rescue screen (logowanie, fd 5): RATUNEK b=this version,
+        * c=the other slot's version (0: none), d=K1_RAP_* the report, e=its file's number 0..9 (ZAPISANY) or a
+        * K1_INST_BLAD_* (BLAD); the rescue screen → nadzorca (fd 4), b..e=0: NORMALNIE (start K1 as usual), POPRZEDNIA
+        * (the other slot, tried once), RAPORT (write the report onto the USB stick) */
+       K1_OCHR_RATUNEK = 4, K1_OCHR_NORMALNIE = 5, K1_OCHR_POPRZEDNIA = 6, K1_OCHR_RAPORT = 7 };
+enum { K1_RAP_NIC = 0, K1_RAP_ZAPISUJE = 1, K1_RAP_ZAPISANY = 2, K1_RAP_BLAD = 3, K1_RAP_BRAK_PENDRIVE = 4 };
+#define K1_RAP_MAKS 4
 enum { K1_TPM_BRAK = 0,       /* no TPM (or off in the BIOS): K1 sees neither an older version nor a rolled-back disk */
        K1_TPM_12 = 1,         /* TPM 1.2 (ThinkPad X230): K1 uses only TPM 2.0 */
        K1_TPM_20 = 2,         /* TPM 2.0 with K1's record */
@@ -929,7 +941,8 @@ enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWD
 #define K1_INST_BLAD_SIEC (-11)    /* 0.10.5 step 2: the download ended too early, or with bytes that are not the package */
 #define K1_INST_BLAD_MIEJSCE (-12) /* 0.10.5 step 2: no waiting room on this disk (or nothing waits in it) */
 #define K1_INST_BLAD_UKLAD (-13)   /* 0.10.9 step 4b: the disk's K1-EFI has other slots (older K1) — install anew */
-#define K1_INST_BLAD_MIN (-13)
+#define K1_INST_BLAD_FAT (-14)    /* 0.13.0 step 3: no FAT16/FAT32 on the stick for the report */
+#define K1_INST_BLAD_MIN (-14)
 #define K1_AB_FL_NOWY 1        /* INST_AB d: a new slot waits to be tried on the next start */
 #define K1_AB_FL_NIEUDANA 2    /* INST_AB d: the last new slot did not start (GRUB went back) */
 enum { K1_SB_WYL = 0, K1_SB_WL = 1, K1_SB_NIEZNANY = 2 };            /* Secure Boot off / on / no UEFI variables */

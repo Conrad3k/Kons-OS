@@ -112,7 +112,7 @@ static int slot(const char *plik, const char *wersja, const char *wydanie, const
 static int grubenv(const char *plik)
 {
     uint8_t e[K1_GRUBENV_BAJTY];
-    struct k1_grubenv g = { 'a', 0, 'a', 0 };
+    struct k1_grubenv g = { .slot = 'a', .start = 'a' };
     FILE *f = fopen(plik, "wb");
     k1_grubenv_zbuduj(&g, e);
     if (f == NULL || fwrite(e, 1, sizeof e, f) != sizeof e || fclose(f) != 0)

@@ -206,6 +206,18 @@ void tpm_test(int generacja)
     odpowiedz_testowi(zapisz("test") == 0 ? 0 : -1, -1);
 }
 
+/* One line for the rescue mode's report (ratunek.c). */
+const char *tpm_opis(void)
+{
+    static char t[96];
+    if (rodzaj == K1_TPM_20)
+        snprintf(t, sizeof t, "TPM 2.0: generacja w TPM %u, tej wersji %d%s", (unsigned)rekord.generacja, K1_GENERACJA,
+                 flagi & K1_OCHR_FL_COFNIETE ? ", dane cofnięte" : "");
+    else
+        snprintf(t, sizeof t, "TPM: %s", rodzaj == K1_TPM_12 ? "1.2 (nieużywany)" : rodzaj == K1_TPM_ZAJETY ? "niedostępny" : "brak");
+    return t;
+}
+
 void tpm_nowy_gui(void)
 {
     gui_wyslano = 0;

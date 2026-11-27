@@ -511,6 +511,15 @@ Liniowe, jedna grubość (1,6 przy 24 px), kolor roli tekstu, rysowane w kodzie 
 zegar, notatki, ustawienia (suwaki), głośnik, zasilanie, restart, zamknij, minimalizuj, kłódka,
 informacja, mysz, wygląd (obrazek), zasoby (ramka z pulsem), ekran (monitor).
 
+## Ekran ratunkowy (0.13.0 krok 3, ADR 0058)
+Pełny ekran w tle `K1_NOC` (bez tapety — tryb ratunkowy nie czyta ustawień ze skarbca): znak K1 i „Kons K1” w lewym górnym
+rogu jak na ekranie hasła; kolumna 460 px na środku: „Tryb ratunkowy” (`K1_CZ_TYTUL`), zdanie o wersji, mniejsze „Twoje dane
+są bezpieczne: ten tryb ich nie otwiera.”, cztery przyciski 44 px co 12 px (pierwszy — główny, terakota; reszta
+obrysowane), wybrany klawiaturą ma obwódkę terakoty; pod nimi zdanie o raporcie (błąd — terakota); u dołu „Strzałki
+wybierają, Enter zatwierdza.”. Zrzut: `build/testy/ratunek-ekran.png` (`test-ratunek.sh`). Szkic do oceny właściciela po
+wydaniu (prośba w raporcie kroku). Menu GRUB-a — tekst konsoli firmware, biały na czarnym, bez polskich liter (GRUB z
+Ubuntu nie ma czcionki dla trybu graficznego).
+
 ## Ekran „Wyłączanie” (0.10.7 krok 6, decyzja właściciela D7: szkic B „Kropki”, 2026-11-19)
 Po „Wyłącz” albo „Uruchom ponownie” od razu, do końca: tło okna motywu (papier / noc) na cały ekran, na środku trzy kropki
 (promień 5 px, co 20 px, 36 px nad środkiem) w kolorze akcentu, rozjaśniane po kolei (od 25 % do 100 % akcentu, obieg

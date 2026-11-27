@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 {
     struct k1_uklad u = { 280 * MIB, 1 * MIB, SLOT, { 132 * MIB, 4 * MIB } }, z;
     uint8_t b[K1_UKLAD_BAJTY], e[K1_GRUBENV_BAJTY];
-    struct k1_grubenv g, h;
+    struct k1_grubenv g = { 0 }, h;
 
     /* layout block: the bytes as k1_uklad.h describes them (scripts/test-m5f.sh reads them by these offsets) */
     k1_uklad_zbuduj(&u, b);
@@ -82,11 +82,24 @@ int main(int argc, char **argv)
     g.slot = 'a'; g.start = 'a'; g.nowy = 0; g.proba = 0;
     k1_grubenv_zbuduj(&g, e);
     EXPECT(memcmp(e, "# GRUB Environment Block\n# WARNING", 34) == 0 && e[K1_GRUBENV_BAJTY - 1] == '#' &&
-           memcmp(e + 94, "k1_slot=a\nk1_start=a\nk1_nowy=\nk1_proba=\n###", 43) == 0);
+           memcmp(e + 94, "k1_slot=a\nk1_start=a\nk1_nowy=\nk1_proba=\nk1_licznik=\nk1_tryb=\n###", 62) == 0);
     EXPECT(k1_grubenv_czytaj(e, &h) == 0 && memcmp(&g, &h, sizeof g) == 0);
     g.slot = 'b'; g.nowy = 'a'; g.proba = 'b';
     k1_grubenv_zbuduj(&g, e);
     EXPECT(k1_grubenv_czytaj(e, &h) == 0 && memcmp(&g, &h, sizeof g) == 0);
+    /* 0.13.0 step 3 (ADR 0058): the counter of starts and the rescue mode, written by GRUB */
+    g.licznik = '2'; g.tryb = 'r';
+    k1_grubenv_zbuduj(&g, e);
+    EXPECT(k1_grubenv_czytaj(e, &h) == 0 && memcmp(&g, &h, sizeof g) == 0);
+    g.licznik = 0; g.tryb = 0;
+    env("# GRUB Environment Block\nk1_licznik=1\nk1_tryb=\n", e);
+    EXPECT(k1_grubenv_czytaj(e, &h) == 0 && h.licznik == '1' && h.tryb == 0);
+    env("# GRUB Environment Block\nk1_licznik=3\n", e);
+    EXPECT(k1_grubenv_czytaj(e, &h) == -1);
+    env("# GRUB Environment Block\nk1_tryb=a\n", e);
+    EXPECT(k1_grubenv_czytaj(e, &h) == -1);
+    env("# GRUB Environment Block\nk1_slot=r\n", e);
+    EXPECT(k1_grubenv_czytaj(e, &h) == -1); /* each its own letters */
     /* GRUB may order them differently or add its own; missing ones are empty */
     env("# GRUB Environment Block\nk1_proba=b\nsaved_entry=0\nk1_start=b\n", e);
     EXPECT(k1_grubenv_czytaj(e, &h) == 0 && h.proba == 'b' && h.start == 'b' && h.slot == 0 && h.nowy == 0);

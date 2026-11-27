@@ -147,9 +147,11 @@ $(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/ws
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
 INSTALATOR := $(sort $(wildcard src/instalator/*.c))
-$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(PACZKA) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ $(INSTALATOR) \
-		$(EFI) $(FAT32) $(PACZKA) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+# 0.13.0 step 3 (ADR 0058): the rescue mode's report onto a USB stick (raport.c) finds the FAT volume with czytnik's reader
+CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
+$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(PACZKA) $(CZYTNIK_FAT) src/czytnik/fat.h $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -Isrc/czytnik -I$(GEN) -o $@ $(INSTALATOR) \
+		$(EFI) $(FAT32) $(PACZKA) $(CZYTNIK_FAT) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # 0.8.0 step 3 (ADR 0031): the USB stick reader — FAT in a sandbox (host test: test_fat, fuzzing: fuzz_fat)
 # 0.8.0 step 4 (ADR 0032): the picture decoder — Wuffs (src/zewnetrzne, docs/ZALEZNOSCI.md) compiled as is inside
@@ -189,7 +191,6 @@ $(BIN)/dzwiek: $(DZWIEK) $(wildcard src/dzwiek/*.h) $(WSPOLNE) $(USLUGI) $(NAGL)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(DZWIEK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
-CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
 $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(CZYTNIK) src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -238,8 +239,8 @@ EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przyborni
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-$(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/logowanie: $(wildcard src/logowanie/*.c src/logowanie/*.h) $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(sort $(wildcard src/logowanie/*.c)) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # the desktop shell in modules (0.7.5): main.c (loop), okna, pasek_gorny, pasek_dolny, menu_start — gui.h
 GUI := $(sort $(wildcard src/gui/*.c))
@@ -305,6 +306,9 @@ $(OBJ)/test_przestrzen: testy/host/test_przestrzen.c src/wspolne/k1_korektor.c s
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c -lm
 
 # 0.13.0 (ADR 0056): the footer of the download zone — the time of HTTPS
+# 0.13.0 step 3 (ADR 0058): the rescue mode's report onto a FAT16/FAT32 stick (images: testy/host/obrazy_raport.sh)
+$(OBJ)/test_raport: testy/host/test_raport.c src/instalator/raport.c src/instalator/raport.h $(CZYTNIK_FAT) src/czytnik/fat.h $(DOK_C) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/czytnik -Isrc/instalator -o $@ testy/host/test_raport.c src/instalator/raport.c $(CZYTNIK_FAT) $(DOK_C)
 $(OBJ)/test_tpm: testy/host/test_tpm.c src/wspolne/k1_tpm.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_tpm.c src/wspolne/k1_tpm.c
 $(OBJ)/test_stopka: testy/host/test_stopka.c src/wspolne/k1_stopka.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
@@ -560,7 +564,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
 	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka test_tpm
-TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
+TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_raport test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
@@ -571,7 +575,7 @@ $(TESTY_HOST:%=host-%): host-%: $(OBJ)/%
 
 host-test_uklad: $(OBJ)/test_uklad
 	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
-		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba=
+		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba= k1_licznik= k1_tryb=
 	$(OBJ)/test_uklad $(OBJ)/grubenv.ref
 
 host-test_instalator: $(OBJ)/test_instalator
@@ -586,6 +590,10 @@ host-test_instalator: $(OBJ)/test_instalator
 
 host-test_fat: $(OBJ)/test_fat
 	sh testy/host/obrazy_fat.sh $(OBJ)/fat && $(OBJ)/test_fat $(OBJ)/fat && rm -rf $(OBJ)/fat
+
+host-test_raport: $(OBJ)/test_raport
+	sh testy/host/obrazy_raport.sh $(OBJ)/raport && $(OBJ)/test_raport $(OBJ)/raport && \
+		sh testy/host/obrazy_raport.sh $(OBJ)/raport sprawdz && rm -rf $(OBJ)/raport
 
 host-test_start: $(OBJ)/test_start
 	sh testy/host/obrazy_efi.sh $(OBJ)/efi && $(OBJ)/test_start $(OBJ)/efi && sh testy/host/obrazy_efi.sh $(OBJ)/efi sprawdz && \
@@ -616,7 +624,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka tpm
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka tpm raport
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -637,6 +645,8 @@ FUZZ_ZR_stopka    := src/wspolne/k1_stopka.c
 FUZZ_DL_stopka    := 64
 FUZZ_ZR_tpm       := src/wspolne/k1_tpm.c
 FUZZ_DL_tpm       := 160
+FUZZ_ZR_raport    := src/instalator/raport.c src/czytnik/fat.c src/czytnik/nazwy.c $(DOK_C)
+FUZZ_DL_raport    := 1048576
 FUZZ_ZR_paczka    := src/wspolne/k1_paczka.c $(MANIFEST)
 FUZZ_DL_paczka    := 8800
 FUZZ_ZR_manifest  := src/wspolne/k1_manifest.c $(MONOCYPHER)

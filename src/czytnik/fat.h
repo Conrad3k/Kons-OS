@@ -36,6 +36,9 @@ struct fat {
     uint32_t korzen_klaster; /* FAT32: the root folder's first cluster */
     uint64_t dane_od;        /* cluster 2 */
     uint32_t klastrow;       /* data clusters: valid numbers 2..klastrow+1 */
+    uint32_t n_fat;          /* copies of the FAT (0.13.0 step 3: the report's writer, src/instalator/raport.c) */
+    uint64_t fat_bajty;      /* bytes of one copy */
+    uint32_t fsinfo;         /* FAT32: the FSInfo sector (0: none) */
     uint8_t bufor[FAT_SEKTOR_MAKS]; /* one block of the FAT */
     uint64_t bufor_od;
     int bufor_jest;
@@ -73,6 +76,9 @@ struct fat_kursor {
 };
 int fat_czytaj_od(struct fat *f, struct fat_kursor *k, uint32_t klaster, uint32_t rozmiar, uint32_t od, uint32_t ile,
                   int (*pisz)(void *ctx, const void *buf, uint32_t n), void *ctx);
+
+/* The cluster after `k` in its chain: *nast = the next one, or 0 at its end. 0, or FAT_BLAD_* (0.13.0 step 3). */
+int fat_nastepny(struct fat *f, uint32_t k, uint32_t *nast);
 
 /* Names (exposed for the host test): a short name 8.3 (11 bytes, flags of entry byte 12) and a long name (UTF-16,
  * up to 0 or the end) into a valid K1 name; "Plik" when nothing usable is left. */

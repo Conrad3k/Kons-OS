@@ -78,6 +78,9 @@ static int bpb(struct fat *f, uint64_t start)
     f->korzen_klaster = typ == 32 ? korzen_k : 0;
     f->dane_od = meta * bps;
     f->klastrow = klastrow;
+    f->n_fat = nfat;
+    f->fat_bajty = (uint64_t)fatsz * bps;
+    f->fsinfo = typ == 32 && k1_c16(b + 48) != 0 && k1_c16(b + 48) < res ? k1_c16(b + 48) : 0;
     f->bufor_jest = 0;
     return 0;
 }
@@ -189,6 +192,11 @@ static int nastepny(struct fat *f, uint32_t k, uint32_t *nast)
         return FAT_BLAD_USZKODZONY;
     *nast = v;
     return 0;
+}
+
+int fat_nastepny(struct fat *f, uint32_t k, uint32_t *nast)
+{
+    return nastepny(f, k, nast);
 }
 
 static uint64_t gdzie(const struct fat *f, uint32_t k)

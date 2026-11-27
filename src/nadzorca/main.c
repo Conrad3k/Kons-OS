@@ -46,15 +46,18 @@ static int przygotuj(void)
     k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
     rozruch_wydanie();
     tpm_start(); /* 0.13.0 step 2: before skarbiec (an older K1 does not open the data) */
+    k1_log_kopia = logi_zapamietaj; /* 0.13.0 step 3: the last lines for the rescue mode's report */
+    ratunek_sprawdz(); /* 0.13.0 step 3: the rescue mode — only ekran, wejscie and the rescue screen */
     for (i = 0; i < N_USLUG; i++) /* PRZY_STARCIE in k1_uslugi.h; applications start on request of gui */
-        if (uslugi[i].kiedy == START_PRZY_STARCIE)
+        if (uslugi[i].kiedy == START_PRZY_STARCIE && !uslugi[i].wylaczona)
             start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
         test_pid = uruchom_test();
         k1_log(TAG, "uruchomiono program testowy (pid %d)", (int)test_pid);
     }
     uevent_otworz();
-    siec_otworz();
+    if (!tryb_ratunkowy) /* the rescue mode: no network */
+        siec_otworz();
     return sfd;
 }
 
@@ -125,6 +128,10 @@ static void okresowe(void)
     if (t >= nastepne_skanowanie)
         nastepne_skanowanie = t + (uevent_fd >= 0 ? 10.0 : 2.0);
     uevent_wejscie = uevent_dysk = uevent_zasilanie = uevent_zalegle = 0;
+    if (tryb_ratunkowy) { /* 0.13.0 step 3: nothing else runs */
+        ratunek_okresowe();
+        return;
+    }
     siec_sprawdz(t);
     siec_stan_wyslij();
     wyslij_baterie();

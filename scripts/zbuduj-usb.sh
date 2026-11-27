@@ -55,41 +55,84 @@ truncate -s ${SLOT_MIB}M "$USB/b.img" # slot B: empty until the first update
 # A/B (0.7.0, ADR 0022): system jest w /k1/a.img albo /k1/b.img (w środku jeden plik: k1.efi — jądro z rdzeniem,
 # podpisane kluczem K1). grubenv: k1_slot = potwierdzone miejsce; k1_nowy = do wypróbowania raz (po aktualizacji);
 # k1_start = co uruchomiono teraz; k1_proba = ostatnia próba, dopóki K1 jej nie potwierdzi albo nie zgłosi.
+# Tryb ratunkowy (0.13.0 krok 3, ADR 0058): Esc w ciągu 1 s albo dwa starty potwierdzonego miejsca bez pulpitu
+# (k1_licznik: 1, 2 — K1 zeruje go, gdy pokaże pulpit) → menu: K1, tryb ratunkowy (k1_tryb=r — ten sam k1.efi, nadzorca
+# uruchamia tylko ekran ratunkowy), poprzednia wersja (drugie miejsce jako próba). Menu na konsoli firmware (ASCII).
 # M5f: everything from the partition GRUB itself was loaded from — with K1 on the disk and a K1 stick
 # plugged in, its search by /.disk/info may find the other one first.
 regexp --set=1:k1_dysk '^\(([^)]+)\)' "\$cmdpath"
 if [ -n "\$k1_dysk" -a -e "(\$k1_dysk)/k1/a.img" ]; then set root=\$k1_dysk; fi
 background_image -m stretch /boot/grub/start.png
 echo ""
-load_env --file /boot/grub/grubenv k1_slot k1_nowy k1_proba
+load_env --file /boot/grub/grubenv k1_slot k1_nowy k1_proba k1_licznik
 if [ "\$k1_slot" != b ]; then set k1_slot=a; fi
-set k1_start=\$k1_slot
-if [ "\$k1_nowy" = a -o "\$k1_nowy" = b ]; then
-    set k1_start=\$k1_nowy
-    set k1_proba=\$k1_nowy
-fi
-set k1_nowy=
-save_env --file /boot/grub/grubenv k1_start k1_nowy k1_proba
-loopback k1sys /k1/\${k1_start}.img
-linux (k1sys)/k1.efi
-boot
+if [ "\$k1_slot" = a ]; then set k1_inne=b; else set k1_inne=a; fi
+export root k1_slot k1_nowy k1_proba k1_licznik k1_inne
+
 # Here only when the system could not be loaded (damaged, or not signed with a key this computer trusts).
-# A new slot that does not load: straight back to the confirmed one (K1 tells the owner after the start).
-if [ "\$k1_start" != "\$k1_slot" ]; then
-    loopback -d k1sys
+function k1_nie_moze {
+    terminal_output console
+    set color_normal=white/black
+    echo "Kons K1 $K1_WERSJA nie moze wystartowac."
+    echo "System na tym nosniku jest uszkodzony albo Secure Boot nie zna klucza K1."
+    echo "Wlacz komputer z pendrive'a K1: Instalator naprawi system (dane zostana)."
+    echo "Albo wylacz Secure Boot w BIOS-ie (F1 na ThinkPadzie) i wpisz klucz K1 jeszcze raz."
+    sleep 600
+}
+
+# \$1 = "r": the rescue mode (the confirmed slot; a waiting try stays waiting).
+function k1_uruchom {
+    set k1_tryb=\$1
     set k1_start=\$k1_slot
-    save_env --file /boot/grub/grubenv k1_start
+    if [ "\$k1_tryb" != r ]; then
+        if [ "\$k1_nowy" = a -o "\$k1_nowy" = b ]; then
+            set k1_start=\$k1_nowy
+            set k1_proba=\$k1_nowy
+        fi
+        set k1_nowy=
+    fi
+    if [ "\$k1_start" = "\$k1_slot" -a "\$k1_tryb" != r ]; then
+        if [ "\$k1_licznik" = 1 -o "\$k1_licznik" = 2 ]; then set k1_licznik=2; else set k1_licznik=1; fi
+    fi
+    save_env --file /boot/grub/grubenv k1_start k1_nowy k1_proba k1_licznik k1_tryb
     loopback k1sys /k1/\${k1_start}.img
     linux (k1sys)/k1.efi
     boot
+    # A new slot that does not load: straight back to the confirmed one (K1 tells the owner after the start).
+    if [ "\$k1_start" != "\$k1_slot" ]; then
+        loopback -d k1sys
+        set k1_start=\$k1_slot
+        save_env --file /boot/grub/grubenv k1_start
+        loopback k1sys /k1/\${k1_start}.img
+        linux (k1sys)/k1.efi
+        boot
+    fi
+    k1_nie_moze
+}
+
+# No Esc and no two failed starts: straight on, with the boot screen and no menu.
+if [ "\$k1_licznik" != 2 ]; then
+    if sleep --interruptible 1; then k1_uruchom; fi
 fi
 terminal_output console
 set color_normal=white/black
-echo "Kons K1 $K1_WERSJA nie moze wystartowac."
-echo "System na tym nosniku jest uszkodzony albo Secure Boot nie zna klucza K1."
-echo "Wlacz komputer z pendrive'a K1: Instalator naprawi system (dane zostana)."
-echo "Albo wylacz Secure Boot w BIOS-ie (F1 na ThinkPadzie) i wpisz klucz K1 jeszcze raz."
-sleep 600
+set menu_color_normal=white/black
+set menu_color_highlight=black/white
+if [ "\$k1_licznik" = 2 ]; then
+    set default=1
+    set timeout=10
+else
+    set default=0
+    set timeout=-1
+fi
+set timeout_style=menu
+menuentry "Kons K1 $K1_WERSJA" { k1_uruchom }
+menuentry "Kons K1 - tryb ratunkowy (raport na pendrive, poprzednia wersja)" { k1_uruchom r }
+loopback k1inne /k1/\${k1_inne}.img
+if [ -e (k1inne)/k1.efi ]; then
+    menuentry "Kons K1 - poprzednia wersja (miejsce \$k1_inne)" { set k1_nowy=\$k1_inne; k1_uruchom }
+fi
+loopback -d k1inne
 CFG
 
 # The EFI partition: FAT32 with 4 KiB clusters; the order of the files fixes where they are —

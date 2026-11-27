@@ -24,6 +24,7 @@ static struct k1_dyski listy[OKIEN]; /* the list each window saw (INST_START ref
 static int sukces[OKIEN];            /* a finished job of this window: it may ask for a restart */
 static int zadanie = -1;             /* the window whose job runs (progress and result go to it); ZADANIE_SIEC: */
 #define ZADANIE_SIEC (-2)            /* 0.10.5 step 2b: an update through the network (aktualizacja.c) */
+#define ZADANIE_RAPORT (-3)          /* 0.13.0 step 3: the rescue mode's report onto a USB stick (ratunek.c) */
 
 struct usluga *instalator(void)
 {
@@ -247,6 +248,48 @@ int inst_siec(int tryb, int zrodlo, int ogl, int test)
     return 0;
 }
 
+/* 0.13.0 step 3 (ADR 0058): the writing program with the rescue mode's report — fd 4 the report (`fd_raport`, `dl`
+ * bytes), fd 5 the first USB stick that is not K1's, whole and exclusively (raport.c writes one file in its FAT).
+ * 0, K1_INST_BLAD_ZRODLO (no stick), K1_INST_BLAD_ZAJETY, K1_INST_BLAD_TRWA, K1_INST_BLAD_ARG. */
+int inst_raport(int fd_raport, uint32_t dl)
+{
+    struct k1_komunikat k;
+    char dysk[32];
+    int fds[3], para[2], tak = 1, i;
+    if (instalator()->pid > 0)
+        return K1_INST_BLAD_TRWA;
+    if (!k1_pendrive_znajdz(SYS, dysk))
+        return K1_INST_BLAD_ZRODLO;
+    fds[1] = fd_raport;
+    fds[2] = otworz_urzadzenie(dysk, O_RDWR | O_EXCL);
+    if (fds[2] < 0) {
+        k1_log(TAG, "raport: pendrive %s niedostępny: %s", dysk, strerror(errno));
+        return K1_INST_BLAD_ZAJETY;
+    }
+    if (k1_kanal_utworz(para) != 0 || setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0) {
+        close(fds[2]);
+        return K1_INST_BLAD_ARG;
+    }
+    fds[0] = para[0];
+    inst_tryb = K1_INST_RAPORT;
+    inst_wynik_wyslany = 0;
+    i = uruchom(instalator(), &profile[K1_PROFIL_INSTALATOR], fds, 3) > 0;
+    close(fds[0]);
+    close(fds[2]);
+    if (!i) {
+        close(para[1]);
+        return K1_INST_BLAD_ARG;
+    }
+    if (inst_ster >= 0)
+        close(inst_ster);
+    inst_ster = para[1];
+    zadanie = ZADANIE_RAPORT;
+    k = k1_komunikat_nowy(K1_KOM_INST_ZADANIE, 0, K1_INST_RAPORT, 512, (int32_t)dl, 0, 0);
+    k1_kanal_wyslij(inst_ster, &k, sizeof k, -1);
+    k1_log(TAG, "raport: zapis na pendrive %s (pid %d)", dysk, (int)instalator()->pid);
+    return 0;
+}
+
 /* Opens Ustawienia on Aktualizacje (0.10.5 step 1, S4: the Instalator's link; gui's window of a failed try): started if
  * needed, the section shown, its window brought up by gui. */
 void otworz_aktualizacje(void)
@@ -336,7 +379,12 @@ void obsluz_zapis(void)
             k1_log(TAG, "odrzucono komunikat od instalatora");
             continue;
         }
-        if (zadanie == ZADANIE_SIEC) { /* 0.10.5 step 2b: aktualizacja.c */
+        if (zadanie == ZADANIE_RAPORT) { /* 0.13.0 step 3: ratunek.c */
+            if (k.typ == K1_KOM_INST_GOTOWE) {
+                inst_wynik_wyslany = 1;
+                ratunek_raport_wynik(k.a, k.b);
+            }
+        } else if (zadanie == ZADANIE_SIEC) { /* 0.10.5 step 2b: aktualizacja.c */
             inst_wynik_wyslany = k.typ == K1_KOM_INST_GOTOWE;
             akt_od_zapisu(&k);
         } else if (k.typ == K1_KOM_INST_ETAP) {
@@ -361,6 +409,8 @@ void inst_koniec(void)
     if (!inst_wynik_wyslany && zadanie == ZADANIE_SIEC) {
         struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_GOTOWE, 0, K1_INST_BLAD_PRZERWANE, 0, 0, 0, 0);
         akt_od_zapisu(&k);
+    } else if (!inst_wynik_wyslany && zadanie == ZADANIE_RAPORT) {
+        ratunek_raport_wynik(K1_INST_BLAD_PRZERWANE, 0);
     } else if (!inst_wynik_wyslany) {
         wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, K1_INST_BLAD_PRZERWANE, inst_tryb, 0, 0, 0));
     }

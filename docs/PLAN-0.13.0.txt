@@ -444,3 +444,23 @@ Krok 2 (2026-11-26, Claude, PR #250, CI przebieg 381 zielony; ADR 0057):
     we fragmencie; `porownaj-jadro.sh`: nic do rozstrzygnięcia.
   - Testy lokalnie: test-tpm (31 sprawdzeń), test-m1 (z `t_tpm`), test-m6 (SBAT), test-wzorce (bez zmian), testy na
     hoście (`test_tpm`, `test_komunikat`), fuzzing tpm 40 s.
+
+Krok 3 (2026-11-27, Claude; ADR 0058):
+  - D2 właściciela: tylko „Uruchom poprzednią wersję” i „Zapisz raport na pendrive” (sprawdzanie danych, przywracanie
+    fabryczne, instalacja od nowa — dalej Instalator z pendrive'a). D3: A.
+  - GRUB zostaje (ADR 0058 pkt 1) — wpis „Tymczasowe” w DO_ZROBIENIA zamyka krok 8 (wydanie), ADR 0010 ma dopisek.
+  - T7: ten sam `k1.efi`, flaga `k1_tryb=r` w grubenv (GRUB nie pisze zmiennych EFI, linia poleceń zamknięta). Nadzorca
+    szuka nośnika startu po wydaniu w uruchomionym miejscu (jak rozruch.c), przy UEFI do 3 s.
+  - Menu GRUB-a: `sleep --interruptible 1` (bez Esc — ekran startowy bez zmian), menu na konsoli firmware ASCII (gcdx64
+    bez czcionki dla gfxterm); zmienne w `menuentry` tylko po `export`; `function` działa pod Secure Boot (test-m6).
+  - „Nieudany start” = bez pierwszego obrazu (EKRAN_OBRAZ), nie 15 s; tryb ratunkowy licznika nie zeruje (raport go
+    pokazuje), robią to jego przyciski.
+  - Ekran ratunkowy = program ekranu hasła z `--ratunek` (bez nowej usługi, klatki ani roli). Komunikaty: nie ma wolnych
+    numerów typów (255 zajętych) — tryb ratunkowy jako nowe wartości `a` w `OCHRONA` (krok 2).
+  - Raport: program zapisujący (instalator) w zadaniu `K1_INST_RAPORT`, czytnik FAT czytnika do znalezienia woluminu,
+    zapis jednego pliku FAT16/FAT32 (`raport.c`, `test_raport` z `fsck.fat`, `fuzz_raport`); log w pamięci 40 KiB
+    (`logi.c`, `k1_log_kopia`) — ten sam tekst co port szeregowy.
+  - Esc w GRUB-ie nie jest testowany w QEMU (OVMF też łapie Esc) — lista „co sprawdzić” (krok 8).
+  - Testy lokalnie: test-ratunek (25 sprawdzeń), test-m1, test-m4, test-m5f, test-m6, testy na hoście (`test_uklad`,
+    `test_raport`, `test_komunikat`), fuzzing raport 60 s.
+

@@ -1,6 +1,6 @@
 # 0010. Obraz ISO do maszyn wirtualnych i grafika z firmware
 
-- Status: Przyjęty (tymczasowy do M10)
+- Status: Przyjęty (tymczasowy do M10); GRUB zostaje — termin zamknięty decyzją [korekta: ADR 0058]
 - Data: 2026-11-06
 - Dotyczy: SPEC §6 (start, UKI, Secure Boot — M10), ADR 0004 (initramfs), ADR 0006 (grafika)
 

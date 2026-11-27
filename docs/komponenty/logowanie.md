@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE w QEMU (`test-m4.sh`, scenariusz `haslo`) — 0.5.7 |
-| **Pliki** | `src/logowanie/main.c` |
+| **Pliki** | `src/logowanie/main.c`, `src/logowanie/ratunek.c` (ekran ratunkowy, 0.13.0) |
 | **Decyzje** | ADR 0017; wygląd: szkic B „Zegar” (`docs/WYGLAD.md`) |
 
 ## Cel
@@ -23,9 +23,16 @@ fd 3: ekran (rola LOGOWANIE); fd 4: prośby do nadzorcy (tylko `WYLACZ`); fd 5: 
 jednokierunkowo); fd 6: skarbiec (`SKARB_ODBLOKUJ` + memfd z hasłem). Log: „ekran hasła gotowy”
 (położenia dla testów), „próba odblokowania”, „złe hasło”, „odblokowano” — nigdy hasło ani jego długość.
 
+## Ekran ratunkowy (0.13.0 krok 3, ADR 0058)
+Ten sam program z argumentem `--ratunek` (nadzorca w trybie ratunkowym): bez skarbca; ciemny ekran „Tryb ratunkowy”
+z wersją i czterema przyciskami w kolumnie — „Uruchom K1 normalnie”, „Uruchom poprzednią wersję (X)” (gdy drugie miejsce
+ma system), „Zapisz raport na pendrive”, „Wyłącz komputer” — i zdaniem o raporcie. fd 4: `OCHRONA` a = `NORMALNIE`,
+`POPRZEDNIA`, `RAPORT` i `WYLACZ`; fd 5: `OCHRONA` a = `RATUNEK` (stan). Opis: `docs/komponenty/ratunek.md`.
+
 ## Testy
 | Test | Rodzaj |
 |---|---|
+| `test-ratunek.sh`: ekran ratunkowy, przyciski klikane po położeniach z logu, raport, poprzednia wersja | funkcjonalny |
 | `test-m4.sh` (`haslo`): ekran hasła zamiast pulpitu, złe hasło odrzucone, dobre → pulpit z zapisanymi ustawieniami, hasła brak w logu; zrzuty `m4-haslo-*.png` | funkcjonalny + negatywny |
 | w systemie: próba klatki `logowanie` | negatywny |
 | `test_komunikat`: `SKARB_ODBLOKUJ`, `SKARB_HASLO`, `SKARB_INFO`, `SKARB_STAN`, rola LOGOWANIE | negatywny |

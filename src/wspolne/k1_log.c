@@ -12,6 +12,8 @@
 
 #define K1_LOG_MAX 512
 
+void (*k1_log_kopia)(const char *linia, size_t dl);
+
 static void write_all(int fd, const char *buf, size_t len)
 {
     while (len > 0) {
@@ -101,6 +103,8 @@ static void k1_vlog(const char *tag, const char *prefix, const char *fmt, va_lis
         len = sizeof buf - 1;
     buf[len++] = '\n';
     write_all(2, buf, len);
+    if (k1_log_kopia != NULL)
+        k1_log_kopia(buf, len);
     errno = saved_errno;
 }
 

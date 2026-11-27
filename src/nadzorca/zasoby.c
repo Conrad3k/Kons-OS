@@ -65,6 +65,7 @@ void bateria_nowy_kanal(void)
     sesje_nowy_kanal(0);
     dzwiek_nowy_gui(); /* 0.12.0 step 1: its channel to the sound service */
     tpm_nowy_gui();    /* 0.13.0 step 2: OCHRONA */
+    ratunek_nowy_ekran(); /* step 3: the rescue screen's state */
 }
 
 void zasoby_nowy_kanal(void)

@@ -85,6 +85,14 @@ w `src/instalator/siec.c` i `siec_instaluj.c`. Program zapisujący to jedyne mie
 - Test: `test_siec_instalatora` (obrazy K1-EFI z mtools, `testy/host/obrazy_paczki.sh`, klucz testowy) — cała droga
   i 15 przypadków negatywnych.
 
+## Raport trybu ratunkowego (0.13.0 krok 3, ADR 0058)
+Tryb `K1_INST_RAPORT` (`INST_ZADANIE` a = 7, c = bajty raportu 1…64 KiB; prosi tylko nadzorca w trybie ratunkowym): fd 4 —
+memfd z raportem, fd 5 — cały pierwszy pendrive bez K1 (`O_EXCL`). `raport.c`: wolumin FAT16/FAT32 znajduje czytnik FAT
+czytnika (`src/czytnik/fat.c`), jeden nowy plik `K1RAPORT.TXT` (zajęte — `K1RAPOR1.TXT` … `K1RAPOR9.TXT`) w katalogu
+głównym, data i czas zapisu (UTC) z zegara; kolejność: dane → łańcuch w każdej kopii FAT → wpis katalogu → FSInfo
+„nieznane”. `INST_GOTOWE` b = numer pliku. Błędy: `K1_INST_BLAD_FAT`, `K1_INST_BLAD_MALY`, `K1_INST_BLAD_ZAPIS`. Opis:
+`docs/komponenty/ratunek.md`.
+
 ## Manifesty i podpis (0.6.2, ADR 0021; od 0.9.0 ADR 0038)
 Przed zapisem program zapisujący czyta dwa manifesty z miejsca A pendrive'a (`k1_manifest.h`): **manifest miejsca**
 (ostatni MiB miejsca: BLAKE2b-256 obrazu miejsca — FAT z `k1.efi` i obraz przeglądarki) i **manifest plików startowych** (zaraz za nim: skrót drzewa plików
