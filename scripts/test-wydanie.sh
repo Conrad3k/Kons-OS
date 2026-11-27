@@ -4,7 +4,9 @@
 #      ekran awarii: panika jądra rysuje opis K1 (bez polskich liter) w kolorach K1 (zrzut); NEGATYWNE: na porcie
 #      szeregowym ani jednego wiersza K1 i jądra
 #   2. „pulpit”: obraz USB wydania (k1.efi, nie k1-test.efi) jako dysk, start przez UEFI → pulpit (zrzut: górny i dolny
-#      pasek); NEGATYWNE: na porcie szeregowym nic od jądra i K1
+#      pasek); NEGATYWNE: na porcie szeregowym nic od jądra i K1; (0.13.0 krok 5, ADR 0060, D7: A) pierwszy start na
+#      pustej K1-DANE bez hasła — okienko „Ustaw hasło” na środku (zrzut wydanie-ustaw-haslo; wydanie zachęca bez
+#      dysku-znaku)
 #   3. „ratunek”: ten sam dysk, grubenv k1_licznik=2 — GRUB uruchamia tryb ratunkowy; klawisze: ↓, Enter („Zapisz raport
 #      na pendrive”) → K1RAPORT.TXT na pendrivie: log tego startu jest w pamięci, choć port szeregowy milczy (D4: A)
 #   4. „ustawienia”: obraz testowy z opisem ekranu — Ustawienia → Informacje → „Zapisz raport na pendrive”: NEGATYWNE bez
@@ -92,6 +94,13 @@ if tryb == "pulpit":
         return w >= 800 and gora and dol >= 8
     w, h, px = q.zrzut("pulpit", gdy=pulpit, czas=limit * 0.8)
     sprawdz("pulpit: obraz wydania (k1.efi) startuje do pulpitu — zrzut wydanie-pulpit.png", pulpit(w, h, px), f"{w}x{h}")
+    # 0.13.0 step 5 (D7: A): the window "Ustaw hasło" (480 x 232, ochrona.c) at ((w - 480) / 2, h / 3) — its light background
+    # at the empty margins left and right of the title row, the wallpaper there is dark
+    def okienko(w, h, px):
+        return all(min(px(w // 2 + dx, h // 3 + 60)) > 200 for dx in (-228, 228))
+    w, h, px = q.zrzut("ustaw-haslo", gdy=okienko, czas=120)
+    sprawdz("pulpit: pierwszy start bez hasła — okienko „Ustaw hasło” (zrzut wydanie-ustaw-haslo.png)", okienko(w, h, px),
+            f"{px(w // 2 - 228, h // 3 + 60)} {px(w // 2 + 228, h // 3 + 60)}")
     cicho("pulpit")
     q.koniec()
 

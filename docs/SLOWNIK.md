@@ -56,6 +56,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **TPM** (0.13.0) | Układ bezpieczeństwa w komputerze (albo w firmware Intela: PTT). K1 korzysta tylko z TPM 2.0 i tylko przez nadzorcę: trzyma w nim generację K1 i stan danych (ADR 0057). TPM 1.2 (X230) — nieużywany. |
 | **generacja K1** (0.13.0) | Liczba podnoszona, gdy wydanie poprawia dziurę, której starsze wersje nie mogą mieć z powrotem (`K1_GENERACJA`). Potwierdzony start zapisuje ją w TPM; wersja o niższej generacji to **starsza wersja** — nie otwiera danych. Ta sama liczba jest w sekcji SBAT `k1.efi`. |
 | **dane cofnięte** (0.13.0) | Dysk z danymi starszy niż pamięta TPM (ktoś podmienił go na wcześniejszą kopię). K1 pyta okienkiem; „To moje dane” — kopia przywrócona przez właściciela. Dane działają. |
+| **zgoda na urządzenie USB** (0.13.0) | Okienko pulpitu „Podłączono nową klawiaturę / mysz / nowe urządzenie USB” z „Pozwól” i „Nie pozwalaj”: urządzenie wejścia z USB podłączone po pierwszym pulpicie **czeka** — nadzorca nie daje go usłudze wejścia, więc K1 nie przyjmuje od niego nic. Bez pytania: klawiatura i touchpad laptopa, urządzenia sprzed pierwszego pulpitu, to samo urządzenie po „Pozwól” w tym starcie, każde, gdy nie ma innej klawiatury ani myszy (ADR 0060). |
+| **zachęta do hasła** (0.13.0) | Okienko „Ustaw hasło” przy pierwszym starcie na trwałym magazynie bez hasła (raz): bez hasła każdy, kto weźmie komputer, przeczyta pliki. „Ustaw hasło” otwiera Ustawienia → Hasło, „Później” je zamyka (ADR 0060, D7). |
 | **K1-DANE** | Partycja z zaszyfrowanymi danymi użytkownika; czyta ją tylko skarbiec. |
 | **init** | Pierwszy program po starcie (PID 1): montuje, ustawia zabezpieczenia, uruchamia nadzorcę. Nigdy się nie kończy. |
 

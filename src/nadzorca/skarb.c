@@ -46,6 +46,19 @@ int blokada_mozliwa(void)
     return stan_skarbca == K1_SKARB_TRWALY && haslo_skarbca;
 }
 
+/* 0.13.0 step 5 (ADR 0060, D7: A): the vault is lasting (on a disk) and has no password — whoever takes the computer
+ * reads the files; gui says so once, on the first start. Not on the test copy (its tests click into the middle of the
+ * screen), unless the test asks with the disk-mark "k1-test-haslo". */
+int zacheta_hasla(void)
+{
+    static int znak = -1;
+    if (stan_skarbca != K1_SKARB_TRWALY || haslo_skarbca)
+        return 0;
+    if (znak < 0)
+        znak = !kopia_testowa() || dysk_ze_znakiem("k1-test-haslo");
+    return znak;
+}
+
 /* A channel between a client and skarbiec (M5d): skarbiec gets one end with SKARB_KLIENT(owner, uid)
  * and checks the sender of every packet; the client's end also has SO_PASSCRED (it checks that
  * the replies come from skarbiec). Returns the client's end or -1 (no skarbiec: no persistence). */

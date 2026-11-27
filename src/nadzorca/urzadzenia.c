@@ -1,4 +1,5 @@
-/* K1 nadzorca — devices: graphics card, input devices, the data partition (K1-DANE). Part of nadzorca (see main.c). */
+/* K1 nadzorca — devices: graphics card, the data partition (K1-DANE), kernel device events; the input devices — wejscia.c.
+ * Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
 int otworz_karte(void)
@@ -17,36 +18,6 @@ int otworz_karte(void)
         nanosleep(&t, NULL);
     }
     return -1;
-}
-
-static uint32_t wejscia_maska; /* event0..31 handed to the running wejscie */
-
-static int otworz_wejscie(int nr)
-{
-    char sciezka[64];
-    snprintf(sciezka, sizeof sciezka, DEV "/input/event%d", nr);
-    return open(sciezka, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
-}
-
-/* Opens up to MAKS_URZADZEN input devices; returns how many (fds in `fd`). */
-int otworz_wejscia(int *fd)
-{
-    int n = 0, i, proba_nr;
-    wejscia_maska = 0;
-    for (proba_nr = 0; proba_nr < 20 && n == 0; proba_nr++) {
-        for (i = 0; i < 32 && n < MAKS_URZADZEN; i++) {
-            fd[n] = otworz_wejscie(i);
-            if (fd[n] >= 0) {
-                wejscia_maska |= 1u << i;
-                n++;
-            }
-        }
-        if (n == 0) {
-            struct timespec t = { 0, 100 * 1000 * 1000 };
-            nanosleep(&t, NULL);
-        }
-    }
-    return n;
 }
 
 /* The data partition: a block device partition named "K1-DANE" (GPT, sysfs PARTNAME —
@@ -175,41 +146,32 @@ double od_startu_systemu(void)
     return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
 }
 
-/* Input devices that appear after wejscie started (a fast boot can start us before the kernel has
- * registered the mouse; USB devices plugged in later): restart wejscie with the full set. Not
- * counted as a failure. A device that was unplugged (its node is gone) is forgotten, so a device
- * plugged in later under the same eventN is noticed. Full hotplug (kernel uevents, no restart):
- * M5b. */
-void sprawdz_nowe_wejscia(void)
+/* A disk whose serial number starts with `znak` (the disk-marks of the QEMU tests: "k1-test-…"). */
+int dysk_ze_znakiem(const char *znak)
 {
-    struct usluga *u = usluga_profilu(K1_PROFIL_WEJSCIE);
-    struct stat st;
-    char sciezka[64];
-    int i;
-    for (i = 0; i < 32; i++) {
-        if (!(wejscia_maska & (1u << i)))
-            continue;
-        snprintf(sciezka, sizeof sciezka, DEV "/input/event%d", i);
-        if (lstat(sciezka, &st) < 0 && errno == ENOENT) {
-            wejscia_maska &= ~(1u << i);
-            k1_log(TAG, "urządzenie wejścia odłączone (event%d)", i);
-        }
+    char p[96], b[32];
+    DIR *d;
+    struct dirent *de;
+    int jest = 0;
+    if ((d = opendir(SYS "/block")) == NULL)
+        return 0;
+    while (!jest && (de = readdir(d)) != NULL) {
+        snprintf(p, sizeof p, SYS "/block/%.40s/serial", de->d_name);
+        jest = de->d_name[0] != '.' && k1_czytaj_plik(AT_FDCWD, p, b, sizeof b) > 0 && strncmp(b, znak, strlen(znak)) == 0;
     }
-    if (u->pid <= 0 || u->wylaczona || __builtin_popcount(wejscia_maska) >= MAKS_URZADZEN)
-        return;
-    for (i = 0; i < 32; i++) {
-        int fd;
-        if (wejscia_maska & (1u << i))
-            continue;
-        fd = otworz_wejscie(i);
-        if (fd < 0)
-            continue;
-        close(fd);
-        k1_log(TAG, "nowe urządzenie wejścia (event%d) — ponowne uruchomienie wejscie", i);
-        u->bez_liczenia = 1;
-        kill(u->pid, SIGTERM);
-        return;
-    }
+    closedir(d);
+    return jest;
+}
+
+/* 1: the test copy (k1-test.efi, bzImage of the tests: the kernel's console on the serial port; the release has
+ * console=ttynull — ADR 0059). Read once. */
+int kopia_testowa(void)
+{
+    static int wynik = -1;
+    char b[64];
+    if (wynik < 0)
+        wynik = k1_czytaj_plik(AT_FDCWD, SYS "/class/tty/console/active", b, sizeof b) > 0 && strstr(b, "ttyS") != NULL;
+    return wynik;
 }
 
 /* ---- kernel device events (0.6.0, ADR 0019) ---- */

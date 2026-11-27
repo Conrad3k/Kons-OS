@@ -218,6 +218,8 @@ void ustawienia_miejsce(int miejsce)
         ustawienia_pokaz(S_BATERIA);
     else if (miejsce == K1_UST_MIEJSCE_AKTUALIZACJE) /* 0.10.5 step 1: the Instalator's link, gui's failed try */
         ustawienia_pokaz(S_AKTUALIZACJE);
+    else if (miejsce == K1_UST_MIEJSCE_HASLO) /* 0.13.0 step 5: gui's window "Ustaw hasło" */
+        ustawienia_pokaz(S_HASLO);
 }
 
 static int segmenty(int32_t *w)

@@ -40,7 +40,7 @@ Krótko, dlaczego nie.
 | [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty; GRUB zostaje — ADR 0058 (0.13.0) |
 | [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Zastąpiony przez 0019 (kolejność), 0035 (mapa drogi) |
 | [0012](0012-przeglad-m4-1-tryby-ekranu-zasoby.md) | M4.1: przegląd bezpieczeństwa, tryby ekranu, aplikacja Zasoby | Przyjęty |
-| [0013](0013-dyski-i-usb-m5a.md) | M5a: sterowniki dysków i USB; pierwszy laptop — ThinkPad X230 | Przyjęty |
+| [0013](0013-dyski-i-usb-m5a.md) | M5a: sterowniki dysków i USB; pierwszy laptop — ThinkPad X230 | Przyjęty; urządzenie wejścia z USB po pierwszym pulpicie czeka na zgodę — ADR 0060 |
 | [0014](0014-wskaznik-baterii.md) | Wskaźnik baterii na górnym pasku | Przyjęty |
 | [0015](0015-blob-vault-format-i-szyfrowanie.md) | Blob Vault: własny format na surowej partycji, szyfrowanie w przestrzeni użytkownika | Przyjęty |
 | [0016](0016-obraz-usb-z-partycja-danych.md) | Obraz na pendrive z partycją danych; skarbiec w łańcuchu startu | Przyjęty |
@@ -87,3 +87,4 @@ Krótko, dlaczego nie.
 | [0057](0057-tpm-i-odwolywanie-starszych-wersji.md) | TPM i odwoływanie starszych wersji (0.13.0): generacja K1 w TPM 2.0 (tylko nadzorca, bez TSS), starsza wersja nie otwiera danych, stan magazynu w TPM — dane cofnięte do starszej kopii z pytaniem „To moje dane”, SBAT w `k1.efi` | Przyjęty, wdrożony (plan 0.13.0, krok 2) |
 | [0058](0058-tryb-ratunkowy-grub-zostaje.md) | Tryb ratunkowy (0.13.0): ten sam `k1.efi` z `k1_tryb=r` w grubenv, menu GRUB-a po Esc albo po dwóch nieudanych startach, ekran ratunkowy (poprzednia wersja, raport na pendrive FAT16/FAT32); GRUB zostaje (termin ADR 0010 zamknięty) | Przyjęty, wdrożony (plan 0.13.0, krok 3) |
 | [0059](0059-obraz-wydania-bez-portu-szeregowego.md) | Obraz wydania (0.13.0): `console=ttynull` w `k1.efi` (nic na porcie szeregowym; testy — `k1-test.efi` i obrazy `-test`), ekran awarii (panika jądra z opisem K1, `DRM_PANIC`), „Zapisz raport na pendrive” w Ustawieniach → Informacje, `mac80211_hwsim` tylko w jądrze testów | Przyjęty, wdrożony (plan 0.13.0, krok 4) |
+| [0060](0060-dostep-fizyczny-zgoda-usb-zacheta-do-hasla.md) | Dostęp fizyczny (0.13.0): nowa klawiatura albo mysz z USB po pierwszym pulpicie czeka na „Pozwól” (nadzorca nie daje jej usłudze wejścia; zgoda w K1, nie w jądrze), okienko „Ustaw hasło” przy pierwszym starcie bez hasła | Przyjęty, wdrożony (plan 0.13.0, krok 5) |

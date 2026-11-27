@@ -148,6 +148,7 @@ static void okresowe(void)
     bateria_archiwum(t);
     rozruch_po_starcie(t);
     tpm_okresowe(); /* 0.13.0 step 2: OCHRONA to gui and Ustawienia */
+    wejscia_okresowe(); /* 0.13.0 step 5: OCHRONA USB — input devices that wait for the owner */
     obrazy_stref_po_starcie();
     od_nowa_krok(t); /* 0.10.10 step 1: the Instalator installs anew on the disk of the data */
     akt_ustawienie_okresowe(); /* 0.10.5 step 2b: updates through the network */

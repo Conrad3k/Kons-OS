@@ -87,6 +87,7 @@ void odbierz_od_nadzorcy(void)
         }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_SESJA) {
             sesja(m.a);
+            ochrona_bez_hasla(m.b); /* 0.13.0 step 5 (D7: A) */
             continue;
         }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_SIEC_STAN) {

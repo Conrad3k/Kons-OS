@@ -46,19 +46,7 @@ static char nastepny_cel[K1_STREFA_CEL_MAKS + 1];
 
 static int jest_znak_testu(void)
 {
-    char p[96], b[32];
-    DIR *d;
-    struct dirent *de;
-    int jest = 0;
-    if (access(TEST, X_OK) != 0 || (d = opendir(SYS "/block")) == NULL)
-        return 0;
-    while (!jest && (de = readdir(d)) != NULL) {
-        snprintf(p, sizeof p, SYS "/block/%.40s/serial", de->d_name);
-        jest = de->d_name[0] != '.' && k1_czytaj_plik(AT_FDCWD, p, b, sizeof b) > 0 &&
-               strncmp(b, ZNAK_TESTU, sizeof ZNAK_TESTU - 1) == 0;
-    }
-    closedir(d);
-    return jest;
+    return access(TEST, X_OK) == 0 && dysk_ze_znakiem(ZNAK_TESTU);
 }
 
 static void do_okien(const struct k1_komunikat *k, int fd_przekaz)

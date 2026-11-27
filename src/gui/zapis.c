@@ -11,6 +11,7 @@
 #include "k1_skarb_klient.h"
 
 int skarb_fd = -1;
+int rozm_pierwszy_start;
 
 void rozm_wczytaj(void)
 {
@@ -34,6 +35,7 @@ void rozm_wczytaj(void)
             k1_log(TAG, "rozmieszczenie pulpitu nieczytelne (%d B) — domyślne", n);
         else
             k1_log(TAG, "rozmieszczenie pulpitu: domyślne (pierwszy start)");
+        rozm_pierwszy_start = n <= 0 && skarb_fd >= 0;
         rozm_domyslne(&rozm, domyslne, pulpit_wierszy());
     }
     if (rozm_dopasuj(&rozm, pulpit_kolumn(), pulpit_wierszy()) > 0)

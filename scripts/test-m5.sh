@@ -4,8 +4,13 @@
 # 1. start → wejscie znajduje klawiaturę i mysz USB, 2. mysz USB przesuwa kursor (monitor QEMU),
 # 3. klawiatura USB (strzałki przesuwają kursor, gdy żadne okno nie ma fokusu),
 # 4. podłączenie drugiej myszy w trakcie pracy (device_add), odłączenie (device_del) i ponowne
-#    podłączenie — system zauważa zmiany, nic się nie zawiesza,
-# 5. (0.5.8) pendrive z partycją K1-DANE podłączony po starcie → skarbiec i pulpit od nowa,
+#    podłączenie — system zauważa zmiany, nic się nie zawiesza; (0.13.0 krok 5, ADR 0060, D6: A) mysz z USB po
+#    pulpicie czeka na zgodę: okienko „Podłączono nową mysz” (zrzut m5-zgoda-mysz), „Pozwól” → wejscie z nią;
+#    ta sama mysz ponownie — bez pytania; NEGATYWNE: klawiatura z USB → okienko, „Nie pozwalaj” → wejscie bez niej,
+#    jej klawisze nie przesuwają kursora; po jej odłączeniu pierwsza klawiatura działa dalej,
+# 5. (0.5.8) pendrive z partycją K1-DANE podłączony po starcie → skarbiec i pulpit od nowa; (0.13.0 krok 5, D7: A)
+#    to pierwszy start na trwałym magazynie bez hasła — okienko „Ustaw hasło” (dysk-znak k1-test-haslo: kopia testowa
+#    pokazuje je tylko z nim; zrzut m5-ustaw-haslo), „Ustaw hasło” otwiera Ustawienia → Hasło,
 #    (0.8.0) obraz na pendrive większym od obrazu: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a,
 # 6. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
 #    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut),
@@ -18,18 +23,21 @@
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 LOG=$TESTY/m5-usb.log MON=$TESTY/m5-usb.sock
-CZAS=${K1_TEST_CZAS:-240}
+CZAS=${K1_TEST_CZAS:-300} # 0.13.0 step 5: + the consent to USB devices and "Ustaw hasło"
 mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/m5-*.png
 
 echo "[k1] test M5a: klawiatura i mysz USB (bez PS/2), podłączanie w trakcie pracy, bateria"
 bateria_aml 2 1 "$TESTY/bateria-ladowanie.aml"
 # 0.5.8: an empty stick with a K1-DANE partition, plugged in after boot (late detection)
-rm -f "$TESTY/m5-pozny.img"; truncate -s 64M "$TESTY/m5-pozny.img"
+rm -f "$TESTY/m5-pozny.img" "$TESTY/m5-znak.img"; truncate -s 64M "$TESTY/m5-pozny.img"
+truncate -s 1M "$TESTY/m5-znak.img" # 0.13.0 step 5: the disk-mark "k1-test-haslo" (the window "Ustaw hasło")
 printf 'label: gpt\nstart=2048, size=126976, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="K1-DANE"\n' \
     | sfdisk -q "$TESTY/m5-pozny.img" >/dev/null || blad "sfdisk (m5-pozny.img)"
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" --maszyna ",i8042=off" \
     --qemu "-device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0 -device usb-mouse,bus=xhci.0
-            -acpitable file=$TESTY/bateria-ladowanie.aml" &
+            -acpitable file=$TESTY/bateria-ladowanie.aml
+            -drive if=none,id=znak,file=$TESTY/m5-znak.img,format=raw,readonly=on
+            -device virtio-blk-pci,drive=znak,serial=k1-test-haslo,addr=0x1e" &
 QPID=$!
 r=0
 K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=$?
@@ -68,17 +76,65 @@ x2 = x1 + 60
 sprawdz(f"klawiatura USB: 3 x strzałka w prawo → {x2},{y1}", czekaj(rf"K1-EKRAN: kursor {x2},{y1} ", czas=20),
         str(kursor()))
 
-# hotplug: a second mouse appears, disappears, appears again (same event number)
-n_nowe = ile(r"nowe urządzenie wejścia")
+# hotplug: a second mouse appears, disappears, appears again (same event number). 0.13.0 step 5 (ADR 0060, D6: A): after
+# the desktop a device from USB waits for "Pozwól" in gui's window (OCHRONA USB); the same device again — at once.
+OCHRONA = r"K1-GUI: okienko \(%s\): (\S+(?: \S+)*) (\d+),(\d+); (\S+(?: \S+)*) (\d+),(\d+)"
+CZEKA = r"K1-NADZORCA: nowe urządzenie USB \(event\d+, %s\) czeka na zgodę"
+sprawdz("pulpit był: nowe urządzenia z USB czekają na zgodę",
+        czekaj(r"K1-NADZORCA: pulpit był: nowe urządzenia wejścia z USB czekają na zgodę", czas=30))
+n_nowe, n_gotowe = ile(r"nowe urządzenie wejścia"), ile(GOTOWE)
+
+
+def pierwsza_mysz():
+    """QEMU moves the pointer of the newest mouse — the one that waits; the owner answers with the old one (mouse_set)."""
+    m = re.findall(r"Mouse #(\d+): QEMU HID Mouse", q.monitor_tekst("info mice"))
+    if m:
+        monitor(f"mouse_set {min(int(n) for n in m)}")
+
+
 monitor("device_add usb-mouse,id=mysz2,bus=xhci.0")
-sprawdz("podłączenie myszy w trakcie pracy → wejscie z 3 urządzeniami",
+sprawdz("podłączenie myszy w trakcie pracy → czeka na zgodę, wejscie jej nie dostaje",
+        czekaj(CZEKA % "mysz", czas=30) and ile(r"nowe urządzenie wejścia") == n_nowe and ile(GOTOWE) == n_gotowe)
+o = czekaj(OCHRONA % "nowa mysz", czas=30)
+sprawdz("okienko „Podłączono nową mysz”: „Pozwól” i „Nie pozwalaj”", o and o.group(1) == "Pozwól" and o.group(4) == "Nie pozwalaj",
+        o.group(0) if o else "brak")
+if o:
+    q.zrzut("zgoda-mysz")
+    pierwsza_mysz()
+    klik(int(o.group(2)), int(o.group(3)))
+sprawdz("„Pozwól” → nadzorca daje mysz wejściu, wejscie z 3 urządzeniami",
+        czekaj(r"K1-NADZORCA: urządzenia USB \(1\): Pozwól", czas=30) and
         czekaj(r"nowe urządzenie wejścia", od=n_nowe, czas=30) and urzadzenia(3, czas=30))
+x0, y0 = kursor()
 monitor("device_del mysz2")
 sprawdz("odłączenie myszy: nadzorca i wejscie to zauważają",
         czekaj(r"urządzenie wejścia odłączone \(event\d+\)", czas=30) and czekaj(r"K1-WEJSCIE: urządzenie odłączone", czas=30))
+n_czeka = ile(CZEKA % r"\w+")
 monitor("device_add usb-mouse,id=mysz3,bus=xhci.0")
-sprawdz("ponowne podłączenie (ten sam numer urządzenia) → znów 3 urządzenia",
-        czekaj(r"nowe urządzenie wejścia", od=n_nowe + 1, czas=30) and urzadzenia(3, od=1, czas=30))
+sprawdz("ponowne podłączenie tej samej myszy → bez pytania, znów 3 urządzenia",
+        czekaj(r"nowe urządzenie wejścia", od=n_nowe + 1, czas=30) and urzadzenia(3, od=1, czas=30) and
+        ile(CZEKA % r"\w+") == n_czeka)
+
+# NEGATIVE (D6): a keyboard from USB, "Nie pozwalaj" — wejscie does not get it, its keys move nothing
+n_gotowe = ile(GOTOWE)
+monitor("device_add usb-kbd,id=klaw2,bus=xhci.0")
+o = czekaj(OCHRONA % "nowa klawiatura", czas=30)
+sprawdz("klawiatura z USB po pulpicie: czeka, okienko „Podłączono nową klawiaturę”", czekaj(CZEKA % "klawiatura", czas=30) and o)
+if o:
+    q.zrzut("zgoda-klawiatura")
+    klik(int(o.group(5)), int(o.group(6)))
+sprawdz("„Nie pozwalaj” → bez dostępu, wejscie bez nowego urządzenia",
+        czekaj(r"K1-NADZORCA: urządzenia USB \(1\): Nie pozwalaj", czas=30) and q.cisza(GOTOWE, 5) and ile(GOTOWE) == n_gotowe)
+x0, y0 = kursor()
+monitor(*["sendkey right"] * 3)  # QEMU sends keys to the newest keyboard: the refused one
+sprawdz("klawisze odrzuconej klawiatury nie przesuwają kursora", q.cisza(rf"K1-EKRAN: kursor {x0 + 60},{y0} ", 8), str(kursor()))
+monitor("device_del klaw2")
+sprawdz("odłączenie klawiatury bez zgody: nadzorca ją zapomina",
+        czekaj(r"K1-NADZORCA: urządzenie USB bez zgody odłączone \(event\d+\)", czas=30))
+monitor(*["sendkey left"] * 3)
+sprawdz("po odłączeniu odrzuconej pierwsza klawiatura działa dalej", czekaj(rf"K1-EKRAN: kursor {x0 - 60},{y0} ", czas=20), str(kursor()))
+x2, y1 = x0 - 60, y0
+sprawdz("nic poza tym: brak zgód bez pytania", "dopuszczone bez pytania" not in tekst())
 monitor(*["mouse_move 40 20"] * 2)
 x3, y3 = x2 + 80, y1 + 40
 sprawdz(f"mysz działa dalej po podłączaniu → {x3},{y3}", czekaj(rf"K1-EKRAN: kursor {x3},{y3} ", czas=20), str(kursor()))
@@ -137,13 +193,25 @@ sprawdz("pendrive z K1-DANE podłączony po starcie → nadzorca uruchamia skarb
 sprawdz("skarbiec: nowy magazyn na tej partycji, pulpit od nowa",
         czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=60)
         and czekaj(r"K1-GUI: pulpit gotowy", od=n_pulpit, czas=60))
+# 0.13.0 step 5 (D7: A): the first start on a lasting vault without a password — "Ustaw hasło" opens Ustawienia → Hasło
+o = czekaj(OCHRONA % "bez hasła", czas=60)
+sprawdz("pierwszy start bez hasła: okienko „Ustaw hasło” (z „Później”)", o and o.group(1) == "Ustaw hasło" and o.group(4) == "Później",
+        o.group(0) if o else "brak")
+ustawienia_otwarte = False
+if o:
+    q.zrzut("ustaw-haslo")
+    klik(int(o.group(2)), int(o.group(3)))
+    ustawienia_otwarte = bool(czekaj(r"K1-NADZORCA: otwieram Ustawienia → Hasło", czas=30) and
+                              czekaj(r"K1-USTAWIENIA: hasło: przełącznik (\d+),(\d+);", czas=60))
+    sprawdz("„Ustaw hasło” → Ustawienia na sekcji Hasło", ustawienia_otwarte)
 
 # 0.5.5: Ustawienia → Bateria — the charge chart since boot (samples every 30 s)
 q.kursor[:] = list(kursor() or (0, 0))
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=5)
 if g:
     ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
-    klik(ax + 2 * krok, ay)
+    if not ustawienia_otwarte:  # 0.13.0 step 5: already open on Hasło (a click on its bar icon would minimise it)
+        klik(ax + 2 * krok, ay)
     u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
     sek = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if u and sek:

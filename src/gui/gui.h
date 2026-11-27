@@ -269,7 +269,8 @@ void pamiec_fokus(void);                             /* the windows changed: the
 
 /* wersja.c (0.10.5 step 1, S5) — nadzorca on fd 5 */
 void wersja_nieudana(const struct k1_komunikat *m); /* AB_NIEUDANA: the window "Nowa wersja K1 nie uruchomiła się" */
-void ochrona_stan(const struct k1_komunikat *m);    /* OCHRONA: the TPM's windows (ochrona.c, 0.13.0 step 2) */
+void ochrona_stan(const struct k1_komunikat *m); /* OCHRONA: the TPM's windows, the USB question (ochrona.c, 0.13.0) */
+void ochrona_bez_hasla(int bez_hasla);           /* SESJA b (0.13.0 step 5): "Ustaw hasło" on the first start */
 /* aktualizacja.c (0.10.5 step 2b): AKT_STAN, AKT_OPIS — the window "Jest nowa wersja K1", the dot at Start */
 void akt_komunikat(const struct k1_komunikat *m, int fd);
 int akt_czeka(void); /* 1: a new version waits for "Zainstaluj" */
@@ -283,5 +284,6 @@ void rozm_wczytaj(void); /* at start: from skarbiec, else the first-start arrang
 void rozm_zapisz_teraz(void);
 void odbierz_skarbiec(void);
 extern int skarb_fd; /* fd 6, -1 without skarbiec */
+extern int rozm_pierwszy_start; /* 1: skarbiec had no arrangement — the first start (0.13.0 step 5: "Ustaw hasło") */
 
 #endif

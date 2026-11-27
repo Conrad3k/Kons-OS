@@ -334,7 +334,9 @@ enum k1_komunikat_typ {
                                * other slot (0: none), c=slot it runs (1=A, 2=B), d=K1_AB_FL_* flags, e=1 the manifest of
                                * the slot it runs is signed (0.10.5) */
     K1_KOM_SESJA = 79,        /* to gui (fd 5, 0.7.2; 0.11.5): obiekt=0, a=1 the session can be locked (the vault is open
-                               * and has a password: the Start menu offers "Zablokuj"), a=0 it cannot; b..e=0 */
+                               * and has a password: the Start menu offers "Zablokuj"), a=0 it cannot; b=1 (0.13.0 step 5,
+                               * ADR 0060, D7: A) a lasting vault without a password — gui encourages one on the first
+                               * start, b=0 otherwise; c..e=0 */
     K1_KOM_SB_STAN = 77,      /* obiekt=0, a=K1_SB_* Secure Boot, b=K1_SBK_* the K1 key, c=1 release key (0: developer
                                * key — never enrolled), d=K1_SBP_* result of the last SB_KLUCZ */
     /* Instalator window → nadzorca */
@@ -908,7 +910,13 @@ enum { K1_OCHR_STAN = 1, K1_OCHR_MOJE_DANE = 2, K1_OCHR_TEST = 3,
         * c=the other slot's version (0: none), d=K1_RAP_* the report, e=its file's number 0..9 (ZAPISANY) or a
         * K1_INST_BLAD_* (BLAD); the rescue screen → nadzorca (fd 4), b..e=0: NORMALNIE (start K1 as usual), POPRZEDNIA
         * (the other slot, tried once), RAPORT (write the report onto the USB stick) */
-       K1_OCHR_RATUNEK = 4, K1_OCHR_NORMALNIE = 5, K1_OCHR_POPRZEDNIA = 6, K1_OCHR_RAPORT = 7 };
+       K1_OCHR_RATUNEK = 4, K1_OCHR_NORMALNIE = 5, K1_OCHR_POPRZEDNIA = 6, K1_OCHR_RAPORT = 7,
+       /* 0.13.0 step 5 (ADR 0060, D6: A): input devices from USB that wait for the owner — nadzorca → gui (fd 5): USB
+        * b=what waits (K1_URZ_* bits, k1_urz_wejscia.h; 0 when c=0), c=how many 0..32 (0: none any more — the window
+        * closes), d=the question's number 0..K1_OCHR_PYTANIE_MAKS, e=0; gui → nadzorca: USB_ZGODA b=1 "Pozwól" / 0 "Nie
+        * pozwalaj", c=the question's number, d=e=0 (an older number is ignored) */
+       K1_OCHR_USB = 8, K1_OCHR_USB_ZGODA = 9 };
+#define K1_OCHR_PYTANIE_MAKS 0x3fffffff
 enum { K1_RAP_NIC = 0, K1_RAP_ZAPISUJE = 1, K1_RAP_ZAPISANY = 2, K1_RAP_BLAD = 3, K1_RAP_BRAK_PENDRIVE = 4 };
 #define K1_RAP_MAKS 4
 enum { K1_TPM_BRAK = 0,       /* no TPM (or off in the BIOS): K1 sees neither an older version nor a rolled-back disk */
@@ -972,7 +980,8 @@ enum { K1_BOK_ZAMKNIETE = 0, K1_BOK_OTWARTE = 1, K1_BOK_USTAWIENIA = 2 }; /* K1_
  * the updates' rows of their own messages). X(NAME, number 1.., the name in the log). */
 #define K1_UST_MIEJSCA(X)                                                                                \
     X(KOREKTOR, 1, "Dźwięk → Korektor") X(BATERIA, 2, "Bateria") X(AKTUALIZACJE, 3, "Aktualizacje")          \
-    X(PRZESTRZEN, 4, "Dźwięk → Kons Spatial Audio")
+    X(PRZESTRZEN, 4, "Dźwięk → Kons Spatial Audio") \
+    X(HASLO, 5, "Hasło") /* 0.13.0 step 5: gui's window "Ustaw hasło" */
 #define K1_X_UST_MIEJSCE(n, nr, ...) K1_UST_MIEJSCE_##n = nr,
 enum { K1_UST_MIEJSCA(K1_X_UST_MIEJSCE) };
 #define K1_X_UST_LICZ(...) +1
