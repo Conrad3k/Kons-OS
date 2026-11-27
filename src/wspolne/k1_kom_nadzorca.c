@@ -43,6 +43,21 @@ static int inst_c(const struct k1_komunikat *k)
     return k->a == K1_INST_RAPORT ? w(k->c, 1, K1_RAPORT_BAJTY) : w(k->c, 0, k->a >= K1_INST_SIEC_STAN);
 }
 
+/* INST_START: a disk from the list; 0.13.0 step 4: the report — no disk. */
+static int inst_start(const struct k1_komunikat *k)
+{
+    return zera(k, 1) && ((k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS && w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ)) ||
+                          (k->obiekt == 0 && k->a == K1_INST_RAPORT));
+}
+
+/* INST_WYNIK c: a new slot 0/1; 0.13.0 step 4 — the report: its file 0..9. */
+static int inst_wynik(const struct k1_komunikat *k)
+{
+    return k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) &&
+           (w(k->b, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) || k->b == K1_INST_RAPORT) &&
+           w(k->c, 0, k->b == K1_INST_RAPORT ? 9 : 1) && (k->a == 0 || k->c == 0) && zera(k, 3);
+}
+
 /* K1_KOM_OCHRONA: the state of the TPM to gui and Ustawienia; "To moje dane" from gui; a generation from the test program
  * (never 0). */
 static int ochrona(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
@@ -103,8 +118,7 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_INST_DYSKI:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_INST_START:
-        return kier == K1_KIER_DO_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS &&
-               w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && zera(k, 1);
+        return kier == K1_KIER_DO_NADZORCY && inst_start(k);
     case K1_KOM_INST_ETAP:
     case K1_KOM_INST_POSTEP:
         return kier == (k->typ == K1_KOM_INST_ETAP ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 &&
@@ -113,8 +127,7 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) && w(k->b, 0, 9) &&
                (k->a == 0 || k->b == 0) && zera(k, 2); /* b: a new slot 0/1; the report's file 0..9 (0.13.0 step 3) */
     case K1_KOM_INST_WYNIK:
-        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) &&
-               w(k->b, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && w(k->c, 0, 1) && (k->a == 0 || k->c == 0) && zera(k, 3);
+        return kier == K1_KIER_OD_NADZORCY && inst_wynik(k);
     case K1_KOM_INST_AB:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS &&
                w(k->a, 1, K1_INST_WERSJA - 1) && w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 1, 2) &&

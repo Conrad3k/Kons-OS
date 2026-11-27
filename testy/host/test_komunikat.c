@@ -584,6 +584,7 @@ int main(void)
     otwieranie();
     pendrive();
     dekoder();
+    raport();
     kanal();
     strefy();
     pobrane();

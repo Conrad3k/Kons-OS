@@ -9,7 +9,8 @@ int inst_dozwolone(int okno, const struct k1_komunikat *k, int sukces, int sb_cz
     case K1_KOM_INST_DYSKI:
         return 1;
     case K1_KOM_INST_START:
-        return k->a == (okno == OKNO_INSTALATOR ? K1_INST_INSTALUJ : K1_INST_AKTUALIZUJ);
+        return k->a == (okno == OKNO_INSTALATOR ? K1_INST_INSTALUJ : K1_INST_AKTUALIZUJ) ||
+               (k->a == K1_INST_RAPORT && okno == OKNO_USTAWIENIA); /* 0.13.0 step 4: Informacje's report */
     case K1_KOM_WYLACZ:
         if (k->a == 1)
             return sukces || (okno == OKNO_INSTALATOR && sb_czeka);

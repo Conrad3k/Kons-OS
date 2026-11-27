@@ -4,7 +4,9 @@
 |---|---|
 | `wersja.env` | wersja jądra, przypięta suma SHA-256 tarballa, adres pobierania |
 | `k1.config` | konfiguracja: fragment nakładany na `make allnoconfig` (wszystko spoza fragmentu wyłączone) |
-| `cmdline` | linia poleceń jądra (od 0.7.0 wbudowana w podpisany `k1.efi`, ADR 0022) |
+| `cmdline` | linia poleceń jądra testów (`bzImage` w QEMU; z `console=ttyS0` — log na porcie szeregowym) |
+| `cmdline-wydanie` | linia poleceń wydania, wbudowana w podpisany `k1.efi` (ADR 0022; od 0.13.0 krok 4, ADR 0059: `console=ttynull` — nic na port szeregowy; testowa kopia `k1-test.efi` dostaje na końcu `console=ttyS0 panic=-1`) |
+| `k1-zamkniete.config` | to, czym `k1.efi` różni się od jądra testów: wbudowana linia poleceń i rdzeń, SBAT, bez `mac80211_hwsim` |
 | `klucze/` | publiczne klucze PGP do sprawdzania podpisów kernel.org |
 
 Budowa: `scripts/zbuduj-jadro.sh` (pobiera, sprawdza sumę i podpis, konfiguruje, sprawdza fragment,

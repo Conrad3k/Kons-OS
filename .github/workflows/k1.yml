@@ -296,6 +296,8 @@ jobs:
           path: |
             build/wynik/
             !build/wynik/*-usb.img
+            !build/wynik/*-test.iso
+            !build/wynik/k1-test.efi*
           retention-days: 7
 
       - name: Wyślij logi testów jako artefakt (zawsze na PR-ze; dodatkowo do konsoli)

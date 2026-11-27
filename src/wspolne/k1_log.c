@@ -6,11 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/reboot.h>
+#include <fcntl.h>
+#include <sys/klog.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
 #define K1_LOG_MAX 512
+#ifdef K1_WERSJA
+#define K1_WERSJA_AWARII K1_WERSJA
+#else
+#define K1_WERSJA_AWARII ""
+#endif
 
 void (*k1_log_kopia)(const char *linia, size_t dl);
 
@@ -116,24 +123,98 @@ void k1_log(const char *tag, const char *fmt, ...)
     va_end(ap);
 }
 
+/* 0.13.0 step 4 (ADR 0059): Polish letters and K1's typographic signs in ASCII, the rest of non-ASCII as '?'. */
+static const struct {
+    const char *utf8, *ascii;
+} ASCII[] = {
+    { "ą", "a" }, { "ć", "c" }, { "ę", "e" }, { "ł", "l" }, { "ń", "n" }, { "ó", "o" }, { "ś", "s" }, { "ź", "z" },
+    { "ż", "z" }, { "Ą", "A" }, { "Ć", "C" }, { "Ę", "E" }, { "Ł", "L" }, { "Ń", "N" }, { "Ó", "O" }, { "Ś", "S" },
+    { "Ź", "Z" }, { "Ż", "Z" }, { "„", "\"" }, { "”", "\"" }, { "–", "-" }, { "—", "-" }, { "…", "..." },
+    { "→", "->" }, { "×", "x" },
+};
+
+size_t k1_ascii(char *wyj, size_t n, const char *tekst)
+{
+    size_t d = 0, i, t;
+    if (n == 0)
+        return 0;
+    while (*tekst != '\0') {
+        const char *z = "?";
+        size_t dl = 1;
+        if ((unsigned char)*tekst >= 0x20 && (unsigned char)*tekst < 0x7f) {
+            dl = 1;
+            z = NULL;
+        } else {
+            for (i = 0; i < sizeof ASCII / sizeof ASCII[0]; i++)
+                if (strncmp(tekst, ASCII[i].utf8, strlen(ASCII[i].utf8)) == 0) {
+                    z = ASCII[i].ascii;
+                    dl = strlen(ASCII[i].utf8);
+                    break;
+                }
+            if (i == sizeof ASCII / sizeof ASCII[0]) /* another character: '?' for all its bytes at once */
+                while ((tekst[dl] & 0xc0) == 0x80)
+                    dl++;
+        }
+        t = z ? strlen(z) : 1;
+        if (d + t >= n)
+            break;
+        memcpy(wyj + d, z ? z : tekst, t);
+        d += t;
+        tekst += dl;
+    }
+    wyj[d] = '\0';
+    return d;
+}
+
+/* 0.13.0 step 4 (ADR 0059): the screen of a critical error — the kernel's log cleared, then only K1's description in it
+ * (/dev/kmsg: the initramfs's devtmpfs, or init's), in ASCII: the kernel's panic screen (DRM_PANIC, "kmsg") draws these
+ * lines with its own font, which has no Polish letters. Without /dev/kmsg (before devtmpfs) the panic line stays. */
+static void ekran_awarii(const char *tag, const char *opis)
+{
+    static const char *const kmsg[] = { "/dev/kmsg", "/rdzen/jadro/dev/kmsg" };
+    char a[K1_LOG_MAX], w[K1_LOG_MAX + 64];
+    const char *linie[] = {
+        "<2>K1: ==========================================================",
+        "<2>K1: Kons K1 " K1_WERSJA_AWARII " nie moze wystartowac (blad krytyczny).",
+        w,
+        "<2>K1: Komputer uruchomi sie ponownie sam. Po dwoch nieudanych startach K1 pokaze menu:",
+        "<2>K1: wybierz \"poprzednia wersja\" albo \"tryb ratunkowy\" (menu daje tez Esc zaraz po wlaczeniu).",
+        "<2>K1: Zrob zdjecie tego ekranu - pomoze znalezc przyczyne.",
+        "<2>K1: ==========================================================",
+    };
+    int fd = -1, n;
+    size_t i;
+    for (i = 0; i < sizeof kmsg / sizeof kmsg[0] && fd < 0; i++)
+        fd = open(kmsg[i], O_WRONLY | O_CLOEXEC | O_NOCTTY);
+    if (fd < 0)
+        return;
+    k1_ascii(a, sizeof a, opis);
+    n = snprintf(w, sizeof w, "<2>K1: Powod (%s): %s", tag, a);
+    if (n < 0)
+        w[0] = '\0';
+    klogctl(5, NULL, 0); /* SYSLOG_ACTION_CLEAR: the panic screen starts from here (kmsg_dump_rewind) */
+    for (i = 0; i < sizeof linie / sizeof linie[0]; i++)
+        write_all(fd, linie[i], strlen(linie[i]));
+    close(fd);
+}
+
 void k1_awaria(const char *tag, const char *fmt, ...)
 {
     va_list ap;
-    struct timespec ts = { .tv_sec = K1_AWARIA_ZWLOKA_S, .tv_nsec = 0 };
+    char opis[K1_LOG_MAX];
 
     va_start(ap, fmt);
-    k1_vlog(tag, "BŁĄD KRYTYCZNY: ", fmt, ap);
+    if (vsnprintf(opis, sizeof opis, fmt, ap) < 0)
+        opis[0] = '\0';
     va_end(ap);
-    k1_log(tag, "system zostanie wyłączony za %d s", K1_AWARIA_ZWLOKA_S);
-
-    while (nanosleep(&ts, &ts) != 0 && errno == EINTR) {
-    }
+    k1_log(tag, "BŁĄD KRYTYCZNY: %s", opis);
+    k1_log(tag, "ekran awarii, ponowne uruchomienie");
+    ekran_awarii(tag, opis);
+    tcdrain(2); /* the console's buffer out first: a panic does not flush it (CI with KVM lost these last lines) */
     sync();
-    reboot(RB_POWER_OFF);
-    /* Only reached if power-off failed (e.g. no permission when run outside PID 1). */
-    k1_log(tag, "wyłączenie nie powiodło się (%s) — zatrzymano", strerror(errno));
-    for (;;)
-        pause();
+    /* PID 1 ending is a kernel panic: its screen (DRM_PANIC) shows the lines above until panic=N restarts the computer
+     * (the release: 60 s; the tests: -1 — at once, QEMU -no-reboot ends). */
+    _exit(K1_AWARIA_KOD);
 }
 
 void k1_koniec(const char *tag, const char *fmt, ...)

@@ -13,7 +13,7 @@
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-300}
-USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
+USBIMG=$K1_WYNIK/k1-$K1_WERSJA-test-usb.img # 0.13.0 step 4 (ADR 0059): k1-test.efi — the log on the serial port
 DYSK=$TESTY/ratunek-dysk.img STICK=$TESTY/ratunek-pendrive.img
 export MTOOLS_SKIP_CHECK=1
 [ -f "$USBIMG" ] || blad "brak obrazu USB $USBIMG (scripts/zbuduj-usb.sh)"
@@ -81,7 +81,7 @@ if tryb == "ratunek":
     q.klik(int(m.group(6)), int(m.group(7)))
     sprawdz("ratunek: „Zapisz raport na pendrive” — raport zapisany (program zapisujący w klatce)",
             czekaj(r"K1-LOGOWANIE: ekran ratunkowy: raport zapisany", od=n, czas=60) and
-            ile(r"K1-INSTALATOR: raport trybu ratunkowego: zapisany") == 1)
+            ile(r"K1-INSTALATOR: raport: zapisany") == 1)
     q.zrzut("raport")
     q.klik(int(m.group(4)), int(m.group(5)))
     sprawdz("ratunek: „Uruchom poprzednią wersję” — miejsce B przy następnym starcie",
@@ -111,7 +111,8 @@ R=$(mtype -i "$STICK" ::K1RAPORT.TXT 2>/dev/null || true)
 sprawdz_raport() { # $1 = description, $2 = a pattern grep -E must find
     if printf '%s' "$R" | grep -qE "$2"; then echo "  [OK]    raport: $1"; else echo "  [BŁĄD]  raport: $1"; r=1; fi
 }
-sprawdz_raport "plik K1RAPORT.TXT na pendrivie, nagłówek" "Kons K1: raport trybu ratunkowego"
+sprawdz_raport "plik K1RAPORT.TXT na pendrivie, nagłówek" "Kons K1: raport"
+sprawdz_raport "tryb ratunkowy" "Tryb: ratunkowy"
 sprawdz_raport "wersja" "Wersja: $K1_WERSJA"
 sprawdz_raport "grubenv z licznikiem i trybem" "k1_licznik=2 k1_tryb=r"
 sprawdz_raport "miejsca A i B" "miejsce A: [0-9.]+, miejsce B: [0-9.]+"

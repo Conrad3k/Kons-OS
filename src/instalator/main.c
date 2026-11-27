@@ -429,7 +429,7 @@ int main(void)
         struct timespec t;
         clock_gettime(CLOCK_REALTIME, &t);
         r = raport_zadanie(FD_ZRODLO, FD_CEL, (uint32_t)test, raport_czas_fat((int64_t)t.tv_sec), &nowy_slot);
-        k1_log(TAG, "raport trybu ratunkowego: %s", r == 0 ? "zapisany" : "nie zapisany");
+        k1_log(TAG, "raport: %s", r == 0 ? "zapisany" : "nie zapisany");
         koniec(r);
     }
     if (tryb >= K1_INST_SIEC_STAN) { /* 0.10.5 step 2 (ADR 0046): updates through the network — siec.c */

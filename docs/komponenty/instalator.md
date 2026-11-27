@@ -43,7 +43,8 @@ a dysk musi mieć ten sam rozmiar; zapis naraz najwyżej jeden (drugie okno: `K1
    uruchomionym z tego dysku.
 4. Nadzorca otwiera urządzenia (`O_EXCL` — zajęty dysk = odmowa), uruchamia `instalator`, wysyła
    `INST_ZADANIE(tryb, sektor)`. Postęp `INST_ETAP` → `INST_POSTEP` do okna; wynik `INST_GOTOWE` →
-   `INST_WYNIK`. Koniec programu bez wyniku → „przerwane”.
+   `INST_WYNIK`. Koniec programu bez wyniku → „przerwane”. Raport na pendrive (`K1_INST_RAPORT`, 0.13.0 krok 3 — tryb
+   ratunkowy; od kroku 4 także Ustawienia → Informacje, ADR 0059): log „raport: zapisany / nie zapisany”.
 5. Najpierw pendrive: manifest miejsca A (system) i manifest plików startowych (0.9.0), podpisy, skróty — przed
    jakimkolwiek zapisem. Instalacja: zera w pierwszym i ostatnim MiB dysku i w pierwszym MiB „K1-DANE” → kopia K1-EFI
    bez miejsca B (1 MiB na raz) → `fdatasync` → odczyt i porównanie → grubenv od nowa, manifesty miejsca B zerami →

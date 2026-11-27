@@ -209,10 +209,10 @@ int main(void)
     umask(0077);
     k1_log(TAG, "start");
 
-    builtin = parametry(device, sizeof device, skrot, sizeof skrot);
-
+    /* first: from here on a critical error has /dev/kmsg for its screen (0.13.0 step 4, ADR 0059 — k1_awaria) */
     if (mount("devtmpfs", "/dev", "devtmpfs", MS_NOSUID | MS_NOEXEC, NULL) != 0)
         k1_awaria(TAG, "nie można zamontować /dev: %s", strerror(errno));
+    builtin = parametry(device, sizeof device, skrot, sizeof skrot);
     if (builtin)
         loop = attach_builtin(device, sizeof device);
     else

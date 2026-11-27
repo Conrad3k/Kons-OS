@@ -59,10 +59,13 @@ musl (statycznie); jądro: devtmpfs, proc, sysfs, cgroup2, tmpfs, Yama, PID_NS (
 ## Wywołania systemowe
 `getpid`, `umask`, `chdir`, `rt_sigprocmask`, `reboot` (`RB_DISABLE_CAD`, `RB_POWER_OFF`,
 `RB_AUTOBOOT`), `mount`, `umount2`, `open`, `write`, `close`, `stat`, `fork`, `setsid`, `execve`,
-`rt_sigtimedwait` (`sigwaitinfo`/`sigtimedwait`), `wait4` (`waitpid`), `kill`, `sync`, `nanosleep`.
+`rt_sigtimedwait` (`sigwaitinfo`/`sigtimedwait`), `wait4` (`waitpid`), `kill`, `sync`, `nanosleep`, `syslog` (ekran
+awarii: `SYSLOG_ACTION_CLEAR`, 0.13.0).
 
 ## Obsługa błędów
-Montowanie/sysctl/`fork` nieudane → `k1_awaria()` (ADR 0005). Zakończenie nadzorcy (M1) →
+Montowanie/sysctl/`fork` nieudane → `k1_awaria()` (ADR 0005; od 0.13.0 krok 4, ADR 0059 — ekran awarii: opis po polsku
+bez polskich liter w logu jądra, koniec PID 1 → panika jądra z tym opisem na ekranie, po 60 s ponowne uruchomienie; do
+0.12.3 — 5 s i wyłączenie). Zakończenie nadzorcy (M1) →
 kontrolowane wyłączenie. SIGTERM → wyłączenie, SIGINT → restart, inne sygnały → wpis w logu.
 
 ## Wyłączanie (kolejność od 0.8.6)

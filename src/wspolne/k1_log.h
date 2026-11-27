@@ -1,6 +1,7 @@
 /* K1 — minimal logging to the console (fd 2).
  *
- * Messages go to the serial console only (one-way log, SPEC §7). No heap allocation:
+ * Messages go to the console only (one-way log, SPEC §7): the serial port in the tests, nowhere in the release (0.13.0
+ * step 4, ADR 0059: console=ttynull) — nadzorca keeps the last lines in memory for the report. No heap allocation:
  * each message is formatted into a fixed stack buffer and truncated if too long. */
 #ifndef K1_LOG_H
 #define K1_LOG_H
@@ -21,12 +22,18 @@ extern void (*k1_log_kopia)(const char *linia, size_t dl);
  * replaced. */
 size_t k1_log_oczysc(char *tekst, size_t dlugosc);
 
-/* Critical error (SPEC §7: controlled handling of critical errors). Logs
- * "<tag>: BŁĄD KRYTYCZNY: <message>", waits K1_AWARIA_ZWLOKA_S seconds so that a human can read
- * the serial log, then powers the machine off. Never returns. Used by PID 1 instead of exit():
- * if PID 1 exits, the kernel panics. */
-#define K1_AWARIA_ZWLOKA_S 5
+/* Critical error (SPEC §7: controlled handling of critical errors). Logs "<tag>: BŁĄD KRYTYCZNY: <message>", then (0.13.0
+ * step 4, ADR 0059) the screen of a critical error: the kernel's log cleared and only K1's description put in it (in
+ * ASCII — k1_ascii), and the process ends with K1_AWARIA_KOD. Used by PID 1 only: PID 1 ending is a kernel panic, whose
+ * screen (DRM_PANIC, kernel's "kmsg") shows that description until the kernel restarts the computer (panic=N; up to
+ * 0.12.3: 5 s on the serial port and a power-off). Never returns. */
+#define K1_AWARIA_KOD 1
 _Noreturn void k1_awaria(const char *tag, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+
+/* 0.13.0 step 4: `tekst` (UTF-8) in printable ASCII into `wyj` (n bytes, ends with '\0'): Polish letters without their
+ * marks, „” as ", – — as -, … as ..., → as ->, × as x; every other character (control ones too) one '?'. Cut at a
+ * whole character when `wyj` is full. The length written. */
+size_t k1_ascii(char *wyj, size_t n, const char *tekst);
 
 /* Fatal error in a service (not PID 1): logs "<tag>: BŁĄD: <message>" and exits with code 1.
  * The supervisor decides what happens next; a failing service must never take the system down. */

@@ -1,5 +1,5 @@
 /* K1 Ustawienia — state shared by the modules (0.7.5 split): main.c (sections, Wygląd, Ekran, Mysz,
- * Data i czas), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
+ * Data i czas), wyglad.c (Wygląd: the wallpapers; Ekran: the screen modes — 0.13.0 step 4), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
  * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), miejsce.c (Miejsce: the room for files and
  * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the tabs and the network cards — 0.9.0),
  * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1), wifi_haslo.c (joining one: 0.9.1 step 2),
@@ -50,6 +50,15 @@ static inline void zmienne(const char *nazwa, int32_t y, int32_t h)
 void ustawienia_pokaz(int s);
 /* Shows a place nadzorca asked for (USTAWIENIA_MIEJSCE a: K1_UST_MIEJSCA — Korektor, Bateria, Aktualizacje). */
 void ustawienia_miejsce(int miejsce);
+
+/* wyglad.c: Wygląd's wallpapers, Ekran's modes */
+void wyglad_start(void);                                       /* the thumbnails, once */
+void wyglad_uklad(int32_t *x, int32_t *y, int32_t *krok);      /* the first thumbnail's centre, the step between them */
+void wyglad_karty(struct k1_obraz *o, const struct k1_motyw *m); /* Wygląd: "Tapeta" and the cards */
+void ekran_tryby(struct k1_obraz *o, const struct k1_motyw *m);  /* Ekran: the modes */
+void ekran_loguj(void);                                        /* the tests click the modes by this line */
+int wyglad_najechanie(int32_t x, int32_t y);                   /* x < 0: nowhere; 1 = redraw */
+int wyglad_klik(int32_t x, int32_t y);                         /* 1 = handled */
 
 /* The title of a section (0.10.7 step 1: without a description, the owner's Z2). */
 void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul);
@@ -170,6 +179,9 @@ void przestrzen_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened:
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int informacje_najechanie(int32_t x, int32_t y);         /* 0.13.0 step 4: the report's button; x < 0: none; 1 = redraw */
+int informacje_klik(int32_t x, int32_t y);               /* 1 = handled */
+void informacje_wynik(int32_t wynik, int32_t plik);      /* INST_WYNIK b=K1_INST_RAPORT from nadzorca */
 
 /* miejsce.c */
 void miejsce_info(void);                           /* asks skarbiec: SKARB_INFO and SKARB_PODZIAL */

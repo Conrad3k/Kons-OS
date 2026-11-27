@@ -484,6 +484,9 @@ z firmware) — wyjaśnienie i wskazówka dla VirtualBoxa.
   z prawej aplikacja (`tekst2`) albo „brak aplikacji” (`tekst3`). Typ z wyborem: nazwa, pod nią segment (wiersz 92 px).
 - **Informacje — wizytówka:** znak „Warstwy” 72 px, pod nim „Kons K1” (Plex Serif 24) i „Wersja …” (`tekst2`); niżej
   Ekran, Jądro, Dane: etykiety w kolumnie 96 px (`tekst2`), wartości za nią (`tekst`). Jądro z `jadro/wersja.env`.
+  Od 0.13.0 krok 4 (ADR 0059, D4: A) pod nimi przycisk „Zapisz raport na pendrive” (zwykły, 36 px, 8 px pod ostatnim
+  wierszem; w trakcie zapisu wyszarzony), 24 px pod nim jedno zdanie `K1_CZ_MALA`: co jest w raporcie (`tekst2`) albo
+  co raport zrobił — te same zdania co ekran ratunkowy (`k1_raport_opis`); brak pendrive'a i błąd — `akcent_tekst`.
 - **Hasło:** przełącznik i to, co znaczy, na jednej karcie (`pole`, obrys `tekst` 24, zaokrąglenie 10); wyjaśnienie
   8 px pod przełącznikiem. Z otwartym formularzem karta ma sam przełącznik, pola pod nią.
 - **Aktualizacje:** ikona w kafelku bez terakotowego kwadratu — `tekst` na polu `zaznaczenie` 40 × 40 (zaokrąglenie 10;
@@ -519,6 +522,15 @@ obrysowane), wybrany klawiaturą ma obwódkę terakoty; pod nimi zdanie o raporc
 wybierają, Enter zatwierdza.”. Zrzut: `build/testy/ratunek-ekran.png` (`test-ratunek.sh`). Szkic do oceny właściciela po
 wydaniu (prośba w raporcie kroku). Menu GRUB-a — tekst konsoli firmware, biały na czarnym, bez polskich liter (GRUB z
 Ubuntu nie ma czcionki dla trybu graficznego).
+
+## Ekran awarii (0.13.0 krok 4, ADR 0059)
+Gdy K1 nie może wystartować (błąd krytyczny w initramfs albo init) albo jądro panikuje: rysuje jądro (`DRM_PANIC`,
+„kmsg”) na obrazie, który karta już pokazuje — ciemne tło motywu (`0x262523`), tekst kremowy (`0xeeebe5`), czcionka jądra
+8×16 bez polskich liter, wiersze od dołu ekranu, z czasem jądra na początku. K1 zostawia tylko swój opis: ramka z „=”,
+„Kons K1 <wersja> nie moze wystartowac (blad krytyczny).”, „Powod (<program>): …”, dwa wiersze „co zrobić” (ponowne
+uruchomienie samo, menu po dwóch nieudanych startach, Esc), „Zrob zdjecie tego ekranu”; pod nimi wiersz paniki jądra.
+Minuta, potem ponowne uruchomienie. Zrzut: `build/testy/wydanie-awaria.png` (`test-wydanie.sh`). Do oceny właściciela
+(raport kroku 4) — układu i czcionki nie zmienimy bez łatki jądra, tekst i kolory tak.
 
 ## Ekran „Wyłączanie” (0.10.7 krok 6, decyzja właściciela D7: szkic B „Kropki”, 2026-11-19)
 Po „Wyłącz” albo „Uruchom ponownie” od razu, do końca: tło okna motywu (papier / noc) na cały ekran, na środku trzy kropki

@@ -51,20 +51,20 @@ asystentów — skill `kons-dev`, §3.
 | Skrypt | Co robi |
 |---|---|
 | `przygotuj-srodowisko.sh` | instaluje pakiety Ubuntu potrzebne do budowy i testów |
-| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh`, `zbuduj-musl.sh`, `zbuduj-obraz.sh` (z nim `zbuduj-mese.sh` i `zbuduj-strefe.sh`), `zbuduj-k1efi.sh`, `zbuduj-iso.sh`, `zbuduj-usb.sh` |
+| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh`, `zbuduj-musl.sh`, `zbuduj-obraz.sh` (z nim `zbuduj-mese.sh` i `zbuduj-strefe.sh`), `zbuduj-k1efi.sh`, `zbuduj-iso.sh`, `zbuduj-usb.sh`, od 0.13.0 krok 4 także `zbuduj-iso.sh --test` i `zbuduj-usb.sh --test` (kopia testowa wydania: obrazy z `k1-test.efi`) |
 | `zbuduj-musl.sh` | musl dla programów K1: pobranie (suma, podpis PGP), łatki, budowa → `build/musl` |
 | `zbuduj-mese.sh` | Mesa dla strefy przeglądarki (0.10.9 krok 6, szybka grafika): źródła i meson z sumami w `src/zewnetrzne/mesa/zrodla.txt`; etap 1 — `mesa_clc` z LLVM 18 (tylko budowa), etap 2 — iris z `intel-virtio-experimental`, EGL, GBM, bez LLVM → `build/mesa/inst`; pomija budowę przy tym samym znaku (CI na PR-ze: pamięć podręczna) |
 | `zbuduj-va.sh` | biblioteki dekodera filmów (0.10.9 krok 2): libdrm, libva, i965 z pakietów Debiana (sumy w `src/zewnetrzne/va/zrodla.txt`), statycznie z naszym musl → `build/va`; woła go `make` |
 | `zbuduj-strefe.sh` | obraz strefy przeglądarki i pobierania z pakietów Debiana z `strefy/przegladarka.txt` (sumy) |
 | `odswiez-strefe.py` | odświeża tabelę pakietów strefy (`strefy/przegladarka.txt`) — najnowsze wersje z Debiana; używa go też robot |
-| `zbuduj-k1efi.sh` | zamknięte jądro `k1.efi` (linia poleceń i rdzeń w środku), podpis Secure Boot (ADR 0022) |
-| `zbuduj-usb.sh` | obraz na pendrive: K1-EFI w formacie 2 (A/B, grubenv, blok układu) + K1-DANE (ADR 0016, 0022) |
-| `zbuduj-iso.sh` | obraz ISO do maszyn wirtualnych (GRUB UEFI/BIOS → `k1.efi`; ADR 0010) |
+| `zbuduj-k1efi.sh` | zamknięte jądro `k1.efi` (linia poleceń z `jadro/cmdline-wydanie` i rdzeń w środku), podpis Secure Boot (ADR 0022); od 0.13.0 krok 4 (ADR 0059) także `k1-test.efi` z `console=ttyS0` — tylko do kopii testowej wydania |
+| `zbuduj-usb.sh` | obraz na pendrive: K1-EFI w formacie 2 (A/B, grubenv, blok układu) + K1-DANE (ADR 0016, 0022); `--test`: `k1-<wersja>-test-usb.img` z `k1-test.efi` (bez paczki i ogłoszeń) |
+| `zbuduj-iso.sh` | obraz ISO do maszyn wirtualnych (GRUB UEFI/BIOS → `k1.efi`; ADR 0010); `--test`: `k1-<wersja>-test.iso` z `k1-test.efi` |
 | `zbuduj-jadro.sh` | pobiera jądro (suma + podpis PGP), konfiguruje, sprawdza fragment, kompiluje |
 | `zbuduj-obraz.sh` | kompiluje programy, sprawdza binaria, składa `initramfs.cpio` i obrazy SquashFS |
 | `uruchom-qemu.sh` | uruchamia K1 w QEMU (log szeregowy do pliku, monitor do gniazda); `--iso PLIK [--uefi] [--vga virtio]` — start z ISO |
 | `zrzut-ekranu.sh` | zrzut ekranu działającej maszyny (PNG) |
-| `testy.sh`, `test-*.sh` (także `test-ratunek.sh`, `test-tpm.sh`), `stanowisko.sh`, `przyjmij-wzorce.sh` | testy (to uruchamia CI) — co sprawdza każdy skrypt: [`docs/TESTY.md`](TESTY.md) |
+| `testy.sh`, `test-*.sh` (także `test-ratunek.sh`, `test-tpm.sh`, `test-wydanie.sh`), `stanowisko.sh`, `przyjmij-wzorce.sh` | testy (to uruchamia CI) — co sprawdza każdy skrypt: [`docs/TESTY.md`](TESTY.md) |
 | `robot.sh`, `porownaj-jadro.sh` | robot aktualizacji (ADR 0047): nowe jądro i pakiety strefy, porównanie konfiguracji przy nowej linii jądra (`docs/komponenty/robot.md`) |
 | `opisy-wersji.py` | „Opis w K1:” z `CHANGELOG.md` do ogłoszenia wydania (ADR 0046); sprawdza, że każdy wpis od 0.10.5 go ma |
 | `oprogramowanie-kart.sh` | pliki od producentów kart Wi-Fi i baza przepisów radiowych dla jądra (tabela `jadro/oprogramowanie-kart.txt`, sumy SHA-256; 0.9.1) |
@@ -103,6 +103,8 @@ src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SO
                                                   + obraz przeglądarki z drzewem dm-verity, 0.10.9; /k1/b.img; miejsca
                                                   po 768 MiB od kroku 4b) + K1-DANE; na dysku K1-EFI 3 GiB (z poczekalnią)
                                                   + K1-DANE
+                     k1-<wersja>-test.iso, k1-<wersja>-test-usb.img ◄── to samo z k1-test.efi (log na porcie
+                                                  szeregowym; 0.13.0 krok 4, ADR 0059) — tylko testy QEMU, nie wydanie
 ```
 Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały
 `SOURCE_DATE_EPOCH` (data ostatniego commita), stałe dane budowy jądra, `-frandom-seed`.
@@ -116,7 +118,9 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — 
        loopback /k1/<miejsce>.img → k1.efi (z Secure Boot: podpis sprawdzony przez shim, klucz K1 w MOK)
        0.13.0 (ADR 0058): 1 s na Esc → menu (K1, tryb ratunkowy, poprzednia wersja); dwa starty bez obrazu
        (k1_licznik) → menu z trybem ratunkowym; tryb ratunkowy = ten sam k1.efi z k1_tryb=r w grubenv
- └─ jądro 7.3 ─── otwiera /dev/console w initramfs, uruchamia /init
+ └─ jądro 7.3 ─── otwiera /dev/console w initramfs, uruchamia /init (konsola: testy — port szeregowy ttyS0; wydanie od
+                  0.13.0 — ttynull, nic na zewnątrz, ADR 0059; błąd krytyczny PID 1 → ekran awarii: panika jądra
+                  z opisem K1 na obrazie, po 60 s ponowne uruchomienie)
      └─ k1-initramfs (PID 1)
           /proc/cmdline → k1.rdzen=/dev/vda albo =wbudowany (/rdzen.squashfs przez loop) (walidacja)
           tmpfs → nowy korzeń: aplikacje/ dane_uzytkownika/ rdzen/

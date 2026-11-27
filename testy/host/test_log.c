@@ -1,4 +1,5 @@
-/* Host unit tests for k1_log_oczysc (sanitising log lines of services, nadzorca). */
+/* Host unit tests for k1_log_oczysc (sanitising log lines of services, nadzorca) and k1_ascii (the screen of a critical
+ * error, 0.13.0 step 4). */
 #include <stdio.h>
 #include <string.h>
 
@@ -13,6 +14,14 @@ static int sprawdz(const char *we, size_t n, const char *oczek, size_t z)
     memcpy(buf, we, n);
     r = k1_log_oczysc(buf, n);
     return r == z && strlen(oczek) == n && memcmp(buf, oczek, n) == 0;
+}
+
+/* k1_ascii of `we` into a buffer of `n` bytes: 1 if it gives `oczek`. */
+static int ascii(const char *we, size_t n, const char *oczek)
+{
+    char buf[128];
+    memset(buf, 'X', sizeof buf);
+    return k1_ascii(buf, n, we) == strlen(oczek) && strcmp(buf, oczek) == 0 && buf[strlen(oczek) + 1] == 'X';
 }
 
 int main(void)
@@ -40,6 +49,21 @@ int main(void)
     k1_log_oczysc((char *)wszystkie, sizeof wszystkie);
     for (i = 0; i < 256; i++)
         EXPECT((i >= 0x20 && i < 0x7f) ? wszystkie[i] == i : wszystkie[i] == '?');
+
+    /* k1_ascii: Polish letters, K1's signs, the rest as one '?' per character, cut at a whole character */
+    EXPECT(ascii("Zażółć gęślą jaźń", 64, "Zazolc gesla jazn"));
+    EXPECT(ascii("ĄĆĘŁŃÓŚŹŻ", 64, "ACELNOSZZ"));
+    EXPECT(ascii("„obraz” – zły… → 2×", 64, "\"obraz\" - zly... -> 2x"));
+    EXPECT(ascii("a\tb\x1b[c\x7f", 64, "a?b?[c?"));
+    EXPECT(ascii("x \xf0\x9f\x99\x82 y \xe2\x82\xac", 64, "x ? y ?")); /* emoji, euro sign */
+    EXPECT(ascii("\x80\x80 z", 64, "? z"));                           /* stray continuation bytes */
+    EXPECT(ascii("ab…", 5, "ab"));                                     /* "..." does not fit whole */
+    EXPECT(ascii("abc", 3, "ab"));
+    EXPECT(ascii("", 4, ""));
+    {
+        char b[2] = { 'X', 'X' };
+        EXPECT(k1_ascii(b, 0, "abc") == 0 && b[0] == 'X'); /* nothing written into no room */
+    }
 
     return K1_TEST_KONIEC("test_log");
 }

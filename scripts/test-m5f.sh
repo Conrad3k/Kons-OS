@@ -22,7 +22,7 @@
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-300}
-USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
+USBIMG=$K1_WYNIK/k1-$K1_WERSJA-test-usb.img # 0.13.0 step 4 (ADR 0059): k1-test.efi — the log on the serial port
 DYSK=$TESTY/m5f-dysk.img PEN=$TESTY/m5f-pendrive.img
 mkdir -p "$TESTY"; rm -f "$TESTY"/m5f-*
 [ -f "$USBIMG" ] || blad "brak obrazu USB $USBIMG (scripts/zbuduj-usb.sh)"
@@ -303,7 +303,7 @@ PY
 }
 
 SATA="-drive if=none,id=dysk,file=$DYSK,format=raw -device ide-hd,bus=ide.0,drive=dysk"
-uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA.iso" --uefi --vga virtio --qemu "$SATA"
+uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA-test.iso" --uefi --vga virtio --qemu "$SATA"
 # M6a: a stick whose system was changed (one byte of slot A that the checksum covers, near the end of the slot's image:
 # since 0.10.9 step 4 the zone image's hash tree, which no start reads — the stick itself still starts) — refused before
 # any write.

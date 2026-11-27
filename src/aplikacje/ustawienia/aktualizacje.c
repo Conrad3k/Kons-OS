@@ -208,6 +208,10 @@ static void komunikat(const struct k1_komunikat *k)
         }
         break;
     case K1_KOM_INST_WYNIK:
+        if (k->b == K1_INST_RAPORT) { /* 0.13.0 step 4: Informacje's report */
+            informacje_wynik(k->a, k->c);
+            break;
+        }
         if (zadanie != A_TRWA)
             break;
         wynik = k->a;

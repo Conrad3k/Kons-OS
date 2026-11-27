@@ -7,7 +7,7 @@
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-240}
-ISO=$K1_WYNIK/k1-$K1_WERSJA.iso
+ISO=$K1_WYNIK/k1-$K1_WERSJA-test.iso # 0.13.0 step 4 (ADR 0059): k1-test.efi — the log on the serial port
 mkdir -p "$TESTY"; rm -f "$TESTY"/m4-*
 r=0
 

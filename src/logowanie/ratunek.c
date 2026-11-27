@@ -19,6 +19,7 @@
 #include "k1_manifest.h"
 #include "k1_odbior.h"
 #include "k1_okno.h"
+#include "k1_raport_opis.h"
 #include "logowanie.h"
 
 #define SZER 460
@@ -66,26 +67,8 @@ static int przyciski(struct k1_przycisk p[P_LICZBA], int nr[P_LICZBA])
 
 static const char *o_raporcie(char *b, size_t n)
 {
-    if (stan.typ != K1_KOM_OCHRONA)
-        return "";
-    switch (stan.d) {
-    case K1_RAP_ZAPISUJE:
-        return "Zapisuję raport na pendrive…";
-    case K1_RAP_ZAPISANY:
-        if (stan.e == 0)
-            snprintf(b, n, "Raport zapisany na pendrivie: K1RAPORT.TXT. Możesz go wyjąć.");
-        else
-            snprintf(b, n, "Raport zapisany na pendrivie: K1RAPOR%d.TXT. Możesz go wyjąć.", (int)stan.e);
-        return b;
-    case K1_RAP_BRAK_PENDRIVE:
-        return "Nie widzę pendrive'a. Włóż pendrive (FAT32) i spróbuj jeszcze raz.";
-    case K1_RAP_BLAD:
-        return stan.e == K1_INST_BLAD_FAT ? "Pendrive nie ma systemu plików FAT32. Użyj innego."
-               : stan.e == K1_INST_BLAD_MALY ? "Na pendrivie brakuje miejsca na raport."
-                                             : "Nie udało się zapisać raportu. Spróbuj innego pendrive'a.";
-    default:
-        return "Raport pomoże znaleźć przyczynę: zabierz go do innego komputera.";
-    }
+    const char *t = stan.typ == K1_KOM_OCHRONA ? k1_raport_opis(stan.d, stan.e, b, n) : "";
+    return t ? t : "Raport pomoże znaleźć przyczynę: zabierz go do innego komputera.";
 }
 
 static void rysuj(void)
