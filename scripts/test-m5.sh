@@ -215,7 +215,7 @@ zamknij_qemu "$MON" $QPID
 # M5d: the USB image (k1-<version>-usb.img) booted by UEFI firmware from a USB stick, twice: the first
 # boot creates the encrypted vault on the empty K1-DANE partition, the second one opens it.
 echo "[k1] test M5d: obraz na pendrive — start przez UEFI, magazyn na partycji K1-DANE, ponowny start"
-USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
+USBIMG=$K1_WYNIK/k1-$K1_WERSJA-test-usb.img # 0.13.0 step 4 (ADR 0059): k1-test.efi — the log on the serial port
 if [ -f "$USBIMG" ]; then
     cp --sparse=always "$USBIMG" "$TESTY/m5-pendrive.img"
     truncate -s +512M "$TESTY/m5-pendrive.img" # 0.8.0 step 5: a stick larger than the image

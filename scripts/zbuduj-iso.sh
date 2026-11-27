@@ -1,21 +1,23 @@
 #!/bin/sh
 # Składa obraz ISO K1 do uruchomienia w maszynie wirtualnej (ADR 0010):
-#   build/wynik/k1-<wersja>.iso — UEFI: shim + GRUB podpisane (Ubuntu); BIOS: GRUB El Torito → k1.efi.
+#   build/wynik/k1-<wersja>.iso (z --test: k1-<wersja>-test.iso z k1-test.efi — tylko do testów) — UEFI: shim + GRUB podpisane (Ubuntu); BIOS: GRUB El Torito → k1.efi.
 # Od 0.7.0 (ADR 0022) cały system to jeden podpisany plik k1.efi: jądro z wbudowaną linią poleceń i initramfs
 # z obrazem rdzenia (k1.rdzen=wbudowany, sprawdzanym przez dm-verity), więc obraz nie potrzebuje sterowników
 # dysków ani napędów CD. Powtarzalne: te same wejścia = ten sam plik.
 # Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
 
-ISO=$K1_BUDOWA/iso
-WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA.iso
-[ -f "$K1_WYNIK/k1.efi" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
+# 0.13.0 step 4 (ADR 0059): --test — the same disc with k1-test.efi (the log on the serial port) for the tests in QEMU,
+# k1-<version>-test.iso; never released
+ISO=$K1_BUDOWA/iso EFI=$K1_WYNIK/k1.efi WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA.iso
+if [ "${1:-}" = --test ]; then ISO=$K1_BUDOWA/iso-test EFI=$K1_WYNIK/k1-test.efi WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-test.iso; fi
+[ -f "$EFI" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
 for n in grub-mkimage xorriso mformat mcopy apt-get dpkg-deb; do command -v $n >/dev/null || blad "brak $n (scripts/przygotuj-srodowisko.sh)"; done
 
 info "obraz ISO $WYJSCIE"
 rm -rf "$ISO"; mkdir -p "$ISO/k1" "$ISO/boot/grub/i386-pc" "$ISO/.disk"
 # 0.7.0 (ADR 0022): the whole system is one signed file, k1.efi (command line and core inside)
-cp "$K1_WYNIK/k1.efi" "$ISO/k1/"
+cp "$EFI" "$ISO/k1/k1.efi"
 { grub_poczatek; cat <<CFG; } > "$ISO/boot/grub/grub.cfg"
 background_image -m stretch /boot/grub/start.png
 echo ""
@@ -52,5 +54,5 @@ xorriso -as mkisofs -graft-points --modification-date="$DATA" -V K1 \
     --protective-msdos-label -o "$WYJSCIE" -r --sort-weight 0 / --sort-weight 1 /boot "$ISO" \
     -- -volume_date all_file_dates "=$SOURCE_DATE_EPOCH" -volume_date uuid "$DATA" \
     -boot_image any gpt_disk_guid=volume_date_uuid >>"$K1_BUDOWA/iso.log" 2>&1 || { cat "$K1_BUDOWA/iso.log"; blad "xorriso"; }
-(cd "$K1_WYNIK" && sha256sum "k1-$K1_WERSJA.iso" > "k1-$K1_WERSJA.iso.sha256")
+[ "$EFI" != "$K1_WYNIK/k1.efi" ] || (cd "$K1_WYNIK" && sha256sum "k1-$K1_WERSJA.iso" > "k1-$K1_WERSJA.iso.sha256")
 info "gotowe: $WYJSCIE ($(du -k "$WYJSCIE" | cut -f1) KiB)"

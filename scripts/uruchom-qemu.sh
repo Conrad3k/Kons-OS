@@ -8,7 +8,8 @@
 #                           [--maszyna ",i8042=off"] [--qemu "-device ..."]   (dyski, USB — M5a)
 #                           [--pamiec MiB] [--emulacja] [--bez-wirtualizacji]   (strefy — 0.10.0: pamięć K1 w QEMU,
 #                           emulacja zamiast KVM — QEMU udaje wtedy wirtualizację AMD; procesor bez VT-x/AMD-V)
-#   scripts/uruchom-qemu.sh --iso PLIK [--uefi] [--vga std|virtio] ...   (start z obrazu ISO, ADR 0010)
+#   scripts/uruchom-qemu.sh --iso PLIK [--uefi] [--vga std|virtio] ...   (start z obrazu ISO, ADR 0010; bez --iso: jądro
+#                           testów przez UEFI z obrazem z firmware — 0.13.0 krok 4, ekran awarii)
 #   scripts/uruchom-qemu.sh --pendrive PLIK ...   (obraz USB jako pamięć USB, start przez UEFI — M5d)
 #   scripts/uruchom-qemu.sh --dysk-uefi PLIK ...  (dysk SATA, start z niego przez UEFI — zainstalowany K1, M5f)
 #   ... --zmienne-uefi PLIK                      (z --pendrive/--dysk-uefi: OVMF z obsługą Secure Boot i trwałymi
@@ -99,8 +100,11 @@ elif [ -n "$ISO" ]; then
         -vga "$VGA" -display none -nic none \
         -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" -cdrom "$ISO"
 else
-set -- -machine "q35$MASZYNA" $AKCEL -m $P256 -smp 2 -nodefaults -no-reboot \
-    -vga std -display none -nic none \
+# 0.13.0 step 4 (ADR 0059): --uefi --vga virtio — the kernel started by UEFI firmware with its picture (simpledrm, as on a
+# laptop before i915): the screen of a critical error in the initramfs has a picture to draw on (bochs has none until ekran)
+FIRMWARE=; [ -n "$UEFI" ] && FIRMWARE="-bios /usr/share/ovmf/OVMF.fd"
+set -- -machine "q35$MASZYNA" $AKCEL -m $P256 -smp 2 -nodefaults -no-reboot $FIRMWARE \
+    -vga "$VGA" -display none -nic none \
     -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
     -kernel "$K1_WYNIK/bzImage" -initrd "$K1_WYNIK/initramfs.cpio" -append "$CMDLINE" $DYSK
 fi

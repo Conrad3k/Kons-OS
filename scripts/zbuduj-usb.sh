@@ -1,6 +1,6 @@
 #!/bin/sh
 # Składa obraz K1 na pendrive z miejscem na dane (M5d, ADR 0016; A/B od 0.7.0, ADR 0022):
-#   build/wynik/k1-<wersja>-usb.img (+ .img.xz do pobrania)
+#   build/wynik/k1-<wersja>-usb.img (+ .img.xz do pobrania; z --test: k1-<wersja>-test-usb.img z k1-test.efi — testy)
 # GPT:  1. „K1-EFI”  (FAT32, 1600 MiB — do 0.10.9 krok 4 280 MiB; format 2 — src/wspolne/k1_uklad.h): shim + GRUB (z Ubuntu),
 #          MokManager, grub.cfg, grubenv, dwa miejsca na system: /k1/a.img (k1.efi tej wersji i za nim obraz strefy
 #          przeglądarki z drzewem dm-verity — 0.10.9 krok 4, ADR 0050) i /k1/b.img, po 768 MiB (do kroku 4b po 128 MiB)
@@ -17,8 +17,10 @@
 # Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
 
-USB=$K1_BUDOWA/usb
-WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-usb.img
+# 0.13.0 step 4 (ADR 0059): --test — the same stick with k1-test.efi (the log on the serial port) for the tests in QEMU,
+# k1-<version>-test-usb.img; no package, announcements or .xz (never released)
+USB=$K1_BUDOWA/usb EFI=$K1_WYNIK/k1.efi WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-usb.img TEST=
+if [ "${1:-}" = --test ]; then USB=$K1_BUDOWA/usb-test EFI=$K1_WYNIK/k1-test.efi WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-test-usb.img TEST=1; fi
 # 0.10.9 step 4b (ADR 0050, the owner's D10 "A": more room, with a reserve): slots of 768 MiB (128 MiB before), the
 # K1-EFI 1600 MiB = two slots + 64 MiB for the boot files (an update writes the new ones beside the old ones)
 SLOT_MIB=768
@@ -26,7 +28,7 @@ ESP_MIB=1600
 DANE_MIB=64
 PODPISZ=$K1_BUDOWA/obj/podpisz
 WYDANIE=$K1_BUDOWA/obj/wydanie
-[ -f "$K1_WYNIK/k1.efi" ] && [ -f "$K1_WYNIK/wydanie" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$PODPISZ" ] && [ -x "$WYDANIE" ] \
+[ -f "$EFI" ] && [ -f "$K1_WYNIK/wydanie" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$PODPISZ" ] && [ -x "$WYDANIE" ] \
     || blad "najpierw zbuduj system: scripts/zbuduj.sh"
 for n in apt-get dpkg-deb mformat mmd mcopy mshowfat sfdisk xz truncate od; do command -v $n >/dev/null || blad "brak $n (scripts/przygotuj-srodowisko.sh)"; done
 
@@ -38,8 +40,8 @@ rm -rf "$USB"; mkdir -p "$USB"
 # the slot's last MiB. The manifest's digest covers both: an update copies them together.
 STREFA=$K1_WYNIK/strefa-przegladarka.img
 [ -f "$STREFA" ] || blad "brak obrazu strefy $STREFA (scripts/zbuduj-strefe.sh)"
-EFI_MIB=$(( ($(stat -c %s "$K1_WYNIK/k1.efi") + 2 * 1048576 - 1) / 1048576 ))
-obraz_fat "$USB/slot-a.fat" "$EFI_MIB" 4b315341 "$K1_WYNIK/k1.efi:/k1.efi"
+EFI_MIB=$(( ($(stat -c %s "$EFI") + 2 * 1048576 - 1) / 1048576 ))
+obraz_fat "$USB/slot-a.fat" "$EFI_MIB" 4b315341 "$EFI:/k1.efi"
 cat "$USB/slot-a.fat" "$STREFA" > "$USB/a.img"
 SLOT_BAJTY=$(stat -c %s "$USB/a.img")
 MIEJSCE=$(( (SLOT_MIB - 1) * 1048576 )) # up to the manifests in the slot's last MiB
@@ -162,7 +164,8 @@ GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img $((SLOT_MIB << 20)
 # The manifest of the boot files (ADR 0038): the digest of every file but grubenv and the slots, signed, in slot A.
 "$PODPISZ" start "$ESP" || blad "manifest plików startowych (podpisz)"
 
-# 0.10.5 step 2 (ADR 0046): the update package and its signed announcement, from the finished K1-EFI
+# 0.10.5 step 2 (ADR 0046): the update package and its signed announcement, from the finished K1-EFI (not for --test)
+if [ -z "$TEST" ]; then
 PACZKA=$K1_WYNIK/k1-$K1_WERSJA.k1a
 OGL=$K1_WYNIK/k1-ogloszenie.bin
 OGL2=$K1_WYNIK/k1-ogloszenie2.bin
@@ -170,6 +173,7 @@ python3 -I "$K1_REPO/scripts/opisy-wersji.py" "$K1_REPO/CHANGELOG.md" "$K1_WERSJ
 NOWA_LINIA=; python3 -I "$K1_REPO/scripts/opisy-wersji.py" --nowa-linia "$K1_REPO/CHANGELOG.md" "$K1_WERSJA" && NOWA_LINIA=nowa-linia
 "$WYDANIE" paczka "$ESP" "$PACZKA" || blad "paczka aktualizacji"
 "$WYDANIE" ogloszenie "$PACZKA" "$USB/opisy.txt" "$SOURCE_DATE_EPOCH" "$OGL" "$OGL2" $NOWA_LINIA || blad "ogłoszenie wydania"
+fi
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.
 rm -f "$WYJSCIE" "$WYJSCIE.xz"
@@ -181,6 +185,7 @@ start=2048, size=$((ESP_MIB * 2048)), type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B,
 start=$(((1 + ESP_MIB) * 2048)), size=$((DANE_MIB * 2048)), type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=4B310000-0000-4000-8000-0000000000D1, name="K1-DANE"
 TAB
 dd if="$ESP" of="$WYJSCIE" bs=1M seek=1 conv=notrunc,sparse status=none # the empty slot B: no room taken
+if [ -n "$TEST" ]; then info "gotowe: $WYJSCIE ($(du -k "$WYJSCIE" | cut -f1) KiB, tylko do testów)"; exit 0; fi
 xz -T0 -6 -k "$WYJSCIE"
 (cd "$K1_WYNIK" && sha256sum "k1-$K1_WERSJA-usb.img.xz" > "k1-$K1_WERSJA-usb.img.xz.sha256" &&
     sed -i '/  k1-.*\.k1a$\|  k1-ogloszenie\.bin$/d' SHA256SUMS && sha256sum "k1-$K1_WERSJA.k1a" k1-ogloszenie.bin >> SHA256SUMS)

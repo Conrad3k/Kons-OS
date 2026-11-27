@@ -1,0 +1,1 @@
+console=ttynull panic=60 oops=panic k1.rdzen=wbudowany
