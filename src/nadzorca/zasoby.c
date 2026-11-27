@@ -64,6 +64,7 @@ void bateria_nowy_kanal(void)
     siec_stan_nowy_kanal_gui();
     sesje_nowy_kanal(0);
     dzwiek_nowy_gui(); /* 0.12.0 step 1: its channel to the sound service */
+    tpm_nowy_gui();    /* 0.13.0 step 2: OCHRONA */
 }
 
 void zasoby_nowy_kanal(void)

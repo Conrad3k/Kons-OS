@@ -230,6 +230,13 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło”. W logu tylko numery komunikatów, liczby
 wpisów i wyniki — nigdy nazwy ani treść.
 
+## Stan magazynu dla TPM (0.13.0 krok 2, ADR 0057, `epoka.c`)
+Nadzorca pamięta w TPM 2.0, jak daleko doszedł magazyn, i tak widzi dysk cofnięty do starszej kopii. Skarbiec wysyła mu
+`SKARB_EPOKA` (kanał sterujący): identyfikator magazynu (8 pierwszych bajtów uuid z nagłówka) i generację nagłówka, która
+**jest na dysku** (`k1_magazyn.na_dysku` — ustawiana dopiero po zapisie i synchronizacji nagłówka, albo przy otwarciu);
+raz zaraz po otwarciu (e = 0; także po utworzeniu nowego magazynu i po odblokowaniu hasłem) i raz po pierwszym zapisie
+tej sesji (e = 1). Format bez zmian. Nic z tego w logu. Bez K1-DANE (dane tylko w pamięci) — nic.
+
 ## Format na dysku (bloki po 4096 B, liczby little-endian)
 Format 2 (0.8.2, ADR 0036, niżej). **Format 1** (0.5.6–0.8.1: dwa obszary po pół partycji, nagłówek „K1SKARB1” w wersji 1)
 i jego przejście na format 2 (0.8.2–0.9.1, po potwierdzonym starcie) — **usunięte w 0.10.0** (decyzja właściciela D7

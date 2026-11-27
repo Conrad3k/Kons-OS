@@ -26,6 +26,10 @@ int main(int argc, char **argv)
         return t_most_scenariusz();
     if (znak_dysku("k1-test-pobranych")) /* 0.11.0 step 2: files from a zone, the scenario of scripts/test-pobrane.sh */
         return t_pobrane_scenariusz();
+    if (znak_dysku("k1-test-tpm-gen")) /* 0.13.0 step 2: scripts/test-tpm.sh — a write, a newer generation */
+        return t_tpm_scenariusz(1);
+    if (znak_dysku("k1-test-tpm")) /* …its other starts: a write (it looks from outside) */
+        return t_tpm_scenariusz(0);
     if (tryb_opisu()) /* 0.10.2 step 2: the screen's description for scripts/test-m4.sh, not the checks */
         return t_opis_scenariusz();
     if (znak_dysku("k1-test-aktualizacji")) /* 0.10.5 step 2b: scripts/test-aktualizacja-siec.sh looks from outside; */
@@ -61,6 +65,7 @@ int main(int argc, char **argv)
     t_filmy();
     t_posrednik();
     t_dzwiek();
+    t_tpm();
     t_okna_ipc();
     t_okna_ochrona();
     t_okna_zalegle();

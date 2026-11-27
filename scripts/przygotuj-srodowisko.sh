@@ -11,7 +11,7 @@ set -eu
 SUDO=; [ "$(id -u)" -eq 0 ] || SUDO=sudo
 PAKIETY="build-essential gcc-13-plugin-dev flex bison bc libelf-dev libssl-dev rsync cpio xz-utils
  curl gnupg squashfs-tools qemu-system-x86 ovmf clang libclang-rt-18-dev python3
- pkg-config libfreetype-dev zlib1g-dev fonts-ibm-plex grub-common grub-efi-amd64-bin grub-pc-bin xorriso mtools fdisk acpica-tools cryptsetup-bin sbsigntool faketime python3-virt-firmware python3-pil dosfstools zstd e2fsprogs
+ pkg-config libfreetype-dev zlib1g-dev fonts-ibm-plex grub-common grub-efi-amd64-bin grub-pc-bin xorriso mtools fdisk acpica-tools cryptsetup-bin sbsigntool faketime python3-virt-firmware python3-pil dosfstools zstd e2fsprogs swtpm
  ninja-build llvm-18-dev libclang-18-dev libclc-18-dev llvm-spirv-18 libllvmspirvlib-18-dev spirv-tools libdrm-dev
  libwayland-dev libwayland-egl-backend-dev wayland-protocols python3-mako python3-packaging python3-yaml"
 APT_OPCJE="-o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20"

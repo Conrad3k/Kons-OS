@@ -7,7 +7,8 @@
  * manifest = /rdzen/system/wydanie) — becomes the confirmed slot; a try GRUB went back from (k1_start is
  * not k1_proba) is cleared and reported in Ustawienia → Aktualizacje (INST_AB) and, once, in a window of gui (AB_NIEUDANA,
  * 0.10.5 step 1). Only the 1024 bytes of grubenv are
- * written. A stick (USB) is never touched. (0.8.2–0.9.1 then told skarbiec it may move a vault of format 1 to format 2 —
+ * written. A stick (USB) is never touched. 0.13.0 step 2 (ADR 0057): at the same moment the TPM learns this K1's
+ * generation (tpm.c); a K1 older than the TPM's generation confirms nothing. (0.8.2–0.9.1 then told skarbiec it may move a vault of format 1 to format 2 —
  * gone with format 1 in 0.10.0.) */
 #include "nadzorca.h"
 #include "k1_cmdline.h"
@@ -112,6 +113,11 @@ void rozruch_po_starcie(double t)
     if (t - ab_od < ROZRUCH_OK || instalator()->pid > 0)
         return;
     ab_zrobione = 1;
+    if (tpm_blokada()) { /* 0.13.0 step 2: an older K1 than the TPM knows is never confirmed */
+        k1_log(TAG, "A/B: ta wersja jest starsza niż generacja w TPM — bez potwierdzenia");
+        return;
+    }
+    tpm_potwierdzony(); /* the TPM learns this generation (tpm.c) */
     if (k1_dyski_skanuj(SYS, &l) == 0)
         for (i = 0; i < l.n; i++)
             if (l.d[i].efi[0] && l.d[i].dane[0])

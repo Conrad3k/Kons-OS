@@ -39,6 +39,7 @@ void akt_nowy_kanal(void)
 {
     sukces[OKNO_USTAWIENIA] = 0;
     akt_nowe_okno(); /* 0.10.5 step 2b: the state of updates through the network again */
+    tpm_nowe_ustawienia(); /* 0.13.0 step 2: OCHRONA */
 }
 
 static void wyslij(int okno, struct k1_komunikat k)

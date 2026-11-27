@@ -278,6 +278,29 @@ Wiersze logu od usług (bufor 400 B, znaki sterujące zamieniane, limit 20/s), k
   startu też pozwala na ponowne uruchomienie z okna Instalatora (`sb_czeka` ustawiane przy odczycie stanu). Po zapisie okno Instalatora może
   poprosić o restart (`WYLACZ` a=1).
 
+## TPM — generacja K1 i stan danych (0.13.0 krok 2, ADR 0057)
+- `tpm.c`: jedyny, kto rozmawia z TPM. `/dev/tpm0` otwiera na jedno polecenie i zamyka (żadna usługa go nie dostaje —
+  `t_sprzet`); tylko TPM 2.0 (`class/tpm/tpm0/tpm_version_major` = 2; 1 — log „TPM 1.2: K1 korzysta tylko z TPM 2.0”);
+  ramki i parser odpowiedzi: `k1_tpm.c` (czyste, `test_tpm`, `fuzz_tpm`); ostrzeżenia TPM (`RETRY`, `YIELDED`,
+  `TESTING`) — do 5 prób co 100 ms. Pierwszy start: zakłada indeks K1 (`NV_DefineSpace` z pustym hasłem właściciela;
+  inne hasło → „TPM 2.0: K1 nie może z niego korzystać (hasło właściciela ustawione przez inny system…)”) i zapisuje
+  pusty zapis.
+- **Starsza wersja:** `tpm_start()` w `przygotuj()` — przed skarbcem. Generacja w TPM > `K1_GENERACJA` → log „TPM: ta
+  wersja K1 jest starsza niż ta, którą miał ten komputer — dane zostają zamknięte”, `start_skarbiec` nie daje K1-DANE
+  („partycja K1-DANE nie dla skarbca…”; dane tylko w pamięci), `rozruch.c` nie potwierdza A/B („A/B: ta wersja jest
+  starsza niż generacja w TPM — bez potwierdzenia”). Inaczej 15 s po pulpicie (`tpm_potwierdzony`) TPM dostaje
+  generację tej wersji, gdy jest wyższa („TPM: zapisano generację N”).
+- **Dane cofnięte:** `SKARB_EPOKA` od skarbca (identyfikator magazynu, generacja nagłówka na dysku; e = 0 po otwarciu,
+  1 po pierwszym zapisie). Przy otwarciu starszy niż w TPM → znak „cofnięte” w TPM, log „TPM: dane na dysku są starsze
+  niż przy ostatnim zapisie — czekam na decyzję właściciela”; po pierwszym zapisie (bez znaku) — „TPM: zapamiętano stan
+  danych”. `OCHRONA` a = `K1_OCHR_MOJE_DANE` od gui (tylko UID gui) → stan od nowa, log „TPM: właściciel potwierdził
+  starsze dane („To moje dane”)”.
+- `OCHRONA` a = `K1_OCHR_STAN` do gui (fd 5, nie ekranowi hasła) i Ustawień → Aktualizacje (fd 7) raz na kanał i po każdej
+  zmianie: rodzaj TPM (`K1_TPM_*`), flagi (`K1_OCHR_FL_STARSZA`, `K1_OCHR_FL_COFNIETE`), generacja w TPM. Kanał testowy:
+  `OCHRONA` a = `K1_OCHR_TEST` b = generacja (≥ 1) — zapis w TPM jak po nowszej wersji (bez TPM 2.0: odmowa).
+- Zapisów do TPM najwyżej: jeden na start (stan danych) + jeden na generację + jeden na decyzję. W logu tylko generacje,
+  nigdy identyfikator magazynu.
+
 ## Rozdzielacz — pamięć komputera dla wszystkich (0.10.1 krok 3, ADR 0044 T6, decyzja właściciela D3)
 Raz na sekundę, gdy działa strefa, którą rządzi rozdzielacz (każda uruchomiona przez gui; z programu testowego tylko
 w trybie 10), `strefy_balon.c` liczy, ile K1 ma wolnej pamięci (wolna + pamięć podręczna plików, którą jądro może

@@ -117,6 +117,10 @@ void odbierz_od_nadzorcy(void)
             wersja_nieudana(&m);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_OCHRONA) { /* 0.13.0 step 2: the TPM's windows */
+            ochrona_stan(&m);
+            continue;
+        }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_POKAZ_APL) { /* an application got a file to open (ADR 0030) */
             pokaz_aplikacje(m.a);
             continue;

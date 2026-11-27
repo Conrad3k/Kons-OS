@@ -16,11 +16,17 @@ LISTA=$K1_BUDOWA/k1efi.lista
 { cat "$K1_BUDOWA/initramfs.lista"; printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs"; } > "$LISTA"
 # the same line as before on the stick and in the ISO, plus noinitrd (see jadro/k1-zamkniete.config)
 LINIA="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") k1.rdzen_skrot=$(cat "$K1_WYNIK/rdzen.squashfs.skrot") noinitrd quiet loglevel=7"
+# SBAT (0.13.0 step 2, ADR 0057): the generation of K1 — the same number nadzorca keeps in the TPM
+GENERACJA=$(sed -n 's/^#define K1_GENERACJA \([0-9][0-9]*\)$/\1/p' "$K1_REPO/src/wspolne/k1_tpm.h")
+[ -n "$GENERACJA" ] || blad "brak K1_GENERACJA w src/wspolne/k1_tpm.h"
+SBAT=$K1_BUDOWA/k1.sbat.csv
+{ echo 'sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md'
+  echo "k1,$GENERACJA,Kons K1,k1,$K1_WERSJA,https://github.com/Conrad3k/Kons-OS"; } > "$SBAT"
 FRAG=$K1_BUDOWA/k1efi.config
 # k1.config with the vendor files (zbuduj-jadro.sh) without the options this fragment sets (both must hold exactly what is checked below)
 ZMIENIANE=$(sed -n 's/^\(CONFIG_[A-Z0-9_]*\)=.*/\1/p' "$K1_REPO/jadro/k1-zamkniete.config" | paste -sd'|')
 { grep -Ev "^($ZMIENIANE)=|^# ($ZMIENIANE) is not set" "$K1_BUDOWA/jadro-fragment.config"
-  sed "s|@LINIA@|$LINIA|; s|@LISTA@|$LISTA|" "$K1_REPO/jadro/k1-zamkniete.config"; } > "$FRAG"
+  sed "s|@LINIA@|$LINIA|; s|@LISTA@|$LISTA|; s|@SBAT@|$SBAT|" "$K1_REPO/jadro/k1-zamkniete.config"; } > "$FRAG"
 
 make_jadra KCONFIG_ALLCONFIG="$FRAG" allnoconfig >/dev/null
 "$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$FRAG" "$K1_JADRO_OBJ/.config"

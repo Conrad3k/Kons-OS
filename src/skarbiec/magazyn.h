@@ -76,6 +76,7 @@ struct k1_magazyn {
     uint32_t format;            /* 2 (0: closed) */
     uint8_t klucz[32], uuid[16];
     uint64_t generacja;
+    uint64_t na_dysku;          /* 0.13.0 step 2: the last generation of the header written and synced (epoka.c) */
     uint32_t haslo, argon_kib, argon_przejscia;
     uint8_t sol[16], owiniety[32 + 24 + 16]; /* wrapped key as in the header */
     int n_wpisow, maks_wpisow;  /* maks: what the partition can hold (an object takes a block); the index fits it */

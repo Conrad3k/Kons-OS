@@ -69,6 +69,7 @@ int zapisz_naglowek(struct k1_magazyn *m)
     naglowek_zbuduj(m, b);
     if (m->d->zapisz(m->d, m->generacja % 2, b, 1) != 0 || m->d->synchronizuj(m->d) != 0)
         return K1_MAG_IO;
+    m->na_dysku = m->generacja;
     return K1_MAG_OK;
 }
 
@@ -259,7 +260,7 @@ static void przyjmij_naglowek(struct k1_magazyn *m, const struct naglowek *h)
     memcpy(m->sol, h->sol, 16);
     memcpy(m->owiniety, h->owiniety, OWINIETY_DL);
     m->format = h->wersja;
-    m->generacja = h->generacja;
+    m->generacja = m->na_dysku = h->generacja;
     m->haslo = (h->flagi & FLAGA_HASLO) != 0;
     m->argon_kib = h->argon_kib;
     m->argon_przejscia = h->argon_przejscia;

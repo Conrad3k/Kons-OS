@@ -48,6 +48,9 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **pliki startowe** | Wszystko w K1-EFI poza miejscami A/B i grubenv: shim, GRUB, MokManager, `grub.cfg`, ekran startowy, certyfikat K1, `.disk/info`. Od 0.9.0 aktualizacja wymienia je, gdy się zmieniły (ADR 0038). |
 | **manifest** | Podpisany opis części wydania (512 B): wersja, identyfikator wydania, skrót. **Manifest miejsca** — system w miejscu A/B; **manifest plików startowych** (0.9.0) — skrót drzewa plików startowych, niezależny od tego, gdzie leżą. |
 | **wymiana plików startowych** (0.9.0) | Nowe pliki startowe zapisane obok starych, sprawdzone z manifestem, przełączone jednym zapisem sektora startowego FAT; przerwanie zostawia stare albo nowe (`src/instalator/start.c`, ADR 0038). |
+| **TPM** (0.13.0) | Układ bezpieczeństwa w komputerze (albo w firmware Intela: PTT). K1 korzysta tylko z TPM 2.0 i tylko przez nadzorcę: trzyma w nim generację K1 i stan danych (ADR 0057). TPM 1.2 (X230) — nieużywany. |
+| **generacja K1** (0.13.0) | Liczba podnoszona, gdy wydanie poprawia dziurę, której starsze wersje nie mogą mieć z powrotem (`K1_GENERACJA`). Potwierdzony start zapisuje ją w TPM; wersja o niższej generacji to **starsza wersja** — nie otwiera danych. Ta sama liczba jest w sekcji SBAT `k1.efi`. |
+| **dane cofnięte** (0.13.0) | Dysk z danymi starszy niż pamięta TPM (ktoś podmienił go na wcześniejszą kopię). K1 pyta okienkiem; „To moje dane” — kopia przywrócona przez właściciela. Dane działają. |
 | **K1-DANE** | Partycja z zaszyfrowanymi danymi użytkownika; czyta ją tylko skarbiec. |
 | **init** | Pierwszy program po starcie (PID 1): montuje, ustawia zabezpieczenia, uruchamia nadzorcę. Nigdy się nie kończy. |
 

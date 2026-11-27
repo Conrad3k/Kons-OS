@@ -32,6 +32,9 @@ int k1_kom_sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_SKARB_MIEJSCE:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt == 1 && w(k->b, 0, K1_PAMIEC_MAKS_MIB) && w(k->a, 0, k->b) &&
                w(k->c, 0, K1_DOK_MAKS) && w(k->d, 0, K1_PAMIEC_MAKS_MIB) && w(k->e, 0, 1);
+    case K1_KOM_SKARB_EPOKA: /* 0.13.0 step 2 (ADR 0057): the id is any 8 bytes but zeros */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && (k->a != 0 || k->b != 0) &&
+               k1_kom_u64(k->c, k->d) < (1ull << 62) && w(k->e, 0, 1);
     case K1_KOM_SKARB_STAN:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) &&
                w(k->b, 0, 1) && zera(k, 2);

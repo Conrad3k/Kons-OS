@@ -234,4 +234,15 @@ Boot (`sbsign`, RSA-2048 z `narzedzia/klucz_sb.py`, zegar zamrożony `faketime` 
 handover” (wyłączony) i z `noinitrd` program ładujący nie ma jak podać initrd — sprawdzone w QEMU z GRUB-em
 Ubuntu. Budowane w tym samym katalogu co jądro deweloperskie (`bzImage`, które zostaje dla testów `test-m1`).
 `CONFIG_EFIVAR_FS=y` (0.7.0): zmienne UEFI dla nadzorcy (stan Secure Boot, wpisanie klucza K1).
+Od 0.13.0 krok 2 (ADR 0057) `k1-zamkniete.config` dodaje `EFI_SBAT_FILE`: sekcja `.sbat` z wierszem
+`k1,<generacja>,Kons K1,k1,<wersja>,…` (generacja — `K1_GENERACJA` w `src/wspolne/k1_tpm.h`; plik CSV robi
+`scripts/zbuduj-k1efi.sh`). Shim sprawdza SBAT obrazu od GRUB-a tylko, gdy sekcja jest, a generacji „k1” w swojej
+`SbatLevel` nie ma — odwołanie starszych wersji robi więc TPM (nadzorca); sekcja czeka na własny shim.
+
+## TPM (0.13.0 krok 2, ADR 0057)
+`TCG_TPM`, `TCG_TIS` (TPM 2.0 przez FIFO, ACPI `MSFT0101`; w testach QEMU `tpm-tis` z swtpm), `TCG_CRB` (TPM w firmware
+Intela — PTT, IdeaPad 110). Bez `PNP`, więc TPM 1.2 (X230: `PNP0C31`/`IFX0102` — tylko przez `tpm_tis_pnp`) nie jest
+widoczny — K1 i tak korzysta tylko z TPM 2.0. Bez `HW_RANDOM_TPM` (`HW_RANDOM` wyłączone) i `TCG_TPM2_HMAC` (domyślnie
+nie). Jądro przy starcie wysyła TPM-owi `Startup`, gdy firmware tego nie zrobiło, i czyta jego banki PCR; poza tym
+z TPM rozmawia tylko nadzorca (`/dev/tpm0`).
 
