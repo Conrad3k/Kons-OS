@@ -124,6 +124,7 @@ przełącznikiem szybkiej grafiki — Bank i Prywatna domyślnie bez (Twoje D5 z
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Próba ze źródeł i na stanowisku; ADR                  L1–L6            0.13.0      D3, D4, T1–T3    M        0063
+        [w toku: Claude, gałąź claude/dazzling-gates-9d355u]
 [ ]  2  FFmpeg i libva w strefie: H.264 gra (procesorem)      L6, L7, L15      1           T4               M        —
 [ ]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
         na prośbę, złośliwy gość
