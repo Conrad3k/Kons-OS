@@ -26,7 +26,8 @@ i odwoływanie starszych wersji (SBAT, licznik wersji, cofnięcie danych), 3 —
 4 — obraz wydania bez portu szeregowego, błąd startu na ekranie, 5 — zgoda na nowe klawiatury USB i zachęta do hasła,
 6 — zaufany ekran K1 (skrót, hasło tylko na ekranie K1), 7 — RANDSTRUCT i decyzja o ochronie jądra „piętro niżej”,
 8 — porządki i wydanie. Twoje decyzje D1–D8 i działania (Secure Boot i TPM w BIOS-ie) — punkt 4 planu. Reszta zgłoszeń
-bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox) — 0.14 Audyt (punkt 6 planu).
+bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox) — 0.15 Audyt (punkt 6 planu).
+Po 0.13 (2026-11-27, ADR 0064): 0.14 Aplikacje — Sklep i Discord, plan docs/PLAN-0.14.0.txt (zaczyna się po 0.13.2).
 Co wpisać w nowym czacie:
     „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.0.txt.”
 
@@ -50,7 +51,8 @@ i wydanie. Zaczyna się po wydaniu 0.13.0: „Korzystając ze skilla kons-dev, w
     0.13     Bezpieczny start — NASTĘPNA (docs/PLAN-0.13.0.txt: łańcuch wydań, TPM, tryb ratunkowy, obraz wydania,
              dostęp fizyczny, zaufany ekran K1, jądro)                              (M10)
              0.13.2 Filmy kartą — PLAN (docs/PLAN-0.13.2.txt; krok tematu 0.10 Strefy, po 0.13.0)
-    0.14     Audyt → 1.0                                                           (M12)
+    0.14     Aplikacje — PLAN (docs/PLAN-0.14.0.txt, ADR 0064): Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi
+    0.15     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
 PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 0047), a K1 na dysku pobiera każde wydanie sam
@@ -63,7 +65,12 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
     starszych wersji — R44, świeżość ogłoszenia, GRUB — ADR, obraz bez portu szeregowego — R10, R17, R21, klucze — R91,
     R94, RANDSTRUCT, ochrona jądra „piętro niżej” — decyzja; ze zgłoszeń: #230, #235, #236, część #231, #234, #237, #238)
 
-0.14 Audyt → 1.0
+0.14 Aplikacje — plan: docs/PLAN-0.14.0.txt (stąd wziął: wspólny obraz bazowy, mikrofon; Twoje decyzje z 2026-11-27 —
+    tylko Sklep, bez pendrive'a; robot pomaga, nie warunkuje; pierwsza aplikacja Discord; pamięć na start przy każdej
+    aplikacji, Discord 500 MiB — ADR 0064)
+
+0.15 Audyt → 1.0
+    [ ] Sklep, katalog i obrazy aplikacji, program startowy Discorda, UDP w moście, mikrofon (ADR 0064)
     [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa; „opakowanie” pośrednika grafiki
         (RYZYKA R100: węższe listy, limity czasu pracy karty)
 
@@ -74,7 +81,8 @@ Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
   Strefy i przeglądarka:
-    [ ] szybki start sesji (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy
+    [ ] szybki start sesji (zamrożony stan, zapasowa czysta maszyna); wspólny obraz bazowy — od 2026-11-27 w planie 0.14.0
+        (krok 1); wspólne strony bazy w pamięci między strefami (DAX)
     [ ] szybszy dysk sesji, która pamięta (CI 0.10.0: pierwsze okno po 156 s zamiast 62 s — skarbiec potwierdza na dysku
         osobno każdy kawałek); kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna; ADR 0024);
@@ -95,8 +103,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran, pokaz slajdów, przybliżanie kółkiem
         i touchpadem
-  Dźwięk (z planu 0.12.0, punkt 6): mikrofon (D1 = A), HDMI, karty i słuchawki USB, Bluetooth, budzik w Zegarze
-    (korektor i dźwięk przestrzenny — 0.12.3). Z planu 0.12.3, punkt 6: śledzenie ruchu głowy, zbiory HRTF z pomiarów,
+  Dźwięk (z planu 0.12.0, punkt 6): mikrofon (D1 = A; od 2026-11-27 w planie 0.14.0, krok 4), HDMI, karty i słuchawki
+    USB, Bluetooth, budzik w Zegarze (korektor i dźwięk przestrzenny — 0.12.3). Z planu 0.12.3, punkt 6: śledzenie ruchu głowy, zbiory HRTF z pomiarów,
     kształtowanie szumu, 96/192 kHz, korektor i scena dla każdej sesji osobno, wyrównywanie głośności, kompresor,
     dźwięk 5.1 z filmów.
     [ ] usypianie kodeka dźwięku (PM w jądrze — zmienia też USB, i915, sieć): najpierw pomiar poboru w Zasobach na X230
@@ -283,7 +291,11 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     w CI po kilka naraz (tyle, ile procesorów), nigdy wszystkie (2026-11-22);
   - poprawki jądra i przeglądarki wydaje robot sam, po pełnych testach; zatrzymanie: GitHub → Actions → „Robot —
     poprawki jądra i przeglądarki” → Disable workflow (2026-11-17, D6 planu 0.10.5); o instalację K1 zawsze pyta;
-  - po 0.11 — dźwięk (0.12), potem Bezpieczny start (0.13) i Audyt (0.14) (2026-11-22, ADR 0053).
+  - po 0.11 — dźwięk (0.12), potem Bezpieczny start (0.13) i Audyt (0.14) (2026-11-22, ADR 0053); od 2026-11-27 (ADR 0064)
+    po Bezpiecznym starcie — 0.14 Aplikacje, Audyt w 0.15;
+  - obce aplikacje tylko ze Sklepu K1 (bez pendrive'a); każda w swojej strefie, z ikoną w stylu K1, z pamięcią na start
+    ustaloną dla niej osobno (Discord 500 MiB); robot może aktualizować obrazy aplikacji, ale jego błąd ich nie zatrzymuje
+    wydań; zamkniętych aplikacji nie rozpowszechniamy — strefa pobiera je od producenta (2026-11-27, ADR 0064).
 
 
 6. TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)

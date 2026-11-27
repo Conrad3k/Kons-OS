@@ -191,7 +191,9 @@ M0–M12 i dopiski z ADR 0011, 0019, 0020, 0024, 0025, 0026 (historia: git i tab
 - 0.12 Dźwięk **[korekta: ADR 0053 — nowa wersja; dalsze wersje przesunięte o jedną]**: karta dźwiękowa w usłudze
   w klatce, głośność i klawisze, słuchawki, dźwięk ze stref.
 - 0.13 Bezpieczny start — reszta (dawne M10): recovery, licznik wersji (TPM), odwoływanie starych wersji, los GRUB-a.
-- 0.14 Audyt (dawne M12): fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa → 1.0.
+- 0.14 Aplikacje **[korekta: ADR 0064 — nowa wersja; Audyt przesunięty na 0.15]**: Sklep w K1 jako jedyna droga obcej
+  aplikacji, obraz bazowy, aplikacje ze Sklepu w swoich strefach (pierwsza — Discord, z mikrofonem i rozmowami).
+- 0.15 Audyt (dawne M12): fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa → 1.0.
 
 ## 15. Pierwsze zadanie
 1. Zapisz tę specyfikację jako docs/SPEC.md.

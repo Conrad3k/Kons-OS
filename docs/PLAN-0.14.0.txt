@@ -1,0 +1,338 @@
+K1 — PLAN WERSJI 0.14.0 „APLIKACJE” (nowy temat z mapy drogi: 0.14, ADR 0064)
+==============================================================================
+
+Data: 2026-11-27 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-27, w trakcie
+planu 0.13.0): „napisz ten plan na 0.14, uwzględniając wszystko, co tu omówiliśmy … rozpisz plan na kroki, ale nie
+rozbijaj go za bardzo”. Kierunek i decyzje z rozmowy: ADR 0064. Kolejność wersji: 0.13.0 (Bezpieczny start) → 0.13.2
+(Filmy kartą) → 0.14.0 — ten plan zaczyna się po wydaniu 0.13.2.
+Wersja stoi (w chwili pisania) na 0.12.3 + kroki 1–5 planu 0.13.0. Jedyna obca aplikacja to przeglądarka (Firefox
+w strefie): trzy sesje i strefa pobierania to wiersze `K1_STREFY`, obraz przeglądarki leży w miejscu A/B (ADR 0050).
+Brakuje: drogi, którą do K1 trafia inna obca aplikacja, miejsca na jej obraz, okna, w którym się ją wybiera, mikrofonu
+i rozmów przez UDP.
+Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: każdy krok ze zmianą architektury ustala swój ADR (od 0065, kolejne wolne — 0061 i
+0062 bierze plan 0.13.0, 0063 plan 0.13.2).
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.14.0 w menu Start jest **Sklep** — okno K1 z aplikacjami, które przygotowaliśmy dla K1. „Zainstaluj” pobiera
+podpisany obraz aplikacji, a aplikacja startuje we własnej strefie, z ikoną w stylu K1, w ramce K1, z pamięcią na start
+ustaloną dla niej osobno i tylko z tymi zgodami (internet, głośniki, mikrofon), które ma jej wiersz w K1 — Sklep pokazuje
+je przed instalacją. Innej drogi do obcej aplikacji nie ma (bez pendrive'a, bez plików). Pierwsza aplikacja to
+**Discord**: logowanie zostaje, pisanie, pliki, a w kroku 4 także **rozmowy głosowe** (mikrofon w K1 ze znakiem „mikrofon
+włączony”, którego strefa nie podrobi ani nie ukryje). Discorda nie rozpowszechniamy — nasz program w jego strefie
+pobiera go z discord.com przy starcie, gdy jest nowsza wersja, więc działa bez robota. Wspólny obraz bazowy sprawia, że
+każda następna aplikacja to mała warstwa, a nie kolejny cały system.
+
+Kroki: PIĘĆ. 1 — aplikacje ze Sklepu od środka (wiersz aplikacji, obraz bazowy, obraz aplikacji na K1-DANE). 2 — Sklep
+(okno, katalog, instalacja, usuwanie, aktualizacje obrazów, Ustawienia → Aplikacje, robot). 3 — Discord (obraz, program
+startowy z pobieraniem, Electron w naszym kompozytorze, 500 MiB, ikona). 4 — rozmowy głosowe (mikrofon w K1, UDP w Raptor
+Bridge). 5 — porządki i wydanie.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”); wyjątek:
+błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze ostatnim
+krokiem (nowy krok bierze numer kroku wydania, wydanie przesuwa się na koniec, póki się nie zaczęło); jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części ostatniego kroku). Kroki są celowo duże
+(prośba właściciela) — dzielić tylko wtedy, gdy krok naprawdę nie zmieści się w jednym czacie.
+
+Oznaczenia:  [!] decyzja albo działanie właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1, 2026-11-27, main po kroku 5 planu 0.13.0), ZE ŹRÓDEŁ (z dokumentacji albo
+źródeł — z nazwą), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejność: 1, 2, 3, 4, 5. Krok 2 potrzebuje 1 (obraz na K1-DANE),
+krok 3 — 2 (Discord instaluje się ze Sklepu), krok 4 — 3 (głos sprawdza się Discordem; mikrofon i UDP można zacząć wcześniej,
+ale scalić po 3). Krok 5 (wydanie) — po wszystkich.
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.14.0.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku; przy wyglądzie (Sklep, ikona Discorda, znak mikrofonu) najpierw pokaże
+szkice.
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), „Ustalenia z wykonania” kroków
+     wcześniejszych; zawsze ADR 0064 (kierunek), 0020, 0042, 0043 (strefy, przeglądarka w strefie), 0044 (pamięć stref),
+     0050 (obraz strefy w miejscu A/B), 0052 (pliki strefy), 0046, 0056 (aktualizacje, łańcuch wydań), 0047 (robot),
+     RYZYKA wymienione przy kroku.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko limitu 600 wierszy (sprawdź `wc -l` tego, czego dotykasz — szczególnie
+     `src/nadzorca/strefy*.c`, `src/strefa/*.c`, `src/dzwiek/main.c`, `src/aplikacje/ustawienia/main.c`) — najpierw podział,
+     osobny commit.
+  5. Nowy format (katalog Sklepu, drzewo skrótów obrazu, datagram UDP w moście) albo komunikat: przepis z SKILL (sprawdzanie
+     pole po polu, test na hoście, fuzzing, test negatywny w systemie, wpis w dokumencie kanału). Nowe zgody, typy obrazów,
+     hosty — wiersze w tabelach (zasada 5).
+  6. Zmiana obrazu przeglądarki albo drogi aktualizacji (krok 1: przeglądarka na obrazie bazowym; krok 2: katalog obok
+     ogłoszenia) — K1 0.13.x na dysku musi dalej pobrać i zainstalować nową wersję (test aktualizacji przez sieć ze starszej).
+  7. Testy: lokalnie test-m1 i skrypty zmienianej części (docs/TESTY.md; nowy `scripts/test-sklep.sh` od kroku 1); pełny
+     komplet — CI na PR-ze (etykieta „testy”); scalasz przy zielonym. Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
+     Prawdziwego Discorda CI nie uruchamia (konto, internet — jak Firefox, decyzja z 2026-11-17): CI sprawdza części K1
+     na serwerze testowym, Discorda — właściciel na laptopie; błędy odtwarzasz na stanowisku (`scripts/stanowisko.sh`).
+  8. Dokumenty w tym samym PR-ze: ADR kroku, docs/komponenty/ (strefa, nadzorca, raptor-bridge, dzwiek, aplikacje, robot,
+     nowy sklep.md), RYZYKA, SLOWNIK, TESTY, WYGLAD (okna, ikony). VERSION i CHANGELOG zmienia krok 5; kroki 1–4 opisują
+     zmianę w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: co się zmieniło dla niego, co sprawdzić na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Każdy scalony krok trafia do laptopów z najbliższym wydaniem robota — krok w main musi być gotowy dla użytkownika.
+    Krok 1 zmienia obraz przeglądarki (obraz bazowy) i miejsce A/B: idzie **z wyłączonym robotem** (wpis „Tymczasowe”
+    w DO_ZROBIENIA z terminem „koniec kroku 1”), jeśli robot w tym czasie działa. Sklep bez aplikacji (koniec kroku 2) jest
+    gotowy dla użytkownika — pokazuje „Wkrótce: Discord”; aplikację próbną widzi tylko obraz testowy.
+  - Robot dla obrazów aplikacji (krok 2) to dodatek: jego błąd przy aplikacji = Issue, nigdy czerwone wydanie jądra
+    albo przeglądarki (ADR 0064 pkt 6).
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1: fundament, którego jeszcze nie zobaczysz. K1 uczy się trzymać obrazy aplikacji na Twoim dysku z danymi
+    (K1-DANE — dziś obraz przeglądarki mieszka obok systemu, a tam jest miejsce najwyżej na jeden), sprawdzać je przy
+    każdym starcie i składać z jednego **obrazu bazowego** (wspólne biblioteki) i małej warstwy aplikacji. Przeglądarka
+    też przechodzi na obraz bazowy. Każda aplikacja ze Sklepu to wiersz w tabeli K1: zgody, pamięć na start, ikona.
+  - Krok 2: **Sklep** w menu Start (D1, szkice — D2). Lista aplikacji, przy każdej: co robi, ile zajmie, do czego ma
+    dostęp. „Zainstaluj” → postęp → ikona w menu Start. „Usuń” pyta, czy usunąć też dane aplikacji (D3). Nowe wersje
+    obrazów K1 pobiera w tle, razem ze sprawdzaniem aktualizacji K1. Ustawienia → Aplikacje: czy aplikacja pamięta, czy
+    zapomina; szybka grafika. Robot może przebudowywać obrazy, ale gdy się pomyli — tylko zgłoszenie.
+  - Krok 3: **Discord**. Instalujesz go ze Sklepu; przy pierwszym starcie (i przy każdym, gdy wyjdzie nowsza wersja) jego
+    strefa pobiera Discorda z discord.com — okno mówi „Pobieram Discorda… 40 %”. Logowanie zostaje (strefa pamięta),
+    pliki: wysyłanie z „Z K1”, pobrane — do Pobranych (z pochodzeniem „z Discorda”). Pamięć na start 500 MiB (Twoja
+    decyzja); krok mierzy, ile naprawdę bierze, i jeśli 500 to za mało — zapyta Cię o nową liczbę. Ikona w stylu K1 (D4).
+  - Krok 4: **rozmowy głosowe**. K1 dostaje mikrofon (dziś go nie ma): tylko dla aplikacji, które mają tę zgodę w swoim
+    wierszu (D5), z wyraźnym znakiem „mikrofon włączony” na górnym pasku i na pasku okna (D6, szkice) — rysuje go K1, nie
+    aplikacja. Rozmowy Discorda idą przez UDP — most do internetu (Raptor Bridge) dziś zna tylko TCP, więc dostaje UDP.
+  - Krok 5: porządki, lista „co sprawdzić” (Discord na obu laptopach: logowanie, rozmowa, pamięć w Zasobach), wydanie.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
+[ ]  1  Aplikacje ze Sklepu od środka: wiersz aplikacji,       L1–L5            0.13.2      T1–T4          L        0065
+        obraz bazowy, obraz aplikacji na K1-DANE
+[ ]  2  Sklep: okno, katalog, instalacja, usuwanie,            L6–L9            1           D1–D3, T5, T6  L        0066
+        aktualizacje obrazów, Ustawienia → Aplikacje, robot
+[ ]  3  Discord: obraz, program startowy z pobieraniem,        L10–L13          2           D4, T7–T9      L        0067
+        Electron w kompozytorze strefy, 500 MiB, ikona
+[ ]  4  Rozmowy głosowe: mikrofon w K1, UDP w Raptor Bridge    L14–L16          3           D5, D6, T10,   L        0068
+                                                                                            T11
+[ ]  5  Porządki; wydanie 0.14.0                               L17              1–4         —              S–M      —
+(ADR: 0065 to następny wolny po 0064; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
+
+
+3. KROKI
+--------
+KROK 1: Aplikacje ze Sklepu od środka                                   L · T1–T4 · ADR 0065
+  a. Wiersz aplikacji (ADR 0064 pkt 3, T1): aplikacja ze Sklepu to wiersz tabeli stref — Z KODU: `K1_STREFY` ma już
+     numer, profil, UID, obraz, tytuł, pamięć w MiB, procesory, kolor, trwałość, ikonę, linię w menu Start, okno, szybką
+     grafikę i pochodzenie plików. Dochodzą kolumny: **zgody** (sieć: internet / tylko hosty z listy / bez; głośniki;
+     mikrofon — od kroku 4; jedna tabela zgód, zasada 5), **skąd obraz** (w wydaniu K1 — przeglądarka; ze Sklepu —
+     reszta) i opis do Sklepu. Kolumna pamięci = **pamięć na start**, ustalana przy każdej aplikacji osobno (decyzja
+     właściciela; Z KODU: dziś jest dolną granicą górnego limitu — `pamiec_granica` w `src/nadzorca/pamiec_stref.c`;
+     ponad nią strefa rośnie i oddaje pamięć balonem). T1: czy aplikacje ze Sklepu to wiersze tej samej `K1_STREFY`,
+     czy osobna tabela z wierszem strefy wyprowadzanym z niej (jak dekoder filmów i pośrednik — UID 400/410 + nr).
+  b. Obraz bazowy (ADR 0064 pkt 8, T2): wspólne pakiety Debiana 13 (GTK, NSS, czcionki, Mesa, curl, ca-certificates)
+     i nasze programy w strefie (`gosc`, kompozytor, agent, przekaźnik) w jednym obrazie; obraz przeglądarki i każdej
+     aplikacji — tylko swoja warstwa (drugi dysk tylko do odczytu, w gościu złożony z bazą — T2: overlayfs w jądrze strefy,
+     nowa opcja w `jadro/strefa.config`, albo inny sposób). Tabele pakietów: `strefy/baza.txt` + `strefy/<aplikacja>.txt`
+     (pisze `scripts/odswiez-strefe.py`), budowa `scripts/zbuduj-strefe.sh` dla każdej. Obraz bazowy i warstwa przeglądarki
+     dalej w miejscu A/B (ADR 0050) — miejsce się zwalnia, bo w obrazie nie ma już powtórzeń.
+  c. Bez podwójnej pamięci podręcznej (T3): Z KODU — VMM czyta obraz `pread` spod dm-verity, więc te same bloki są
+     w pamięci K1 i w pamięci podręcznej gościa. Najpierw pomiar (Zasoby: pamięć K1 z przeglądarką przed i po), potem
+     czytanie obrazów bez pamięci podręcznej K1 (np. `O_DIRECT` albo `POSIX_FADV_DONTNEED` — NIEPEWNE, co działa na
+     dm-verity). Wspólne strony bazy między strefami (DAX, virtio-pmem) — „Później”, jeśli pomiar nie pokaże, że trzeba.
+  d. Obraz aplikacji na K1-DANE (T4): obrazy ze Sklepu nie mieszczą się w miejscu A/B (Z KODU: 768 MiB, zapas ok. 620 MiB
+     po 0.10.9 krok 4b) i zmieniają się niezależnie od wydania K1 — mieszkają w skarbcu (część „Aplikacje” w Ustawieniach
+     → Miejsce, tabela `K1_CZESCI`; limit skarbca: 65 536 kawałków po 1 MiB — ADR 0034). Każdy blok sprawdzany drzewem
+     skrótów przy każdym odczycie (jak dm-verity), skrót główny z podpisanego katalogu (krok 2; w tym kroku — z obrazu
+     testowego). T4: jak — VMM czyta kawałki przez skarbiec (jak dysk strefy, fd 8) i sam sprawdza drzewo (czysty kod
+     z testem i fuzzingiem), czy skarbiec daje obraz jako urządzenie dla dm-verity; bez zmiany układu dysku (zmiana
+     układu = instalacja od nowa — tego nie robimy).
+  e. Aplikacja próbna ze Sklepu (tylko obraz testowy): strefa próbna jako aplikacja ze Sklepu — obraz z serwera testowego
+     (jak `test-aktualizacja-siec`), zapis w skarbcu, start, usunięcie; zgody działają (bez zgody na sieć łącznik odmawia,
+     bez zgody na głośniki usługa dźwięku nie przyjmuje strefy).
+  f. Testy: host (drzewo skrótów: dobre, zły blok, obcięte, zły skrót główny; fuzzing), nowy `scripts/test-sklep.sh`
+     (pobranie, start, zły blok → strefa kończy się z powodem „obraz uszkodzony”, obraz odrzucony i usunięty; NEGATYWNE:
+     strefa bez zgody na sieć), `test-strefa`, `test-most`, test aktualizacji przez sieć (przeglądarka na obrazie bazowym
+     po aktualizacji z 0.13.x startuje), `test-wzorce` bez zmian.
+  Dokumenty: ADR 0065, strefa.md, nadzorca.md, skarbiec.md (część „Aplikacje”), strefy/README.md, SLOWNIK (obraz bazowy,
+  aplikacja ze Sklepu), TESTY (test-sklep), RYZYKA (obraz z sieci na K1-DANE).
+
+KROK 2: Sklep                                                           L · D1–D3, T5, T6 · ADR 0066
+  a. Katalog Sklepu (T5): podpisany plik ze spisem obrazów — dla każdej aplikacji: numer wiersza, wersja obrazu, rozmiar,
+     skrót główny drzewa; CI buduje obrazy z przepisów (`strefy/<aplikacja>.txt`) i podpisuje katalog kluczem wydań
+     (`K1_KLUCZ_PODPISU` — tylko w GitHub Actions; ADR 0021). Ta sama droga co ogłoszenie formatu 2 (ADR 0056): czas
+     podpisu, termin 7 dni, zwłoka 20 minut, „Ogłoszenie dnia” podpisuje też katalog; pobiera strefa pobierania (Z KODU:
+     `K1_HOSTY_POBIERANIA` = hosty wydań GitHuba — bez zmian). Aplikacja z katalogu bez swojego wiersza w K1 — pomijana
+     (nowa aplikacja przychodzi z wydaniem K1; ADR 0064 pkt 3). T5: osobny plik `k1-sklep.bin` czy część ogłoszenia;
+     gdzie leżą obrazy (zasoby wydania GitHuba — limit 2 GiB na plik, ZE ŹRÓDEŁ: dokumentacja GitHub Releases).
+  b. Okno **Sklep** (D1, D2 — szkice najpierw): aplikacja K1 (wiersz `K1_APLIKACJE`, kanał do nadzorcy — nowy `KANAL_*`;
+     nigdy ścieżki). Lista aplikacji z wierszy (ikona K1, nazwa, opis, rozmiar, zgody słowami: „Ma dostęp do: internetu,
+     głośników, mikrofonu”), „Zainstaluj” → pobieranie w strefie pobierania z postępem → zapis w skarbcu → aplikacja
+     w menu Start (i na pasku — D2), „Usuń” (D3: dane aplikacji — dysk strefy, która pamięta — zostają czy znikają),
+     „Brak miejsca” z liczbami jak w Ustawieniach → Miejsce. Opis ekranu (`k1_el`) i zrzuty wzorcowe (jasny, ciemny).
+  c. Aktualizacje obrazów: K1 sprawdza katalog razem ze sprawdzaniem aktualizacji (ta sama pora i ten sam przełącznik,
+     ADR 0046); nowy obraz pobiera w tle, aplikacja dostaje go przy następnym starcie; stary obraz zostaje do pierwszego
+     udanego startu nowego (pierwszy obraz w oknie — jak „nieudany start” w trybie ratunkowym, ADR 0058), potem znika.
+     Obraz bazowy i przeglądarka dalej z wydaniem K1 (miejsce A/B); aplikacja ze Sklepu musi pasować do obrazu bazowego
+     wydania (T6: numer bazy w katalogu; obraz dla innej bazy — czeka na swoją).
+  d. Ustawienia → Aplikacje (ADR 0020 pkt 2): przy każdej zainstalowanej aplikacji — pamięta / zapomina, szybka grafika
+     (tylko gdzie karta może — ADR 0049), zgody (tylko do odczytu: tak je ustala wiersz), miejsce na dysku, „Usuń”.
+     Wspólna strefa (ADR 0024) — „Później”.
+  e. Robot (ADR 0064 pkt 6): osobne zadanie (osobny workflow albo krok `robot.yml`, który nie zmienia wyniku reszty):
+     przebudowa obrazów aplikacji, gdy zmieni się `strefy/<aplikacja>.txt` albo baza; testy `test-sklep`; błąd → Issue
+     „robot” z nazwą aplikacji, wydania jądra i przeglądarki idą dalej. Zmienia tylko `strefy/<aplikacja>.txt` i katalog —
+     dopisek w AGENTS.md („Robot aktualizacji”) i robot.md.
+  f. Testy: test-sklep (katalog dobry, przeterminowany, ze złym podpisem, za świeży — zwłoka; aplikacja bez wiersza —
+     pominięta; instalacja, przerwana instalacja → po restarcie bez śmieci, usunięcie z danymi i bez, aktualizacja obrazu
+     i powrót do starego po nieudanym starcie, brak miejsca), testy w systemie (klatka Sklepu, kanał — złośliwe
+     komunikaty), test-wzorce (Sklep, Ustawienia → Aplikacje — po „OK” właściciela), test-aktualizacja-siec.
+  Dokumenty: ADR 0066, nowy sklep.md (w katalogu komponentów), aplikacje.md, aktualizacja.md, robot.md, AGENTS.md (robot),
+  WYGLAD (Sklep), SLOWNIK (Sklep, katalog Sklepu), RYZYKA.
+
+KROK 3: Discord                                                         L · D4, T7–T9 · ADR 0067
+  a. Obraz Discorda: warstwa na obrazie bazowym z bibliotekami, których potrzebuje Discord na Linuksie (Electron: NSS,
+     GTK 3, libasound, libnotify… — dokładna lista z `ldd` paczki Discorda i z zależności jego paczki .deb, NIEPEWNE).
+     **Bez plików Discorda** (licencja — ADR 0064 pkt 5). Wiersz: zgody — internet, głośniki (mikrofon — krok 4);
+     trwałość — pamięta (ADR 0020: „inne — stała”); pamięć na start **500 MiB** (decyzja właściciela); kolor i tytuł
+     „Discord”; pochodzenie plików „z Discorda”.
+  b. Program startowy Discorda w strefie (T7): nasz program w C (jak `gosc/pobieranie.c`; obraz strefy nie ma powłoki —
+     Z KODU: `zbuduj-strefe.sh` przerywa, gdy znajdzie sh, bash albo dash). Przy każdym starcie: pyta discord.com
+     o najnowszą wersję paczki Linuksa (oficjalny link pobierania — NIEPEWNE: adres i skąd brać numer wersji),
+     pobiera ją przez przekaźnik, gdy jest nowsza niż na dysku strefy, rozpakowuje (tar.gz — własny czytnik w C, czysty,
+     z testem i fuzzingiem, albo biblioteka z obrazu — T7), uruchamia. Bez sieci — wersja z dysku; pierwszy start bez
+     sieci — okno „Discord potrzebuje internetu przy pierwszym uruchomieniu”. Discord na Linuksie przy nowej wersji
+     „hosta” sam prosi o pobranie nowej paczki (NIEPEWNE; ustawienie `SKIP_HOST_UPDATE` — sprawdzić): nowe wersje daje
+     nasz program, swoje moduły Discord pobiera sam (zostaje). Postęp pobierania rysuje program startowy w oknie strefy.
+  c. Electron w kompozytorze strefy (T8): Z KODU — `K1_INTERFEJSY` ma to, czego używa Firefox (wl_compositor 4, wl_seat 5,
+     xdg_wm_base 2, wl_data_device_manager 3, linux-dmabuf 4 …). Electron (Chromium, Ozone/Wayland) może chcieć więcej
+     (NIEPEWNE — sprawdzić na stanowisku z Discordem zamiast Firefoksa: `scripts/stanowisko.sh`); każdy nowy interfejs =
+     wiersz tabeli i reguły jak dla Firefoksa. Piaskownica Chromium: Z KODU — jądro strefy ma `USER_NS` (dla Firefoksa),
+     więc bez `--no-sandbox`. Powiadomienia (D-Bus, libnotify) — NIEPEWNE; bez D-Bus w strefie — „Później”.
+  d. Sieć (T9): łącznik — internet dla tej strefy (jak sesja Ogólna, reguła D3 bez sieci lokalnej) czy tylko hosty
+     Discorda (lista domen CDN i bramy — NIEPEWNE, zmienna). Rekomendacja w ADR po próbie.
+  e. Pamięć: pomiar w Zasobach (pamięć strefy po zalogowaniu, w rozmowie tekstowej, z kanałem z obrazkami; liczniki
+     strefy „zabite” — OOM gościa); jeśli 500 MiB to za mało, czat podaje zmierzoną liczbę, decyduje właściciel. Wynik —
+     w „Ustaleniach z wykonania” i w DO_ZROBIENIA (punkt 4).
+  f. Ikona Discorda (D4 — szkice): liniowa, w stylu K1 (`K1_IK_*`), rozpoznawalna, bez kopiowania grafiki Discorda 1:1.
+  g. Testy: CI nie uruchamia prawdziwego Discorda (ADR 0064, Konsekwencje). `test-sklep`: program startowy z serwerem
+     testowym (paczka udająca Discorda: pobranie, nowsza wersja, ta sama wersja — bez pobierania, paczka uszkodzona albo
+     z `..` w ścieżce — odrzucona, brak sieci — wersja z dysku); host: czytnik tar.gz (test, fuzzing). Discord —
+     właściciel na laptopie (lista w DO_ZROBIENIA punkt 4).
+  Dokumenty: ADR 0067, strefa.md (program startowy), aplikacje.md (wiersz Discorda), strefy/README.md, WYGLAD (ikona),
+  RYZYKA (aplikacja zamknięta pobierana od producenta).
+
+KROK 4: Rozmowy głosowe                                                 L · D5, D6, T10, T11 · ADR 0068
+  a. Mikrofon w K1 (T10): usługa dźwięku nagrywa z karty (Z KODU: dziś tylko odtwarzanie — ADR 0054, D1 = A; nowe
+     ioctl ALSA dla wejścia w `KLATKA_DZWIEK` z uzasadnieniem), jeden format jak przy odtwarzaniu; karta virtio-snd strefy
+     dostaje strumień wejścia (Z KODU: `src/strefa/dzwiek.c` — jeden strumień wyjścia); tylko strefa ze zgodą „mikrofon”
+     w swoim wierszu (D5) — inaczej VMM nie pokazuje gościowi wejścia. Wybór mikrofonu i poziom — Ustawienia → Dźwięk.
+  b. Znak „mikrofon włączony” (D6 — szkice): rysuje ekran K1 na górnym pasku i na pasku okna strefy, gdy usługa dźwięku
+     bierze z mikrofonu dla tej strefy (strefa nie może go narysować ani ukryć — jak ramka, ADR 0020 pkt 3); kliknięcie
+     wycisza mikrofon tej strefy.
+  c. UDP w Raptor Bridge (T11): Z KODU — łącznik przyjmuje tylko CONNECT (`src/strefa/lacznik.c`: „no BIND, no UDP”),
+     gniazda sieciowe otwiera tylko nadzorca (niezmiennik; ADR 0039). Rozmowy Discorda idą UDP (NIEPEWNE, czy ma zapas
+     po TCP — zakładamy, że nie). SOCKS5 UDP ASSOCIATE w przekaźniku i łączniku albo własna ramka na porcie vsock (T11);
+     gniazda UDP od nadzorcy z tą samą regułą adresu (D3: bez sieci lokalnej), tylko dla stref ze zgodą „rozmowy” w
+     wierszu; limity (gniazd na strefę, wielkość datagramu, datagramów na sekundę). Parsery czyste, test, fuzzing.
+  d. Testy: test-dzwiek (wejście karty QEMU — NIEPEWNE, czy QEMU poda dźwięk z pliku na wejście HDA; inaczej wejście
+     z testowego źródła w usłudze dźwięku), strefa próbna z trybem „nagrywaj” (bez zgody — gość nie widzi wejścia,
+     NEGATYWNE), znak mikrofonu w opisie ekranu, test-most z serwerem echa UDP (strefa bez zgody — odmowa, datagram za duży
+     — odrzucony, adres w sieci lokalnej — odmowa), fuzzing ramek UDP mostu. Rozmowa w Discordzie — właściciel na laptopie.
+  Dokumenty: ADR 0068, dzwiek.md, strefa.md, raptor-bridge.md, gui.md / ekran (znak), WYGLAD (znak mikrofonu), RYZYKA
+  (mikrofon; UDP w moście), SLOWNIK (znak mikrofonu).
+
+KROK 5: Porządki; wydanie 0.14.0                                        S–M
+  Porządki (co usunąć, scalić, uprościć — CHANGELOG „Porządki”; MINOR), przegląd „Tymczasowe” (robot wraca, jeśli był
+  wyłączony — wpis zamknięty), README (tabela, „Co już jest”), lista „co sprawdzić” w docs/DO_ZROBIENIA.txt punkt 4
+  (Discord na X230 i IdeaPadzie: instalacja ze Sklepu, logowanie po restarcie, rozmowa głosowa, plik do i z Discorda,
+  pamięć w Zasobach), plan do docs/archiwum/, CHANGELOG z „Opis w K1:”, VERSION 0.14.0.
+
+
+4. DECYZJE
+----------
+Podjęte przez właściciela (2026-11-27, ADR 0064): 0.14 Aplikacje przed Audytem (0.15); tylko Sklep, bez wgrywania
+z pendrive'a; robot pomaga, ale jego błąd przy aplikacji nie zatrzymuje wydań; pierwsza aplikacja — Discord; pamięć na
+start przy każdej aplikacji osobno, Discord — 500 MiB.
+[!] D1 (krok 2) Gdzie jest Sklep: A — osobne okno „Sklep” w menu Start (rekomendacja: łatwo znaleźć, jedna rola);
+    B — część Ustawień (Ustawienia → Aplikacje → „Dodaj”). Nazwa okna — „Sklep” (z rozmowy), chyba że wolisz inną.
+[!] D2 (krok 2) Wygląd Sklepu — szkice do wyboru; czy zainstalowana aplikacja trafia też na dolny pasek (rekomendacja:
+    tylko do menu Start, przypinasz sam — jak dziś aplikacje K1 poza pierwszym startem).
+[!] D3 (krok 2) „Usuń” a dane aplikacji (logowanie, ustawienia): A — pytanie „Usunąć też dane aplikacji?” z domyślnym
+    „Zostaw” (rekomendacja: po ponownej instalacji jesteś dalej zalogowany); B — zawsze usuwa wszystko.
+[!] D4 (krok 3) Ikona Discorda — szkice do wyboru.
+[!] D5 (krok 4) Mikrofon: A — tylko aplikacje, które mają zgodę w swoim wierszu, na start: Discord (rekomendacja);
+    B — także przeglądarka (rozmowy na stronach), z osobnym przełącznikiem przy każdej sesji.
+[!] D6 (krok 4) Znak „mikrofon włączony” — szkice (kolor, miejsce na górnym pasku i na pasku okna).
+
+Decyzje techniczne (ADR — decyduje czat kroku, Ty dostajesz krótkie wyjaśnienie):
+  T1 (krok 1) Wiersze aplikacji: ta sama `K1_STREFY` czy osobna tabela, z której wynika wiersz strefy.
+  T2 (krok 1) Obraz bazowy w gościu: overlayfs (nowa opcja jądra strefy) czy inny sposób; co jest w bazie.
+  T3 (krok 1) Podwójna pamięć podręczna: czytanie obrazów bez pamięci podręcznej K1 — co działa na dm-verity.
+  T4 (krok 1) Obraz na K1-DANE: drzewo skrótów sprawdzane w VMM (kawałki przez skarbiec) czy urządzenie dla dm-verity.
+  T5 (krok 2) Katalog: osobny plik czy część ogłoszenia; gdzie leżą obrazy (zasoby wydania GitHuba?).
+  T6 (krok 2) Zgodność obrazu aplikacji z bazą wydania (numer bazy w katalogu).
+  T7 (krok 3) Program startowy Discorda: skąd numer najnowszej wersji, czym rozpakować tar.gz.
+  T8 (krok 3) Co Electron potrzebuje od kompozytora strefy ponad Firefoksa.
+  T9 (krok 3) Sieć Discorda: internet czy lista hostów.
+  T10 (krok 4) Mikrofon: wywołania ALSA wejścia w klatce usługi dźwięku, strumień wejścia virtio-snd.
+  T11 (krok 4) UDP w moście: SOCKS5 UDP ASSOCIATE czy własna ramka vsock; limity.
+
+
+5. LUKI (co dziś brakuje — Z KODU, 2026-11-27, chyba że napisano inaczej)
+-------------------------------------------------------------------------
+Krok 1:
+  L1 Wszystkie strefy to stałe wiersze `K1_STREFY` z obrazem z wydania (przeglądarka — miejsce A/B, strefa próbna —
+     rdzeń obrazu testowego); nie ma kolumny zgód ani „skąd obraz”; sieć ma każda strefa z oknem (reguła D3), dźwięk —
+     każda z `K1_DZW_KLIENCI`.
+  L2 Obraz przeglądarki to pełny Debian 13 (ok. 130 pakietów w `strefy/przegladarka.txt`; 126 MiB w zstd) — nie ma bazy, którą
+     mogłaby dzielić inna aplikacja.
+  L3 Obraz strefy leży tylko w miejscu A/B (768 MiB, zapas ok. 620 MiB) albo w rdzeniu; skarbiec nie ma obiektów obrazu.
+  L4 VMM czyta obraz `pread` spod dm-verity — bloki obrazu w pamięci K1 i w gościu (podwójnie).
+  L5 Skrót obrazu jest tylko w rdzeniu (`/rdzen/strefy/<obraz>.skrot`) — nie ma drogi dla skrótu z podpisanego pliku.
+Krok 2:
+  L6 Nie ma katalogu, okna Sklepu ani Ustawień → Aplikacje (Ustawienia → Przeglądarka zna tylko sesje).
+  L7 Strefa pobierania pobiera tylko ogłoszenie i paczkę (`k1.pobierz=` — nazwy z wydania), z hostów wydań GitHuba.
+  L8 Robot zmienia tylko `jadro/wersja.env`, `strefy/przegladarka.txt`, `VERSION`, `CHANGELOG.md` (ADR 0047).
+  L9 Ustawienia → Miejsce nie mają części „Aplikacje” (`K1_CZESCI`).
+Krok 3:
+  L10 Obraz strefy nie ma powłoki (sprawdza `zbuduj-strefe.sh`) — program startowy musi być nasz, w C.
+  L11 Kompozytor strefy zna tylko interfejsy, których używa Firefox (`K1_INTERFEJSY`).
+  L12 Brak czytnika tar.gz w strefie (agent i `gosc` czytają tylko swoje ramki).
+  L13 Brak ikony i wiersza Discorda.
+Krok 4:
+  L14 Usługa dźwięku tylko odtwarza (ADR 0054, D1 = A — mikrofon „Później”); virtio-snd strefy ma jeden strumień wyjścia.
+  L15 Łącznik: tylko CONNECT (TCP), DNS przez UDP tylko do serwera z DHCP; brak gniazd UDP dla stref.
+  L16 Brak znaku mikrofonu i zgody na mikrofon.
+Krok 5:
+  L17 README, „co sprawdzić”, CHANGELOG.
+
+
+6. NIE W TEJ WERSJI (→ 0.15 Audyt albo „Później” w docs/DO_ZROBIENIA.txt)
+-------------------------------------------------------------------------
+  - Kamera i udostępnianie ekranu w Discordzie (strefa nie może widzieć ekranu K1 — K1 musiałby sam dawać okno do wyboru);
+    powiadomienia aplikacji ze stref (D-Bus) i ikony w zasobniku.
+  - Kolejne aplikacje — po jednej, na prośbę właściciela, każda jako jeden PR (przepis, wiersz, ikona) z wydaniem K1;
+    Steam i gry — po szybkiej grafice na nowszym sprzęcie (ADR 0020 pkt 6).
+  - Wspólna strefa na drobne aplikacje (ADR 0024); wspólne strony bazy w pamięci między strefami (DAX); szybki start
+    z zamrożonego stanu.
+  - 0.15 Audyt: katalog i obrazy Sklepu, program startowy Discorda, UDP w moście, mikrofon — w zakresie audytu.
+
+
+7. RYZYKA (wiersze w docs/RYZYKA.md — zmienia krok, który je dotyka)
+-------------------------------------------------------------------
+  - Krok 1: obraz z sieci na K1-DANE — błąd w sprawdzaniu drzewa = obcy kod w gościu bez naszego podpisu (wciąż w strefie,
+    ale poza łańcuchem zaufania); sprawdzanie przy każdym odczycie, czysty kod z fuzzingiem.
+  - Krok 2: przejęte CI może podpisać zły obraz aplikacji — ta sama ochrona co wydania (zwłoka 20 minut, ADR 0056);
+    obraz nie dostaje więcej niż jego wiersz w K1 (ADR 0064 pkt 3).
+  - Krok 3: Discord to program zamknięty, pobierany od producenta — nie sprawdzamy jego treści, tylko HTTPS do discord.com;
+    granicą jest strefa (jak dla stron w przeglądarce). Electron = drugi duży silnik WWW w K1 (poprawki daje Discord,
+    nie robot).
+  - Krok 4: mikrofon to podsłuch, gdy coś pójdzie źle — zgoda w wierszu, znak rysowany przez K1, wyciszenie jednym
+    kliknięciem; UDP to nowa droga z internetu do VMM-a — limity i fuzzing.
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------
+(brak — plan napisany 2026-11-27, przed krokiem 1)

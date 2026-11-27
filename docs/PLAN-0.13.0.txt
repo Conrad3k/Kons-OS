@@ -73,7 +73,7 @@ Nowy czat: przebieg każdego kroku:
      TPM).
   8. Dokumenty w tym samym PR-ze: ADR kroku, docs/komponenty/ (nadzorca, initramfs, instalator, skarbiec, jadro, robot),
      RYZYKA (zmienione wiersze), SLOWNIK, TESTY, WYGLAD (okna). VERSION i CHANGELOG zmienia krok 8; kroki 1–7 opisują
-     zmianę w opisie PR-a. Issue zamykasz, gdy krok zrobił całą jego część z tego planu; resztę (0.14) zostawiasz
+     zmianę w opisie PR-a. Issue zamykasz, gdy krok zrobił całą jego część z tego planu; resztę (0.15) zostawiasz
      otwartą z komentarzem, co zostało.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
      w swoim kroku. Raport dla właściciela: co się zmieniło dla niego, co sprawdzić na laptopie.
@@ -158,7 +158,7 @@ KROK 1: Łańcuch wydań                                                   M · 
      T1); test aktualizacji przez sieć z 0.12.3 → 0.13 (test-aktualizacji: ogłoszenie z terminem, przeterminowane,
      „poczekalnia” — za świeże wydanie nie jest proponowane).
   Dokumenty: ADR 0056, aktualizacja.md, robot.md, RYZYKA R91, R94, R14, R96, Issue #230 (zamknąć), #238 (komentarz: p. 2
-  zrobione, p. 1 i 3 → 0.14).
+  zrobione, p. 1 i 3 → 0.15).
 
 KROK 2: TPM i odwoływanie starszych wersji                              L · T3–T6 · ADR 0057 · #235 (p. 2), R44, R38
   a. Jądro: `TCG_TPM`, `TCG_TIS` (X230: TPM 1.2 na LPC — ZE ŹRÓDEŁ: drivers/char/tpm/Kconfig; który układ — NIEPEWNE,
@@ -226,13 +226,13 @@ R21
      z `radios=0`).
   e. D5 (#231 p. 1, #237 p. 2): szybka grafika i filmy kartą — Z KODU (`K1_STREFY`, kolumna „grafika”; Twoja decyzja D5
      planu 0.10.9): domyślnie tylko Ogólna, Bank i Prywatna bez (to już spełnia #237 p. 2). Zostaje #231 p. 1: także
-     Ogólna domyślnie bez do audytu 0.14 — według D5; przełącznik w Ustawieniach → Przeglądarka bez zmian.
+     Ogólna domyślnie bez do audytu 0.15 — według D5; przełącznik w Ustawieniach → Przeglądarka bez zmian.
   f. IOMMU (#237 p. 1): Z KODU — już `INTEL_IOMMU_DEFAULT_ON`, `IOMMU_DEFAULT_DMA_STRICT` (jadro/k1.config); zostaje
      potwierdzenie na sprzęcie (log DMAR na X230 i IdeaPadzie) — wpis do listy „co sprawdzić”; bez zmian w kodzie.
   g. Testy: test-m1 (wydanie bez konsoli — `k1.efi` w QEMU nic nie pisze na port, ekran pokazuje pulpit; negatywne
      starty: ekran awarii w zrzucie zamiast logu), test-wifi (hwsim w obrazie testowym), sprawdz-kspp.
   Dokumenty: jadro.md, init.md, initramfs.md, RYZYKA R10, R17, R21, R100, Issue #234 (komentarz: p. 3 zrobione, p. 1–2 →
-  0.14), #231 (p. 1 według D5), #237 (p. 1 i 2 — już w kodzie, potwierdzenie na sprzęcie; p. 3 → 0.14).
+  0.15), #231 (p. 1 według D5), #237 (p. 1 i 2 — już w kodzie, potwierdzenie na sprzęcie; p. 3 → 0.15).
 
 KROK 5: Dostęp fizyczny                                                 M · D6, D7, T10 · ADR 0060 · #235 (p. 3, 4),
 R33, R41
@@ -260,14 +260,14 @@ R54, R80
   c. Znak na górnym pasku (rysowany przez gui/ekran), gdy fokus ma okno strefy: „to jest strona, nie K1” — wybór w D8.
   d. Testy: QEMU — skrót przy fokusie strefy próbnej (nie dochodzi do gościa: log VMM), ekran K1 na wierzchu; wzorce.
   Dokumenty: ADR 0061, ekran.md, logowanie.md, aplikacje.md, WYGLAD, RYZYKA R26, R40, R50, R54, R80, Issue #236 (p. 3 —
-  przegląd ścieżki klawiszy hasła → 0.14).
+  przegląd ścieżki klawiszy hasła → 0.15).
 
 KROK 7: Jądro: RANDSTRUCT; „piętro niżej”                               S–M · T12, T13 · ADR 0062 · #231 (p. 3)
   a. RANDSTRUCT (DO_ZROBIENIA punkt 7, T12): `RANDSTRUCT_FULL` z GCC wymaga wtyczek GCC (`GCC_PLUGINS`) — NIEPEWNE, czy
      są w kompilatorze budowy; ziarno losowania stałe dla wydania (powtarzalny build — niezmiennik 9) i tajne? (jawne
      ziarno w publicznym repo osłabia sens) — decyzja w ADR z pomiarem (sprawdz-powtarzalnosc, rozmiar, czas startu).
   b. Clang i kCFI (#231 p. 3): ocena — zmiana kompilatora jądra (powtarzalność, robot, czas budowy); wdrożenie tylko,
-     jeśli mieści się w kroku, inaczej → 0.14 z ADR.
+     jeśli mieści się w kroku, inaczej → 0.15 z ADR.
   c. „Piętro niżej” (Twój pomysł z 2026-11-08: ochrona jądra przez wirtualizację, jak VBS/HVCI, pKVM): ADR — co dałoby
      K1 (jądro pod nadzorem małego hiperwizora), ile to pracy, czego wymaga sprzęt X230 i IdeaPada; decyzja: tak (osobny
      temat po 1.0?), nie, później. Bez wdrożenia w 0.13.
@@ -276,7 +276,7 @@ KROK 7: Jądro: RANDSTRUCT; „piętro niżej”                               S
 KROK 8: Porządki; wydanie 0.13.0                                        S–M
   Porządki (co usunąć, scalić, uprościć — CHANGELOG „Porządki”; MINOR), przegląd „Tymczasowe” (robot wraca, jeśli był
   wyłączony — wpis zamknięty), README (tabela, „Co już jest”), lista „co sprawdzić” w docs/DO_ZROBIENIA.txt punkt 4,
-  plan do docs/archiwum/, CHANGELOG z „Opis w K1:”, VERSION 0.13.0; Issue — przegląd: zamknięte, przeniesione do 0.14.
+  plan do docs/archiwum/, CHANGELOG z „Opis w K1:”, VERSION 0.13.0; Issue — przegląd: zamknięte, przeniesione do 0.15.
 
 
 4. DECYZJE
@@ -295,7 +295,7 @@ KROK 8: Porządki; wydanie 0.13.0                                        S–M
     B — żadnych logów w wydaniu (trudniej zgłaszać błędy).
 [!] D5 (krok 4) Szybka grafika i filmy kartą w Ogólnej (#231 p. 1; Bank i Prywatna już dziś bez — Twoje D5 z 0.10.9):
     A — bez zmian: Ogólna domyślnie z szybką grafiką (rekomendacja: to Twoje filmy i strony na IdeaPadzie; ryzyko R100
-    zostaje do audytu 0.14); B — Ogólna też domyślnie bez do audytu 0.14 (włączasz sam w Ustawieniach → Przeglądarka).
+    zostaje do audytu 0.15); B — Ogólna też domyślnie bez do audytu 0.15 (włączasz sam w Ustawieniach → Przeglądarka).
 [!] D6 (krok 5) Nowa klawiatura / mysz z USB: A — okienko „Pozwolić?” (rekomendacja); B — tylko wpis w logu.
 [!] D7 (krok 5) Hasło przy pierwszym starcie: A — zachęta z „Później” (rekomendacja); B — hasło obowiązkowe.
 [!] D8 (krok 6) Zaufany ekran (szkice przed wyborem): A — skrót Ctrl+Alt+Del zawsze otwiera ekran K1, hasło tylko tam
@@ -328,7 +328,7 @@ Decyzje techniczne (ADR — decyduje czat kroku, Ty dostajesz krótkie wyjaśnie
      nadzorca).
   T11 (krok 6) Hasło w Ustawieniach: przeniesione do ekranu logowania czy okno z nieuchwytnym znakiem.
   T12 (krok 7) RANDSTRUCT: wtyczki GCC, ziarno, powtarzalność.
-  T13 (krok 7) Clang/kCFI — teraz czy 0.14.
+  T13 (krok 7) Clang/kCFI — teraz czy 0.15.
 
 
 5. LUKI (co dziś brakuje — Z KODU, 2026-11-26, chyba że napisano inaczej)
@@ -346,7 +346,7 @@ Krok 2:
   L7 Brak sekcji .sbat w `k1.efi`; shim przyjmie każdą starszą podpisaną wersję (RYZYKA R44).
   L8 Brak licznika wersji poza „Instalator nie zapisze starszej” (M6a) i A/B.
   L9 Brak wykrywania cofnięcia K1-DANE (RYZYKA R38; ADR 0015).
-  L10 Brak węzła TPM dla nadzorcy i wpisu w klatkach (nadzorca bez klatki — #234, 0.14).
+  L10 Brak węzła TPM dla nadzorcy i wpisu w klatkach (nadzorca bez klatki — #234, 0.15).
   L11 Brak testu z TPM w QEMU (swtpm — NIEPEWNE w kontenerze i na runnerze).
 Krok 3:
   L12 Brak trybu ratunkowego; po dwóch nieudanych startach GRUB pokazuje tylko komunikat (ADR 0022 pkt 4).
@@ -374,9 +374,9 @@ Krok 8:
   L28 README, „co sprawdzić”, CHANGELOG.
 
 
-6. NIE W TEJ WERSJI (→ 0.14 Audyt albo „Później” w docs/DO_ZROBIENIA.txt)
+6. NIE W TEJ WERSJI (→ 0.15 Audyt albo „Później” w docs/DO_ZROBIENIA.txt)
 -------------------------------------------------------------------------
-  - 0.14: nadzorca w klatce — własny seccomp, mniej capabilities, czytanie danych z zewnątrz (nl80211, GPT pendrive'a)
+  - 0.15: nadzorca w klatce — własny seccomp, mniej capabilities, czytanie danych z zewnątrz (nl80211, GPT pendrive'a)
     w usługach w klatkach (#234 p. 1–2); łącznik SOCKS5/DNS w osobnym procesie, fuzzing wszystkich urządzeń VMM-a,
     GPU 3D w osobnym procesie (#232); przegląd opcji jądra osiągalnych z zewnątrz, radio Wi-Fi wyłączone przy kablu
     (#231 p. 2, 4); ścieżka klawiszy hasła (#236 p. 3); „opakowanie” pośrednika grafiki (R100); pilne wydanie przy
@@ -412,7 +412,7 @@ Krok 1 (2026-11-26, Claude, PR #245, CI przebieg 371 zielony; ADR 0056):
     ogłoszenie TEGO SAMEGO wydania (wersja, SHA-256, identyfikator budowy) po 20 minutach; starsze — wycofuje (znak zerami).
   - T1: format 1 nie da się rozszerzyć (czytnik 0.12.3 wymaga zer w 96–127 i dokładnej długości) → drugi plik
     `k1-ogloszenie2.bin`; termin 7 dni; „Ogłoszenie dnia” (`ogloszenie.yml`, `wydanie odswiez`). Do końca formatu 1 —
-    decyzja w audycie 0.14.
+    decyzja w audycie 0.15.
   - Czas z HTTPS: curl `--write-out %output{…}%header{date}`, stopka tylko po całym pliku (kod 0) — brak stopki = pobieranie
     niepełne, nie „odrzucone”. Wpisy gościa strefy pobierania nie trafiają do logu K1: test sprawdza stopkę przez minuty,
     które K1 z niej policzył (serwer testowy przesuwa `Date` o 25 min → „26 min po pierwszym zobaczeniu”). W logu K1 nie
@@ -467,7 +467,7 @@ Krok 3 (2026-11-27, Claude, PR #251, CI przebieg 383 zielony; ADR 0058):
 
 Krok 4 (2026-11-27, Claude, PR #252, CI przebieg 391 zielony; ADR 0059):
   - D4 właściciela: A (log w pamięci, „Zapisz raport na pendrive” w Ustawieniach → Informacje i w trybie ratunkowym);
-    D5: A (szybka grafika w Ogólnej bez zmian — R100 do audytu 0.14). Wzorce Informacji przyjęte przez właściciela.
+    D5: A (szybka grafika w Ogólnej bez zmian — R100 do audytu 0.15). Wzorce Informacji przyjęte przez właściciela.
   - T8: `jadro/cmdline-wydanie` (`console=ttynull panic=60`) wbudowana w `k1.efi`; ten sam `zbuduj-k1efi.sh` składa kopię
     testową `k1-test.efi` (linia + `console=ttyS0 panic=-1`) i obrazy `k1-<w>-test.iso`, `-test-usb.img` (`--test`) dla
     test-m4/m5/m5f/m6/ratunek. Druga budowa ≈ 1 min (tylko linia), drugiego katalogu jądra nie ma. Bez `console=` jądro samo

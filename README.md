@@ -40,9 +40,10 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.12 Dźwięk | karta dźwiękowa tylko dla usługi dźwięku K1, okienko „Dźwięk” (głośność, „Grają teraz”), klawisze głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji) | PRZETESTOWANE w QEMU (karta Intel HD Audio zapisuje dźwięk do pliku; ADR 0054); głośniki, słuchawki i Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.12.3 Dźwięk wysokiej jakości | czystszy dźwięk (liczenie z zapasem, 24 bity do karty, przeglądarka we własnym formacie), korektor systemowy (10 pasm, gotowe ustawienia), Kons Spatial Audio — dźwięk przestrzenny ze sceną do przeciągania, gotowymi scenami i „Posłuchaj” | PRZETESTOWANE w QEMU (karta zapisuje dźwięk do pliku: przezroczystość, korektor, pasma sceny; ADR 0055); odsłuch — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.13 Bezpieczny start | ochrona przed przejętym CI (poczekalnia albo drugi podpis), TPM i odwoływanie starszych wersji, tryb ratunkowy, obraz wydania bez portu szeregowego, zgoda na nowe klawiatury USB, zaufany ekran K1 | PLANOWANE (`docs/PLAN-0.13.0.txt`) |
-| 0.14 | audyt końcowy → 1.0 | PLANOWANE |
+| 0.14 Aplikacje | Sklep w K1 (jedyna droga obcej aplikacji), aplikacje ze Sklepu w osobnych strefach — pierwsza: Discord z rozmowami głosowymi; mikrofon w K1 | PLANOWANE (`docs/PLAN-0.14.0.txt`) |
+| 0.15 | audyt końcowy → 1.0 | PLANOWANE |
 
-Od 0.9 etapy to numery wersji (ADR 0035, 0053); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
+Od 0.9 etapy to numery wersji (ADR 0035, 0053, 0064); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
