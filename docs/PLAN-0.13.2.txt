@@ -124,6 +124,7 @@ przełącznikiem szybkiej grafiki — Bank i Prywatna domyślnie bez (Twoje D5 z
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Próba ze źródeł i na stanowisku; ADR                  L1–L6            0.13.0      D3, D4, T1–T3    M        0063
+        [w toku: Claude, gałąź claude/dazzling-gates-9d355u]
 [ ]  2  FFmpeg i libva w strefie: H.264 gra (procesorem)      L6, L7, L15      1           T4               M        —
 [ ]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
         na prośbę, złośliwy gość
@@ -267,12 +268,12 @@ Twoje (produkt):
       o H.264, bo karta nie umie VP9 ani AV1. Skutek: na YouTube najwyżej 1080p (wyższych jakości YouTube w H.264 nie
       daje — NIEPEWNE, potwierdzi krok 4). Zmień, jeśli wolisz B: nie prosić (YouTube zostaje przy VP9/AV1 — karta nic
       nie pomoże).
-  [!] D3 (krok 1) Bramka zysku (ADR 0049 pkt 6: „co najmniej połowa mniej procesora, inaczej filmy wypadają”):
+  [x] D3 (krok 1; 2026-11-27: A) Bramka zysku (ADR 0049 pkt 6: „co najmniej połowa mniej procesora, inaczej filmy wypadają”):
       A (zalecane): pomiar na IdeaPadzie to dowód w raporcie, nie bramka — filmy kartą wchodzą, chyba że są gorsze niż
          procesorem (więcej procesora, zacinanie, błędy obrazu, rozjechany dźwięk); wtedy krok 4 zostaje bez prefów
          filmów do poprawki.
       B: bramka jak w 0.10.9 (co najmniej połowa mniej procesora sesji).
-  [!] D4 (krok 1 — tylko, jeśli próba L2 pokaże, że Firefox przyjmie kartę do filmów bez szybkiej grafiki) X230:
+  [x] D4 (krok 1 — ze źródeł: B, nie pytana — L2 „nie da się”, ADR 0063 pkt 5) (tylko, jeśli próba L2 pokaże, że Firefox przyjmie kartę do filmów bez szybkiej grafiki) X230:
       A (zalecane, jeśli się da): X230 też dostaje filmy kartą — ten sam przełącznik, na X230 obejmuje tylko filmy
          (napis „Filmy kartą”). Kartę dotyka wtedy tylko dekoder filmów K1, nie strefa (mniejsze ryzyko niż szybka
          grafika — R98, nie R100); zysk mniejszy, bo Firefox składa obraz procesorem (pomiar w kroku 4).
@@ -368,4 +369,39 @@ Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-(puste)
+Krok 1 (2026-11-27, ADR 0063; źródła: Firefox ESR 153.7.0 z Debiana, Linux 7.3.6, libva 2.24.1, i965 2.4.1):
+  - D3: A (właściciel). D4: nie pytana — wyszło „nie da się” (L2), więc B ze źródeł: X230 bez filmów kartą.
+  - L1 ZE ŹRÓDEŁ (dom/media/platforms/ffmpeg/FFmpegVideoDecoder.cpp: CreateImageVAAPI, GetVAAPISurfaceDescriptor):
+    każda klatka VA-API idzie TYLKO jako dma-buf (vaExportSurfaceHandle, VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2,
+    READ_ONLY | SEPARATE_LAYERS, potem vaSyncSurface) do DMABufSurfaceYUV; kopii (vaGetImage,
+    av_hwframe_transfer_data) w tej drodze nie ma. VALibWrapper.cpp: bez vaExportSurfaceHandle w libva.so.2 VA-API się
+    nie ładuje; libva-drm.so.2 (vaGetDisplayDRM) na węźle z DMABufDevice::OpenDRMFd. → T3: powierzchnia = bufor karty
+    strefy (zasób kontekstu DRM pośrednika), nie pamięć gościa.
+  - L2 ZE ŹRÓDEŁ: FFmpegVideoDecoder.cpp („Hardware WebRender is off, VAAPI is disabled”) — bez składania kartą VA-API
+    wyłączone; GfxInfo.cpp: vaapitest tylko przy mIsAccelerated (sprzętowy GL), force-enabled omija tylko status listy
+    zablokowanych. X230 (bez szybkiej grafiki) — nie (ADR 0063 pkt 5).
+  - L3 ZE ŹRÓDEŁ: SandboxBrokerPolicyFactory.cpp GetRDDPolicy — /usr/lib (drzewo, odczyt), AddGLDependencies → /dev/dri
+    (odczyt i zapis), /etc, /usr/share; SandboxFilter.cpp RDDSandboxPolicy — ioctl typu 'd' (DRM, więc i
+    DRM_IOCTL_VIRTGPU_*) i 'b' (DMA-BUF). libva va_drm_utils.c: „virtio_gpu” spoza mapy → sterownik
+    virtio_gpu_drv_video.so; va.c: funkcja startowa od __vaDriverInit_1_<minor> w dół do 1_0, LIBVA_DRIVER_NAME
+    i LIBVA_DRIVERS_PATH niepotrzebne. vaapitest.cpp: vaInitialize, vaQueryConfigProfiles, vaQueryConfigEntrypoints,
+    vaCreateConfig/vaDestroyConfig — nic nie rozpakowuje.
+  - L4 ZE ŹRÓDEŁ (virtgpu_kms.c, virtgpu_ioctl.c): CONTEXT_INIT przyjmie capset 1…63 podany przez urządzenie (wymaga
+    cech CONTEXT_INIT i VIRGL), ALE maska = `1 << id` na int — numer ≥ 31 psuje maskę. Wybrany K1_FILMY = 20.
+    virtgpu_prime.c: dma-buf zasobu otwarty drugim deskryptorem urządzenia = ten sam zasób (RESOURCE_INFO → numer).
+    virtgpu_submit.c: EXECBUFFER bez limitu poza pamięcią (vmemdup_user).
+  - L5 ZE ŹRÓDEŁ (i965 gen75_mfd.c, gen8_mfd.c: MFX_SURFACE_STATE „must be tiled”, „tile walk, must be 1”;
+    i965_drv_video.c: import DRM_PRIME, kafelki z get_tiling): rozpakowanie wprost do bufora strefy wymaga bufora
+    w kafelkach Y → „Później”; w 0.13.2 dekoder wpisuje klatkę procesorem do dma-bufa bufora strefy (jak dziś do okna).
+  - L6 ZE ŹRÓDEŁ (FFmpegRuntimeLinker.cpp, FFmpegLibWrapper.h): libavcodec.so.62 … .53, FFMPEG_MAX_MAJOR_VERSION 63 —
+    FFmpeg 8.x (62). StaticPrefList.yaml: media.ffmpeg.enabled domyślnie true (poza macOS), media.rdd-ffmpeg.enabled
+    true, media.hardware-video-decoding.enabled true, media.hardware-video-decoding.force-enabled false,
+    media.mediasource.vp9.enabled i media.av1.enabled istnieją (D2); media.ffmpeg.vaapi.enabled NIE istnieje (k1.js —
+    martwy wpis, krok 2 go usuwa).
+  - (d) Stanowisko: próby nie ma — llvmpipe na stanowisku = mIsAccelerated false, Firefox nigdy nie zapyta VA (L2);
+    zastępuje ją strefa próbna (krok 3), test sterownika VA na hoście i sprzęt właściciela (krok 4). Dowód L1–L6 —
+    cytaty ze źródeł wyżej.
+  - Dla kroku 3 (ADR 0063 pkt 1, 3, 4): komunikaty STREFA_FILMY_KARTA (pierwsze na fd 7 strefy z pośrednikiem),
+    STREFA_FILMY (prośba VMM-a), STREFA_FILMY_KANAL (+ kanał do dekodera), STREFA_FILMY_ODMOWA; klatka do bufora strefy
+    nowym typem z deskryptorem (VMM → dekoder). Dekoder kończy się z ostatnim kontekstem filmów; po błędzie — koniec
+    filmów kartą do końca sesji.
