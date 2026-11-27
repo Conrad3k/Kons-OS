@@ -104,25 +104,33 @@ if tryb == "ratunek":
         return ciemne >= 120 and szeroki
     w, h, px = q.zrzut("ratunek", gdy=ekran_ratunkowy, czas=limit * 0.7)
     sprawdz("ratunek: k1_licznik=2 → GRUB uruchamia tryb ratunkowy (zrzut wydanie-ratunek.png)", ekran_ratunkowy(w, h, px))
-    # The keys only when the rescue screen takes them: ↓ until the keyboard's ring (terracotta) leaves the main button
-    # for the next one — "Zapisz raport na pendrive" (slot B is empty) — then Enter. Enter on the main button would
-    # restart K1, so never before the ring moved (CI with KVM: the screen was drawn before its keys worked).
+    # The keys only when the rescue screen takes them (CI with KVM: drawn before its keys worked, and keys that came late
+    # moved the ring twice — Enter then pressed "Wyłącz komputer"). Which button has the keyboard's terracotta ring is read
+    # from a settled picture (the same three times): 0 the main one, 1 "Zapisz raport na pendrive" (slot B is empty),
+    # 2 "Wyłącz komputer"; ↓/↑ until it is 1 and stays there, then Enter. Enter on the main button would restart K1.
     def glowny(w, h, px):  # the rows of the main button: the wide terracotta bar
         r = [y for y in range(h // 4, h - 40, 2) if sum(akcent(px(x, y)) for x in range(w // 4, 3 * w // 4, 2)) >= 100]
         return (min(r), max(r)) if r else None
 
-    def obwodka(w, h, px, g):  # terracotta around the next button
-        return g and sum(akcent(px(x, y)) for x in range(w // 4, 3 * w // 4, 2)
-                         for y in range(g[1] + 8, min(h, g[1] + 80), 2)) >= 60
+    def obwodka(px, w, od, do):
+        return sum(akcent(px(x, y)) for x in range(w // 4, 3 * w // 4, 2) for y in range(od, do, 2)) >= 60
+
     g = glowny(w, h, px)
+    krok = (g[1] - g[0]) + 12 if g else 56  # a button and the gap under it
+
+    def wybrany():
+        w_, h_, p_ = q.zrzut("ratunek-wybrany")  # settled: the same picture three times
+        return 1 if obwodka(p_, w_, g[1] + 8, g[1] + krok) else 2 if obwodka(p_, w_, g[1] + krok, g[1] + 2 * krok) else 0
     przeszla = False
-    for _ in range(10):
-        q.monitor("sendkey down")
-        w2, h2, px2 = q.zrzut("ratunek-wybrany", gdy=lambda w_, h_, p_: obwodka(w_, h_, p_, g), czas=4)
-        if obwodka(w2, h2, px2, g):
+    for _ in range(12):
+        if not g:
+            break
+        n = wybrany()
+        if n == 1 and wybrany() == 1:
             przeszla = True
             break
-    sprawdz("ratunek: ↓ — obwódka na „Zapisz raport na pendrive” (ekran ratunkowy bierze klawisze)", przeszla)
+        q.monitor("sendkey up" if n == 2 else "sendkey down")
+    sprawdz("ratunek: obwódka na „Zapisz raport na pendrive” (ekran ratunkowy bierze klawisze)", przeszla)
     if przeszla:
         q.monitor("sendkey ret")
     t = raport(120)

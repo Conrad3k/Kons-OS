@@ -731,7 +731,11 @@ q3.sprawdz("NEGATYWNY: obraz strefy ze zmienionym bajtem — dm-verity go odrzuc
            q3.czekaj(r"K1-GUI: pulpit gotowy", czas=limit * 0.4) and
            q3.czekaj(r"K1-NADZORCA: obraz strefy przegladarka na dysku vd[a-z] jest zmieniony albo uszkodzony", czas=60) and
            q3.czekaj(r"K1-NADZORCA: obraz strefy przegladarka: nie znaleziono", czas=30))
-q3.klik(*q3.srodek(q3.czekaj_na_element("Pasek", "Start", czas=30) or {"x": 0, "y": 0, "w": 0, "h": 0}))
+# Start again when its menu does not show (CI run 387: a click right after "pulpit gotowy" opened nothing)
+for _ in range(3):
+    q3.klik(*q3.srodek(q3.czekaj_na_element("Pasek", "Start", czas=30) or {"x": 0, "y": 0, "w": 0, "h": 0}))
+    if q3.czekaj_na_element("Menu Start", czas=10) is not None:
+        break
 q3.klik_w("Menu Start", "Przeglądarka", "wiersz")
 kaf = q3.czekaj_na_element("Okienko", "sesja 2", "kafelek", czas=30)
 if kaf:
