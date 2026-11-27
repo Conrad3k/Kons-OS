@@ -125,9 +125,9 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
         licznik wersji, cofnięcie skarbca — PR #250
 [x]  3  Tryb ratunkowy; GRUB zostaje (ADR)                     L12–L14          1, 2        D2, D3, T7     L        0058
         — PR #251
-[ ]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
+[x]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
         ekranie, hwsim tylko w testach, mniej kodu z zewnątrz
-        — [w toku: Claude, gałąź claude/plan-0-13-0-krok-4-tilc5z]                                                               #231 (p. 1), #237
+        — PR #252                                                               #231 (p. 1), #237
 [ ]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
         zachęta do hasła
 [ ]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
@@ -465,3 +465,23 @@ Krok 3 (2026-11-27, Claude, PR #251, CI przebieg 383 zielony; ADR 0058):
   - Testy lokalnie: test-ratunek (25 sprawdzeń), test-m1, test-m4, test-m5f, test-m6, testy na hoście (`test_uklad`,
     `test_raport`, `test_komunikat`), fuzzing raport 60 s.
 
+Krok 4 (2026-11-27, Claude, PR #252; ADR 0059):
+  - D4 właściciela: A (log w pamięci, „Zapisz raport na pendrive” w Ustawieniach → Informacje i w trybie ratunkowym);
+    D5: A (szybka grafika w Ogólnej bez zmian — R100 do audytu 0.14). Wzorce Informacji przyjęte przez właściciela.
+  - T8: `jadro/cmdline-wydanie` (`console=ttynull panic=60`) wbudowana w `k1.efi`; ten sam `zbuduj-k1efi.sh` składa kopię
+    testową `k1-test.efi` (linia + `console=ttyS0 panic=-1`) i obrazy `k1-<w>-test.iso`, `-test-usb.img` (`--test`) dla
+    test-m4/m5/m5f/m6/ratunek. Druga budowa ≈ 1 min (tylko linia), drugiego katalogu jądra nie ma. Bez `console=` jądro samo
+    włączyłoby port szeregowy (pierwsza konsola z urządzeniem) — dlatego `console=ttynull` (`NULL_TTY`) wprost.
+  - T9: `mac80211_hwsim` wyłączony w `k1-zamkniete.config` — `k1.efi` już był drugą konfiguracją, koszt zerowy.
+  - R17: `DRM_PANIC` („kmsg”, kolory K1). `k1_awaria` czyści log jądra (`SYSLOG_ACTION_CLEAR` — ekran paniki zaczyna od
+    clear_seq), pisze opis do `/dev/kmsg` w ASCII (czcionka jądra = CP437, bez polskich liter) i kończy PID 1 → panika.
+    Kod QR — nie (Rust). Ekran paniki rysuje tylko na obrazie, który sterownik już wyświetla: bochs przed ekranem K1 (SeaBIOS)
+    nie ma trybu — test przez UEFI (`uruchom-qemu.sh --uefi --vga virtio`, simpledrm). Na i915 (X230, IdeaPad) — NIEPEWNE.
+  - Log w pamięci (`logi.c`) zaczyna się od nadzorcy: wierszy initramfs i init raport nie ma (doszły do nadzorcy =
+    zadziałały).
+  - `test-ratunek` nie był w `testy.sh` (krok 3 uruchamiał go tylko lokalnie) — dopisany razem z `test-wydanie`.
+  - Testy lokalnie: test-m1 (12/12), test-wydanie (13 sprawdzeń), test-ratunek, test-m6, test-wzorce (po przyjęciu),
+    na hoście `test_log`, `test_komunikat`, `test_inst_prawa`.
+  - Do listy „co sprawdzić” (krok 8): ekran awarii na X230 i IdeaPadzie (np. uszkodzony pendrive — na razie nie ma jak go
+    wywołać ręcznie; ewentualnie przy pierwszym prawdziwym błędzie), log DMAR/IOMMU (#237 p. 1), „Zapisz raport” z Ustawień.
+  - „Później”: jądro wydania bez sterownika portu szeregowego (8250 zostaje, bo kopia testowa ma tę samą konfigurację).
