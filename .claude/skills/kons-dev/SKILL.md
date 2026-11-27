@@ -493,7 +493,7 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Po scaleniu:** na `main` CI tylko buduje (bez testów — decyzja właściciela 2026-11-17; testy idą na PR-ze); budowa
   z jądrem od zera ok. 15 min. Padła → `get_job_logs` (`failed_only`) i poprawka (PATCH); przeszła → tag `k1-v<wersja>`
   i wydanie z ISO i obrazem USB. Logi testów są na PR-ze: konsola zadania (krok „Logi testów”), podsumowanie, artefakt
-  (7 dni). Stare artefakty usuwa workflow „Sprzątanie artefaktów”.
+  (7 dni). Stare artefakty usuwa workflow „Sprzątanie artefaktów”, stare przebiegi — ręcznie „Sprzątanie przebiegów” (`docs/komponenty/sprzatanie.md`).
 
 ## 10. Właściciel i raport
 
