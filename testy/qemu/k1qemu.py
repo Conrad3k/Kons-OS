@@ -216,6 +216,19 @@ class Maszyna:
         finally:
             s.close()
 
+    def monitor_tekst(self, polecenie):
+        """One HMP command and what it printed (e.g. "info mice"); "" when the monitor is gone."""
+        s = _polacz(self.mon)
+        if s is None:
+            return ""
+        try:
+            s.sendall(polecenie.encode() + b"\n")
+            return _do_zachety(s).decode(errors="replace")
+        except OSError:
+            return ""
+        finally:
+            s.close()
+
     def zrzut(self, nazwa, gdy=None, czas=None):
         """Zrzut ekranu (PNG w katalogu testów), gdy ekran pokazuje to, czego test oczekuje: `gdy(w, h, px)`
         jest prawdą — albo (bez warunku) ten sam obraz trzy razy z rzędu, czyli ekran skończył rysować.

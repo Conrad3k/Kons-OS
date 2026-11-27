@@ -35,5 +35,7 @@ void raport(void); /* 0.13.0 step 4 */
 void strefy(void);
 void pobrane(void); /* 0.11.0 step 2 (ADR 0052) */
 void przeciaganie(void); /* 0.11.0 step 4 */
+/* test_komunikat_ochrona.c (0.13.0 steps 2, 3, 5) */
+void ochrona(void);
 
 #endif

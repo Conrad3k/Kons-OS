@@ -74,7 +74,9 @@ w granicach protokołu (`test_touchpad`: także wartości wrogie).
 
 ## Ograniczenia
 Hotplug przez nadzorcę: nowe urządzenie = ponowne uruchomienie `wejscie` z pełnym zestawem (od 0.6.0 od razu po
-zdarzeniu jądra);
+zdarzeniu jądra); od 0.13.0 krok 5 (ADR 0060) urządzenie z USB podłączone po pierwszym pulpicie dostaje dopiero po
+„Pozwól” w okienku pulpitu — do tego czasu nadzorca go nie otwiera, więc `wejscie` nic od niego nie czyta (zgoda:
+`docs/komponenty/nadzorca.md`);
 odłączone urządzenie `wejscie` przestaje czytać (log „urządzenie odłączone”). Od M5a klawiatury
 i myszy USB (HID generic) — te same zdarzenia evdev co PS/2. Brak: pozycji bezwzględnej (tablet USB), touchpadów I2C-HID (nowsze laptopy — jądro K1 nie ma I2C-HID; X230 i
 IdeaPad 110 mają touchpad PS/2), bezwładności przewijania, przewijania trackpointem (środkowy przycisk + ruch);

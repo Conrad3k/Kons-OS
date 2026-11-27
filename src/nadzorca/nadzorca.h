@@ -137,18 +137,25 @@ void zamknij_log(struct usluga *u);
 
 /* urzadzenia.c */
 int otworz_karte(void);
-int otworz_wejscia(int *fd);
 int otworz_partycje_danych(int *ile);
 int otworz_dane(int *ile); /* powieksz.c: the same, K1-DANE first grown to the end of a USB stick when still empty */
 int zapas_danych_mib(void);    /* powieksz.c: MiB the stick has after K1-DANE (0: not a stick, under 16 MiB) */
 void powieksz_na_prosbe(void); /* powieksz.c: skarbiec's POWIEKSZ_DANE (a gesture in Ustawienia, ADR 0033) */
 int czekaj_na_dane(double od_startu);
 double od_startu_systemu(void);
-void sprawdz_nowe_wejscia(void);
+int dysk_ze_znakiem(const char *znak); /* a disk-mark of the QEMU tests (serial "k1-test-…") */
+int kopia_testowa(void);               /* 1: the kernel's console on the serial port (the test copy, ADR 0059) */
 extern int uevent_fd;
 extern int uevent_wejscie, uevent_dysk, uevent_zasilanie, uevent_zalegle; /* seen since the last loop pass */
 void uevent_otworz(void);
 void obsluz_uevent(void);
+
+/* wejscia.c (0.13.0 step 5, ADR 0060): the input devices for wejscie, the consent to a new one from USB */
+int otworz_wejscia(int *fd);
+void sprawdz_nowe_wejscia(void);
+void wejscia_zgoda(int pozwol, int32_t nr_pytania); /* gui's OCHRONA USB_ZGODA */
+void wejscia_nowy_gui(void);
+void wejscia_okresowe(void); /* OCHRONA USB to gui when what waits changed */
 
 /* skarb.c */
 extern int skarb_ster;
@@ -462,6 +469,7 @@ extern int bateria_okienko;         /* gui's battery popover is open (0.11.8 ste
 void bateria_okienko_prosba(int a); /* K1_KOM_BATERIA_OKIENKO from gui: a = K1_BOK_* */
 void ustawienia_miejsce_prosba(int a); /* 0.12.3 step 2: K1_KOM_POKAZ_USTAWIENIA from gui: a = K1_UST_MIEJSCE_* */
 int blokada_mozliwa(void);
+int zacheta_hasla(void); /* 0.13.0 step 5 (D7): a lasting vault without a password — gui encourages one */
 void bateria_nowy_kanal(void);
 void ustawienia_nowy_kanal(void);
 void wyslij_ustawieniom(void);

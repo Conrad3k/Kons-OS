@@ -73,3 +73,7 @@ QEMU q35 ma wbudowany kontroler AHCI; `qemu-xhci`, `usb-ehci`, `pci-ohci`, `nvme
   w `wejscie` (M5b) — wrócimy po testach na X230.
 - **USB z autoryzacją ręczną** (`USB_DEFAULT_AUTHORIZATION_MODE=0`) — bezpieczniej, ale bez okna
   zgody w K1 nie działałaby żadna klawiatura USB.
+
+## Uzupełnienie (2026-11-27, ADR 0060)
+Od 0.13.0 (krok 5) urządzenie wejścia z USB, które pojawi się po pierwszym pulpicie, czeka na „Pozwól” w okienku
+pulpitu: nadzorca nie daje go usłudze `wejscie`. Zgoda jest w K1, nie w jądrze (autoryzacja USB jądra dalej domyślna).

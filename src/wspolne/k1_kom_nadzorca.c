@@ -4,6 +4,7 @@
 
 #include "k1_bat_arch.h"
 #include "k1_tpm.h"
+#include "k1_urz_wejscia.h"
 #include "k1_uslugi.h"
 
 /* K1_KOM_BATERIA_HIST: at least one sample, each 0..100 (+ mains bit), 0xFF only after the last one,
@@ -67,12 +68,16 @@ static int ochrona(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
     if (kier == K1_KIER_OD_NADZORCY && k->a == K1_OCHR_RATUNEK) /* 0.13.0 step 3 */
         return w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 0, K1_INST_WERSJA - 1) && w(k->d, K1_RAP_NIC, K1_RAP_MAKS) &&
                (k->d == K1_RAP_ZAPISANY ? w(k->e, 0, 9) : k->d == K1_RAP_BLAD ? w(k->e, K1_INST_BLAD_MIN, -1) : k->e == 0);
+    if (kier == K1_KIER_OD_NADZORCY && k->a == K1_OCHR_USB) /* 0.13.0 step 5 */
+        return w(k->c, 0, 32) && (k->c == 0 ? k->b == 0 : w(k->b, 1, K1_URZ_MAKS)) && w(k->d, 0, K1_OCHR_PYTANIE_MAKS) &&
+               k->e == 0;
     if (kier == K1_KIER_OD_NADZORCY)
         return k->a == K1_OCHR_STAN && w(k->b, K1_TPM_BRAK, K1_TPM_ZAJETY) && w(k->c, 0, K1_OCHR_FL_MAKS) &&
                w(k->d, 0, K1_GEN_MAKS) && k->e == 0;
     return kier == K1_KIER_DO_NADZORCY &&
            ((w(k->a, K1_OCHR_NORMALNIE, K1_OCHR_RAPORT) && zera(k, 1)) || (k->a == K1_OCHR_MOJE_DANE && zera(k, 1)) ||
-            (k->a == K1_OCHR_TEST && w(k->b, 1, K1_GEN_MAKS) && zera(k, 2)));
+            (k->a == K1_OCHR_TEST && w(k->b, 1, K1_GEN_MAKS) && zera(k, 2)) ||
+            (k->a == K1_OCHR_USB_ZGODA && w(k->b, 0, 1) && w(k->c, 0, K1_OCHR_PYTANIE_MAKS) && zera(k, 3)));
 }
 
 /* Messages of nadzorca's control channels and the installer (Instalator, Ustawienia → Aktualizacje ↔ nadzorca ↔ instalator); 0 also for a type of another group. */
@@ -220,7 +225,7 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
     case K1_KOM_USTAWIENIA_MIEJSCE:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_UST_MIEJSCA_MAKS) && zera(k, 1);
     case K1_KOM_SESJA:
-        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && w(k->b, 0, 1) && zera(k, 2);
     case K1_KOM_URUCHOM_STREFE:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_STREFY_MAKS) &&
                w(k->b, 0, K1_STREFA_TRYB_MAKS) && zera(k, 2);

@@ -198,7 +198,15 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   poważnymi błędami. Twoje dane są zamknięte, dopóki nie zaktualizujesz K1.”) z „Pokaż w Ustawieniach” i „Rozumiem”; z flagą
   „dane cofnięte” → „Dane na dysku są starsze niż ostatnio” („Ktoś mógł podmienić dysk na wcześniejszą kopię…”) z „To moje
   dane” (`OCHRONA` a = `K1_OCHR_MOJE_DANE` do nadzorcy, fd 4) i „Później”. Log „okienko (starsza wersja): …” / „okienko
-  (dane cofnięte): Później x,y; To moje dane x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
+  (dane cofnięte): Później x,y; To moje dane x,y”. Od 0.13.0 krok 5 (ADR 0060, D6: A, D7: A) ta sama tabela okienek
+  ochrony (`ochrona.c`, wiersz = tytuł, tekst, przyciski, akcje): `OCHRONA` a = `K1_OCHR_USB` od nadzorcy → „Podłączono
+  nową klawiaturę” / „nową mysz” / „nowe urządzenie USB” („Urządzenie z gniazda USB podaje się za …”, „Bez Twojej zgody K1
+  nie przyjmie od niego …”) z „Pozwól” i „Nie pozwalaj” (`OCHRONA` a = `K1_OCHR_USB_ZGODA` z numerem pytania); nowe pytanie
+  zastępuje stare, c = 0 zamyka okienko; log „okienko (nowa mysz): Pozwól x,y; Nie pozwalaj x,y”. `SESJA` b = 1 przy
+  pierwszym starcie (`rozm_pierwszy_start`: skarbiec nie miał rozmieszczenia) → „Ustaw hasło” („Twoje pliki nie mają hasła.
+  Bez niego każdy, kto weźmie ten komputer albo pendrive, przeczyta Twoje pliki.”) z „Ustaw hasło” (`POKAZ_USTAWIENIA` a =
+  `K1_UST_MIEJSCE_HASLO` — Ustawienia → Hasło) i „Później”; raz — rozmieszczenie zapisane od razu; log „okienko (bez
+  hasła): Ustaw hasło x,y; Później x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
   Od 0.10.5 krok 6 (D12 właściciela: szkic A „ikona + okna sesji”; T17): **Przeglądarka na pasku i pulpicie** — wiersz
   `K1_STREFY` z linią menu Start to w gui osobna pozycja (`POZYCJA_MENU_STREFY`, obok okien sesji `POZYCJA_STREFY`), w

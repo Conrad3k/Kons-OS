@@ -139,10 +139,10 @@ NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
 # 0.10.9 step 4 (ADR 0050): the zone images outside the core (obraz_strefy.c)
 OBRAZ_STREFY := src/wspolne/k1_obraz_strefy.c src/wspolne/k1_obraz_strefy.h src/wspolne/k1_verity.c src/wspolne/k1_verity.h
 # 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_dzwiek.c src/wspolne/k1_tpm.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_dzwiek.c src/wspolne/k1_tpm.c src/wspolne/k1_urz_wejscia.c src/wspolne/k1_urz_wejscia.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
 		$(filter %.c,$(OBRAZ_STREFY)) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_nl.c \
-		src/wspolne/k1_dzwiek.c src/wspolne/k1_tpm.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		src/wspolne/k1_dzwiek.c src/wspolne/k1_tpm.c src/wspolne/k1_urz_wejscia.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
@@ -309,6 +309,9 @@ $(OBJ)/test_przestrzen: testy/host/test_przestrzen.c src/wspolne/k1_korektor.c s
 # 0.13.0 step 3 (ADR 0058): the rescue mode's report onto a FAT16/FAT32 stick (images: testy/host/obrazy_raport.sh)
 $(OBJ)/test_raport: testy/host/test_raport.c src/instalator/raport.c src/instalator/raport.h $(CZYTNIK_FAT) src/czytnik/fat.h $(DOK_C) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/czytnik -Isrc/instalator -o $@ testy/host/test_raport.c src/instalator/raport.c $(CZYTNIK_FAT) $(DOK_C)
+# 0.13.0 step 5 (ADR 0060): an input device in sysfs — what it is, on USB, its mark
+$(OBJ)/test_urz_wejscia: testy/host/test_urz_wejscia.c src/wspolne/k1_urz_wejscia.c src/wspolne/k1_urz_wejscia.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_urz_wejscia.c src/wspolne/k1_urz_wejscia.c
 $(OBJ)/test_tpm: testy/host/test_tpm.c src/wspolne/k1_tpm.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_tpm.c src/wspolne/k1_tpm.c
 $(OBJ)/test_stopka: testy/host/test_stopka.c src/wspolne/k1_stopka.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
@@ -328,8 +331,8 @@ $(OBJ)/test_touchpad: testy/host/test_touchpad.c src/wejscie/touchpad.c src/wejs
 	src/wspolne/k1_zdarzenie.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/wejscie -o $@ testy/host/test_touchpad.c src/wejscie/touchpad.c src/wspolne/k1_zdarzenie.c
 
-$(OBJ)/test_komunikat: testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat_strefy.c testy/host/test_komunikat.h $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat_strefy.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c
+$(OBJ)/test_komunikat: testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat_strefy.c testy/host/test_komunikat_ochrona.c testy/host/test_komunikat.h $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat_strefy.c testy/host/test_komunikat_ochrona.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c
 
 $(OBJ)/test_pomiar: testy/host/test_pomiar.c src/wspolne/k1_pomiar.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_pomiar.c src/wspolne/k1_pomiar.c
@@ -563,7 +566,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka test_tpm
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka test_tpm test_urz_wejscia
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_raport test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 

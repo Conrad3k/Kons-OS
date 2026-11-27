@@ -65,6 +65,7 @@ void bateria_nowy_kanal(void)
     sesje_nowy_kanal(0);
     dzwiek_nowy_gui(); /* 0.12.0 step 1: its channel to the sound service */
     tpm_nowy_gui();    /* 0.13.0 step 2: OCHRONA */
+    wejscia_nowy_gui(); /* 0.13.0 step 5: OCHRONA USB */
     ratunek_nowy_ekran(); /* step 3: the rescue screen's state */
 }
 
@@ -90,9 +91,9 @@ void ustawienia_nowy_kanal(void)
 void wyslij_baterie(void)
 {
     struct k1_komunikat k;
-    int z = blokada_mozliwa();
+    int z = blokada_mozliwa() | zacheta_hasla() << 1; /* SESJA a, b (0.13.0 step 5) */
     if (bateria_kanal >= 0 && gui_kanal_uid == K1_UID_GUI && z != sesja_wyslana) {
-        k = k1_komunikat_nowy(K1_KOM_SESJA, 0, z, 0, 0, 0, 0);
+        k = k1_komunikat_nowy(K1_KOM_SESJA, 0, z & 1, z >> 1, 0, 0, 0);
         if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0)
             sesja_wyslana = z;
     }

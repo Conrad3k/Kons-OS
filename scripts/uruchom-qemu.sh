@@ -9,6 +9,8 @@
 #                           [--pamiec MiB] [--emulacja] [--bez-wirtualizacji]   (strefy — 0.10.0: pamięć K1 w QEMU,
 #                           emulacja zamiast KVM — QEMU udaje wtedy wirtualizację AMD; procesor bez VT-x/AMD-V)
 #   scripts/uruchom-qemu.sh --iso PLIK [--uefi] [--vga std|virtio] ...   (start z obrazu ISO, ADR 0010; bez --iso: jądro
+#   --dysk-uefi PLIK [--vga none]: dysk z K1 przez UEFI; bez karty graficznej K1 nie pokaże obrazu (test-ratunek: start
+#   „nieudany” na pewno, 0.13.0 krok 5)
 #                           testów przez UEFI z obrazem z firmware — 0.13.0 krok 4, ekran awarii)
 #   scripts/uruchom-qemu.sh --pendrive PLIK ...   (obraz USB jako pamięć USB, start przez UEFI — M5d)
 #   scripts/uruchom-qemu.sh --dysk-uefi PLIK ...  (dysk SATA, start z niego przez UEFI — zainstalowany K1, M5f)
@@ -28,7 +30,7 @@ CMDLINE=$(cat "$K1_REPO/jadro/cmdline")
 LOG=$K1_BUDOWA/qemu/serial.log
 MONITOR=$K1_BUDOWA/qemu/monitor.sock
 CZAS=0
-ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI= ZMIENNE= PAMIEC= EMULACJA= BEZ_WIRT=
+ISO= UEFI= VGA= MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI= ZMIENNE= PAMIEC= EMULACJA= BEZ_WIRT=
 while [ $# -gt 0 ]; do
     case $1 in
         --obraz) OBRAZ=$2; shift 2 ;;
@@ -85,7 +87,7 @@ fi
 if [ -n "$DYSK_UEFI" ]; then
     # An installed K1 (M5f): UEFI firmware boots the SATA disk (AHCI of q35, like the X230's disk).
     set -- -machine "q35$MASZYNA" $AKCEL -m $P512 -smp 2 -nodefaults -no-reboot $FW \
-        -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
+        -vga "${VGA:-virtio}" -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
         -drive if=none,id=dysk,file="$DYSK_UEFI",format=raw -device ide-hd,bus=ide.0,drive=dysk,bootindex=1
 elif [ -n "$PENDRIVE" ]; then
     # Like the ThinkPad: UEFI firmware boots the stick (usb-storage on xHCI); picture from GOP → simpledrm.
@@ -97,14 +99,14 @@ elif [ -n "$ISO" ]; then
     # Like a VM user: firmware → GRUB from the CD → kernel; virtio-vga has no K1 driver → simpledrm.
     FIRMWARE=; [ -n "$UEFI" ] && FIRMWARE="-bios /usr/share/ovmf/OVMF.fd"
     set -- -machine "q35$MASZYNA" $AKCEL -m $P512 -smp 2 -nodefaults -no-reboot $FIRMWARE \
-        -vga "$VGA" -display none -nic none \
+        -vga "${VGA:-std}" -display none -nic none \
         -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" -cdrom "$ISO"
 else
 # 0.13.0 step 4 (ADR 0059): --uefi --vga virtio — the kernel started by UEFI firmware with its picture (simpledrm, as on a
 # laptop before i915): the screen of a critical error in the initramfs has a picture to draw on (bochs has none until ekran)
 FIRMWARE=; [ -n "$UEFI" ] && FIRMWARE="-bios /usr/share/ovmf/OVMF.fd"
 set -- -machine "q35$MASZYNA" $AKCEL -m $P256 -smp 2 -nodefaults -no-reboot $FIRMWARE \
-    -vga "$VGA" -display none -nic none \
+    -vga "${VGA:-std}" -display none -nic none \
     -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
     -kernel "$K1_WYNIK/bzImage" -initrd "$K1_WYNIK/initramfs.cpio" -append "$CMDLINE" $DYSK
 fi
