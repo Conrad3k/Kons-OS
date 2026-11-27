@@ -1,7 +1,8 @@
 #!/bin/sh
 # Test 0.13.0 krok 3 (ADR 0058): tryb ratunkowy. Obraz USB wydania jako dysk SATA (K1 „zainstalowany”, start przez UEFI:
 # shim → GRUB → k1.efi), w miejscu B kopia miejsca A (jest „poprzednia wersja”), pendrive FAT32 na USB na raport.
-#   1–2. „nieudany-1”, „nieudany-2”: maszyna wyłączona, zanim K1 pokaże obraz — GRUB liczy starty (k1_licznik 1, 2)
+#   1–2. „nieudany-1”, „nieudany-2”: maszyna bez karty graficznej (K1 nie pokaże obrazu), wyłączona po starcie nadzorcy —
+#      GRUB liczy starty (k1_licznik 1, 2)
 #   3. „ratunek”: trzeci start — menu GRUB-a z trybem ratunkowym jako domyślnym (10 s) → tryb ratunkowy: ekran
 #      ratunkowy (zrzut), cztery przyciski; NEGATYWNE: bez skarbca, pulpitu, sieci; „Zapisz raport na pendrive” →
 #      raport zapisany; „Uruchom poprzednią wersję” → grubenv k1_nowy=b, ponowne uruchomienie
@@ -40,10 +41,10 @@ truncate -s 64M "$STICK"
 USB="-device qemu-xhci,id=xhci -drive if=none,id=pen,file=$STICK,format=raw -device usb-storage,bus=xhci.0,drive=pen"
 r=0
 
-uruchom() { # $1 = scenario
+uruchom() { # $1 = scenario, $2 = the graphics card (none: K1 cannot show a picture — a failed start for sure)
     rm -f "$TESTY/ratunek-$1.log" "$TESTY/ratunek-$1.sock"
     "$K1_REPO/scripts/uruchom-qemu.sh" --log "$TESTY/ratunek-$1.log" --monitor "$TESTY/ratunek-$1.sock" --czas "$CZAS" \
-        --dysk-uefi "$DYSK" --qemu "$USB" &
+        --dysk-uefi "$DYSK" --vga "${2:-virtio}" --qemu "$USB" &
     QPID=$!
     K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/ratunek.py" "$TESTY/ratunek-$1.log" "$TESTY/ratunek-$1.sock" \
         "$TESTY" "$CZAS" "$1" || r=1
@@ -59,9 +60,9 @@ q = Maszyna(log, mon, out, limit, "ratunek")
 czekaj, sprawdz, ile = q.czekaj, q.sprawdz, q.ile
 N = r"K1-NADZORCA: "
 if tryb.startswith("nieudany"):
-    # killed at the initramfs's first line: long before ekran's picture — this start never reached the screen (until
-    # 0.13.0 step 5 at nadzorca's first lines; CI run 393 with KVM: the picture came before "quit", the counter was zeroed)
-    sprawdz(f"{tryb}: K1 startuje (initramfs)", czekaj(r"K1-INITRAMFS: start", czas=limit * 0.7))
+    # a machine without a graphics card: K1 starts, but never shows a picture — the start fails for sure (until 0.13.0
+    # step 5 "quit" at nadzorca's first lines; CI runs 393, 395 with KVM: the picture came first, the counter was zeroed)
+    sprawdz(f"{tryb}: K1 startuje (nadzorca)", czekaj(N + r"TPM", czas=limit * 0.7))
     q.monitor("quit")
     sprawdz(f"{tryb}: zwykły start (nie tryb ratunkowy), bez obrazu", ile(r"TRYB RATUNKOWY") == 0 and
             ile(r"K1-EKRAN: obraz na ekranie") == 0)
@@ -101,9 +102,9 @@ if tryb == "poprzednia":
 PY
 
 info "tryb ratunkowy 1/4: start przerwany przed obrazem"
-uruchom nieudany-1
+uruchom nieudany-1 none
 info "tryb ratunkowy 2/4: drugi raz"
-uruchom nieudany-2
+uruchom nieudany-2 none
 info "tryb ratunkowy 3/4: trzeci start — tryb ratunkowy"
 uruchom ratunek
 info "tryb ratunkowy 4/4: poprzednia wersja"

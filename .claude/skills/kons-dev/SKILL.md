@@ -378,8 +378,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *GRUB i grubenv (0.13.0 krok 3):* zmienne w `menuentry` widać tylko po `export`; funkcje GRUB-a (`function`) działają pod
   Secure Boot z gcdx64 Ubuntu; nowa zmienna grubenv = wiersz w tabeli `ZMIENNE` (`k1_uklad.c`) i w `host-test_uklad`
   (`grub-editenv`); testy, które sprawdzają grubenv tekstem, widzą też `k1_licznik=` `k1_tryb=`. W teście QEMU start
-  „nieudany” = maszyna wyłączona na pierwszym wierszu initramfs (od 0.13.0 krok 5; po wierszach nadzorcy z KVM obraz
-  zdążał przed `quit` — CI 393).
+  „nieudany” = maszyna bez karty graficznej (`--vga none`, od 0.13.0 krok 5): z KVM obraz zdążał przed `quit`, nawet
+  wysłanym przy pierwszym wierszu initramfs (CI 393, 395) — nie wyłączaj „na czas”, odbierz możliwość.
 - *Ekran awarii w QEMU (0.13.0 krok 4):* `DRM_PANIC` rysuje tylko na obrazie, który sterownik już wyświetla — `bochs`
   (SeaBIOS, `-vga std`) przed ekranem K1 nie ma ustawionego trybu i panika w initramfs zostawia tekst SeaBIOS-u; test
   idzie przez UEFI z `-vga virtio` (obraz z firmware, simpledrm): `uruchom-qemu.sh --uefi --vga virtio` (bez `--iso`).
