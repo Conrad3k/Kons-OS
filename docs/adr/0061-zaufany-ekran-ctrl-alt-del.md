@@ -4,7 +4,7 @@
 - Data: 2026-11-27
 - Dotyczy: ADR 0017 (hasło przy starcie — **uzupełniony**: hasło ustawia się i zmienia tylko na ekranie zabezpieczeń),
   ADR 0060 (okienko „Ustaw hasło” otwiera teraz ekran zabezpieczeń), ADR 0008 (protokół ekranu: nowy rodzaj powierzchni);
-  plan `docs/PLAN-0.13.0.txt` (krok 6, D8, T11); Issue #236; RYZYKA R26, R40, R50, R54, R80; opisy:
+  plan `docs/archiwum/PLAN-0.13.0.txt` (krok 6, D8, T11); Issue #236; RYZYKA R26, R40, R50, R54, R80; opisy:
   `docs/komponenty/ekran.md`, `docs/komponenty/gui.md`, `docs/komponenty/skarbiec.md`, `docs/komponenty/aplikacje.md`
 
 ## Kontekst

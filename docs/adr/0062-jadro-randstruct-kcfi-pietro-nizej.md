@@ -4,7 +4,7 @@
 - Data: 2026-11-27
 - Dotyczy: ADR 0003 (jądro: konfiguracja — **uzupełniony**: „świadomie bez RANDSTRUCT” rozstrzygnięte, kCFI z terminem),
   ADR 0002 (kompilator — GCC zostaje dla jądra do 0.15), niezmiennik 9 z `.claude/skills/kons-dev/SKILL.md` (powtarzalny
-  build); plan `docs/PLAN-0.13.0.txt` (krok 7, T12, T13); Issue #231 (p. 3); RYZYKA R4, R11; opis: `docs/komponenty/jadro.md`
+  build); plan `docs/archiwum/PLAN-0.13.0.txt` (krok 7, T12, T13); Issue #231 (p. 3); RYZYKA R4, R11; opis: `docs/komponenty/jadro.md`
 
 ## Kontekst
 Wszystkie klatki K1 stoją na jednym jądrze (R4, #231). Jądro K1 ma już większość wzmocnień z listy KSPP (ADR 0003,

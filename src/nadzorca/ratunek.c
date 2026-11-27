@@ -24,21 +24,6 @@ static char nosniki[NOSNIKI][32]; /* the K1-EFI partitions K1 started from (norm
 static int n_nosnikow, ta_wersja, inna_wersja, raport = K1_RAP_NIC, raport_e, ekran_wyslano;
 static char inne_miejsce; /* the other slot of the medium K1 started from ('a'/'b'), 0: none with a system */
 
-/* Its K1-EFI as nadzorca reads it: 0 and *e, or -1. `zapis`: opened for writing (exclusively). */
-static int otworz_efi(const char *efi, int zapis, struct k1_efi *e, int *fd)
-{
-    off_t rozm;
-    *fd = otworz_urzadzenie(efi, zapis ? O_RDWR | O_EXCL : O_RDONLY);
-    rozm = *fd < 0 ? -1 : lseek(*fd, 0, SEEK_END);
-    if (rozm <= 0 || k1_efi_czytaj(*fd, (uint64_t)rozm, e) != 0 || e->format != 2 || !e->env_ok) {
-        if (*fd >= 0)
-            close(*fd);
-        *fd = -1;
-        return -1;
-    }
-    return 0;
-}
-
 /* The K1-EFI partitions with K1 (internal disks; one USB stick) whose started slot is this build. */
 static void szukaj(void)
 {
@@ -56,7 +41,7 @@ static void szukaj(void)
     for (i = 0; i < n && n_nosnikow < NOSNIKI; i++) {
         struct k1_efi e;
         int fd, nr;
-        if (otworz_efi(lista[i], 0, &e, &fd) != 0)
+        if (k1efi_otworz(lista[i], 0, &e, &fd) != 0)
             continue;
         close(fd);
         nr = k1_slot_nr(e.env.start);
@@ -105,15 +90,13 @@ static int zapisz_env(void (*zmien)(struct k1_grubenv *e))
     for (i = 0; i < n_nosnikow; i++) {
         struct k1_efi p;
         struct k1_grubenv e;
-        uint8_t g[K1_GRUBENV_BAJTY];
         int fd;
-        if (otworz_efi(nosniki[i], 1, &p, &fd) != 0)
+        if (k1efi_otworz(nosniki[i], 1, &p, &fd) != 0)
             continue;
         e = p.env;
         zmien(&e);
         if (memcmp(&e, &p.env, sizeof e) != 0) {
-            k1_grubenv_zbuduj(&e, g);
-            if (k1_pisz_calosc(fd, g, sizeof g, p.uklad.grubenv_off) == 0 && fdatasync(fd) == 0)
+            if (k1efi_zapisz_env(fd, &p, &e) == 0)
                 ok = 1;
             else
                 k1_log(TAG, "tryb ratunkowy: zapis grubenv nieudany (%s): %s", nosniki[i], strerror(errno));
@@ -152,7 +135,7 @@ int ratunek_nosnik(int i, struct k1_efi *e, const char **nazwa)
     if (i < 0 || i >= n_nosnikow)
         return -1;
     *nazwa = nosniki[i];
-    if (otworz_efi(nosniki[i], 0, e, &fd) != 0)
+    if (k1efi_otworz(nosniki[i], 0, e, &fd) != 0)
         return 1;
     close(fd);
     return 0;

@@ -19,7 +19,6 @@
 #include "k1_verity.h"
 
 #define STREFY "/rdzen/strefy"
-#define WYDANIE "/rdzen/system/wydanie"
 #define OBRAZY_MAKS 2
 
 static struct {
@@ -65,15 +64,9 @@ static int ustaw(const char *nazwa, const struct k1_obraz_strefy *o, const char 
     return fd;
 }
 
-static int czytaj_wydanie(uint8_t w[16])
-{
-    char t[40];
-    return k1_czytaj_plik(AT_FDCWD, WYDANIE, t, sizeof t) == 33 && t[32] == '\n' && k1_hex_bajty(t, w, 16) == 0 ? 0 : -1;
-}
 
 /* 1: K1-EFI partition `czesc` holds a slot of this build with the image verified in it (*fd set). */
-static int z_k1_efi(const char *nazwa, const struct k1_obraz_strefy *o, const uint8_t wydanie[16], const char *czesc,
-                    int *fd)
+static int z_k1_efi(const char *nazwa, const struct k1_obraz_strefy *o, const char *czesc, int *fd)
 {
     struct k1_efi e;
     int urz = otworz_urzadzenie(czesc, O_RDONLY), kolejnosc[2] = { 0, 1 };
@@ -88,7 +81,7 @@ static int z_k1_efi(const char *nazwa, const struct k1_obraz_strefy *o, const ui
     for (int k = 0; k < 2; k++) {
         int i = kolejnosc[k];
         const struct k1_manifest *m = &e.slot[i];
-        int64_t od = m->wersja != 0 && memcmp(m->wydanie, wydanie, 16) == 0 ? k1_obraz_strefy_w_miejscu(o, m->fat_bajty, e.uklad.slot_bajty) : -1;
+        int64_t od = rozruch_to_wydanie(m) ? k1_obraz_strefy_w_miejscu(o, m->fat_bajty, e.uklad.slot_bajty) : -1;
         if (od < 0)
             continue;
         *fd = ustaw(nazwa, o, czesc, e.uklad.slot_off[i] + (uint64_t)od);
@@ -124,9 +117,8 @@ static int z_dysku(const char *nazwa, const struct k1_obraz_strefy *o, const cha
 /* Looks through SYS/class/block: pass 0 internal K1-EFI, 1 K1-EFI on USB, 2 whole virtio disks. */
 static int znajdz(const char *nazwa, const struct k1_obraz_strefy *o)
 {
-    uint8_t wydanie[16];
     int fd = -1;
-    if (czytaj_wydanie(wydanie) != 0) {
+    if (!rozruch_wydanie_jest()) {
         k1_log(TAG, "obraz strefy %s: brak identyfikatora wydania", nazwa);
         return -1;
     }
@@ -148,7 +140,7 @@ static int znajdz(const char *nazwa, const struct k1_obraz_strefy *o)
             if (k1_czytaj_plik(AT_FDCWD, sciezka, buf, sizeof buf) < 0 || strstr(buf, "\nPARTNAME=K1-EFI\n") == NULL ||
                 k1_dysk_na_usb(SYS, n) != (przebieg == 1))
                 continue;
-            if (z_k1_efi(nazwa, o, wydanie, n, &fd))
+            if (z_k1_efi(nazwa, o, n, &fd))
                 break;
         }
         if (d != NULL)

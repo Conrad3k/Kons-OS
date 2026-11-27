@@ -39,7 +39,7 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.11 Pliki ze stref | pobrane pliki w Plikach → Pobrane (z pochodzeniem), „Wyślij do” i „Otwórz za pomocą” sesji, „Zapisać zmiany w oryginale?”, przeciąganie między oknami i na okno przeglądarki, schowek, pełny ekran; 0.11.1–0.11.5: „Zapisz obraz jako…” (okno zapisu w oknie sesji, pytanie o plik zapisany w dowolnym folderze), szybsza przeglądarka (wszystkie procesory komputera), „Zablokuj” w menu Start tylko z hasłem; 0.11.8: niższe, przewijane menu Start, nowy górny pasek, okienko baterii (czas, pobór mocy) | PRZETESTOWANE w QEMU z KVM (ADR 0052); Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.12 Dźwięk | karta dźwiękowa tylko dla usługi dźwięku K1, okienko „Dźwięk” (głośność, „Grają teraz”), klawisze głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji) | PRZETESTOWANE w QEMU (karta Intel HD Audio zapisuje dźwięk do pliku; ADR 0054); głośniki, słuchawki i Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.12.3 Dźwięk wysokiej jakości | czystszy dźwięk (liczenie z zapasem, 24 bity do karty, przeglądarka we własnym formacie), korektor systemowy (10 pasm, gotowe ustawienia), Kons Spatial Audio — dźwięk przestrzenny ze sceną do przeciągania, gotowymi scenami i „Posłuchaj” | PRZETESTOWANE w QEMU (karta zapisuje dźwięk do pliku: przezroczystość, korektor, pasma sceny; ADR 0055); odsłuch — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
-| 0.13 Bezpieczny start | ochrona przed przejętym CI (poczekalnia albo drugi podpis), TPM i odwoływanie starszych wersji, tryb ratunkowy, obraz wydania bez portu szeregowego, zgoda na nowe klawiatury USB, zaufany ekran K1 | PLANOWANE (`docs/PLAN-0.13.0.txt`) |
+| 0.13 Bezpieczny start | nowa wersja trafia do laptopa 20 minut po wydaniu (czas na zatrzymanie, gdyby ktoś przejął GitHuba), ogłoszenie z terminem, TPM 2.0 — starsza wersja nie otworzy danych, cofnięte dane wykryte, tryb ratunkowy (Esc przy starcie: poprzednia wersja, raport na pendrive), obraz wydania bez portu szeregowego i z ekranem awarii, nowa klawiatura lub mysz z USB czeka na „Pozwól”, Ctrl+Alt+Del — ekran zabezpieczeń K1 i hasło tylko tam | PRZETESTOWANE w QEMU z KVM i swtpm (ADR 0056–0062); Secure Boot, TPM i Esc przy starcie — na sprzęcie |
 | 0.14 Aplikacje | Sklep w K1 (jedyna droga obcej aplikacji), aplikacje ze Sklepu w osobnych strefach — pierwsza: Discord z rozmowami głosowymi; mikrofon w K1 | PLANOWANE (`docs/PLAN-0.14.0.txt`) |
 | 0.15 | audyt końcowy → 1.0 | PLANOWANE |
 
@@ -47,7 +47,7 @@ Od 0.9 etapy to numery wersji (ADR 0035, 0053, 0064); wcześniejsze etapy M0–M
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.12.3):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.13.0):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, bateria — kliknięcie pokazuje czas i pobór
@@ -70,7 +70,11 @@ głośnik na pasku okna — kliknięcie ją wycisza. Od 0.12.3 dźwięk jest czy
 gdy karta je przyjmuje), Ustawienia → Dźwięk mają **korektor** (10 pasm, gotowe ustawienia, osobno głośniki i słuchawki)
 i **Kons Spatial Audio** — dźwięk przestrzenny: scena z góry, na której przeciągasz pasma (bas, środek, góra) wokół głowy,
 gotowe sceny (Kino, Koncert…), „Posłuchaj”; w słuchawkach naprawdę wokół głowy, na głośnikach szerszy dźwięk. **Aktualizacje**: K1 na dysku sam sprawdza wydania na GitHubie, pobiera
-nową wersję i pyta przed instalacją (Ustawienia → Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji,
+nową wersję i pyta przed instalacją (Ustawienia → Aktualizacje). **Bezpieczny start** (0.13.0): nowa wersja czeka
+20 minut po wydaniu, starsza nie otworzy danych (TPM 2.0), **Ctrl+Alt+Del** zawsze otwiera ekran zabezpieczeń K1 (tam
+ustawiasz hasło — żadna strona go nie podrobi), nowa klawiatura albo mysz z USB czeka na „Pozwól”, a gdy K1 nie wstaje —
+**tryb ratunkowy** (Esc w pierwszej sekundzie startu albo sam po dwóch nieudanych startach: poprzednia wersja, raport na
+pendrive). Czego jeszcze nie ma: innych obcych aplikacji,
 mikrofonu, dźwięku przez HDMI i USB, jasności ekranu i innych klawiszy Fn. Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
@@ -129,9 +133,13 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
 5. Zapis: zmień tapetę albo motyw (Ustawienia), napisz coś w Notatkach, wyłącz i uruchom ponownie —
    wszystko powinno wrócić. Bez hasła dane są zaszyfrowane, ale ktoś z Twoim pendrive'em może je
    odczytać.
-6. Hasło (od 0.5.7): Ustawienia → Hasło → przełącznik „Wymagaj hasła przy włączaniu” → wpisz hasło
-   dwa razy → Zapisz. Przy następnym włączeniu zobaczysz ekran hasła. **Zapomniane hasło = nowe
-   konto** (dane zaszyfrowane starym hasłem przepadają — trzeba nagrać pendrive od nowa).
+6. Hasło (od 0.13.0 tylko na ekranie zabezpieczeń K1): **Ctrl+Alt+Del** → *Hasło* → wpisz hasło dwa razy → Zapisz
+   (przy pierwszym starcie K1 sam proponuje „Ustaw hasło”). Przy następnym włączeniu zobaczysz ekran hasła. **Zapomniane
+   hasło = nowe konto** (dane zaszyfrowane starym hasłem przepadają — trzeba nagrać pendrive od nowa). Okno, które w
+   środku pracy prosi o hasło K1, to podróbka — K1 pyta o nie tylko po Ctrl+Alt+Del i przy włączaniu.
+   **Gdy K1 nie wstaje** (od 0.13.0): przy starcie wciśnij **Esc** w pierwszej sekundzie (albo K1 sam pokaże menu po
+   dwóch nieudanych startach) → *Tryb ratunkowy*: *Uruchom poprzednią wersję* albo *Zapisz raport na pendrive* (pendrive
+   z FAT32 — raport dołącz do zgłoszenia na GitHubie).
 7. **Instalacja na dysk laptopa** (od 0.5.9): znak K1 → **Instalator** → wybierz dysk → *Zainstaluj* →
    wpisz **USUŃ** → *Usuń wszystko i zainstaluj*. **Wszystko na tym dysku zostanie usunięte** (Windows,
    pliki). Po „Gotowe”: *Wyłącz komputer*, wyjmij pendrive, włącz laptop — K1 startuje z dysku (jeśli nie:
@@ -142,8 +150,9 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    sieć, ani z pendrive'a (Ustawienia → Aktualizacje pokażą błąd). Zainstaluj go od nowa z pendrive'a
    (Instalator) — dane z tego dysku przepadną.
    **Aktualizacja przez sieć (od 0.10.5):** K1 na dysku sam sprawdza (po połączeniu z internetem i co 6 godzin), pobiera
-   nową wersję i pyta okienkiem „Jest nowa wersja K1” — instaluje dopiero po *Zainstaluj*. Wszystko w **Ustawieniach →
-   Aktualizacje**: *Sprawdź teraz*, *Sprawdzaj sam*, *Wróć do poprzedniej wersji*. K1 uruchomiony z pendrive'a powie tylko,
+   nową wersję i pyta okienkiem „Jest nowa wersja K1” — instaluje dopiero po *Zainstaluj*; od 0.13.0 pobrana wersja
+   czeka 20 minut, zanim K1 ją zaproponuje (gdyby ktoś przejął konto K1 na GitHubie, jest czas, żeby ją zatrzymać).
+   Wszystko w **Ustawieniach → Aktualizacje**: *Sprawdź teraz*, *Sprawdzaj sam*, *Wróć do poprzedniej wersji*. K1 uruchomiony z pendrive'a powie tylko,
    że jest nowsza wersja — nagraj nowy pendrive.
    Nowe wersje wydajemy my (nowe funkcje) albo robot na GitHubie (poprawki bezpieczeństwa jądra i przeglądarki, z opisem
    „Ta aktualizacja zawiera istotne poprawki dotyczące bezpieczeństwa i jakości.”) — każda przechodzi pełne testy

@@ -4,7 +4,7 @@
 - Data: 2026-11-26
 - Dotyczy: ADR 0021, 0022 (A/B, Secure Boot — **uzupełnione**: potwierdzenie startu zapisuje generację), ADR 0015
   (skarbiec — cofnięcie nośnika, RYZYKA R38), ADR 0007 (jeden właściciel zasobu); Issue #235 (p. 2); plan
-  `docs/PLAN-0.13.0.txt` (krok 2, T3–T6); opisy: `docs/komponenty/nadzorca.md`, `docs/komponenty/skarbiec.md`,
+  `docs/archiwum/PLAN-0.13.0.txt` (krok 2, T3–T6); opisy: `docs/komponenty/nadzorca.md`, `docs/komponenty/skarbiec.md`,
   `docs/komponenty/jadro.md`, `docs/komponenty/gui.md`, `docs/komponenty/aplikacje.md`
 
 ## Kontekst
