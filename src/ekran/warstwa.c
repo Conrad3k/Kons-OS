@@ -274,7 +274,8 @@ static int kandydat(void)
         kursor_miejsce(&kx, &ky);
         if (w.pl[W_KURSOR].id == 0 && nachodzi(&(struct prost){ kx, ky, K1_KURSOR_SZER, K1_KURSOR_WYS }, &r))
             return -1;
-        if (pelny_rysuje() || glosnosc_widac()) /* K1's pills (0.11.0 step 1, 0.12.0 step 2) — never under the layer */
+        if (pelny_rysuje() || glosnosc_widac() || zabezpieczenia() >= 0) /* K1's pills (0.11.0 step 1, 0.12.0 step 2), the
+                                                                            * security screen (0.13.0 step 6) — never under */
             return -1;
         return idx[i];
     }

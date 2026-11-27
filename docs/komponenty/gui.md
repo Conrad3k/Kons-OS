@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M4; pulpit z ikonami 0.7.5) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart), `test_rozmieszczenie` + fuzzing |
-| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, okienka paska — 0.11.8), `bateria.c` (bateria na górnym pasku; od 0.11.8 krok 3 osobno, z okienkiem baterii), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `przelacznik.c` (przełącznik okien — Alt+Tab, 0.10.5 krok 6), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, okienka paska — 0.11.8), `bateria.c` (bateria na górnym pasku; od 0.11.8 krok 3 osobno, z okienkiem baterii), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `zabezpieczenia.c` + `haslo.c` (ekran zabezpieczeń i formularz hasła — 0.13.0 krok 6, ADR 0061), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `przelacznik.c` (przełącznik okien — Alt+Tab, 0.10.5 krok 6), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
 | **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka), ADR 0026 i 0028 (ikony, menu kontekstowe, rozmieszczenie); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -123,6 +123,19 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   lista y0–y1, widać n z m, przesunięcie p)” — „pierwszy wiersz” to miejsce, gdzie byłby wiersz 1 (testy dodają do niego
   wiersze; wiersze nad listą są schowane).
 
+## Ekran zabezpieczeń (0.13.0 krok 6, ADR 0061, D8: A)
+Ctrl+Alt+Del rozpoznaje ekran i daje go tylko powłoce (`KLAWISZ` Delete do powierzchni `P_ZABEZPIECZENIA`): gui pokazuje
+**ekran zabezpieczeń** (`zabezpieczenia.c`) — powierzchnię `K1_POW_ZABEZPIECZENIA` 480 × 560 na środku, którą ekran trzyma
+nad wszystkim i przyciemnia resztę; utworzona ukryta przy starcie, przy zmianie trybu przesuwana na środek. Wiersze:
+„Zablokuj” (tylko z hasłem — `WYLACZ` a = 2), „Hasło” (formularz), „Uruchom ponownie” (`WYLACZ` 1), „Wyłącz” (`WYLACZ` 0);
+strzałki, Enter, Tab i mysz; Esc — z formularza do wierszy, z wierszy do pulpitu. Formularz hasła (`haslo.c`, przeniesiony
+z Ustawień): ustaw (nowe + powtórz), zmień (obecne + nowe + powtórz), wyłącz (obecne) — stan magazynu z `SKARB_INFO`
+i każdej odpowiedzi skarbca (fd 6), hasło w zapieczętowanym memfd do skarbca (`SKARB_HASLO` przyjmuje tylko od gui),
+wyczyszczone od razu, nigdy w logu. Okienko „Ustaw hasło” (krok 5) otwiera ekran zabezpieczeń od razu na formularzu.
+Wygląd zawsze ciemny (`k1_motyw(1)`). Log: „ekran zabezpieczeń otwarty[ (hasło)]”, „ekran zabezpieczeń: [pola N od x,y co
+d; ]Zablokuj x,y; Hasło x,y; …”, „ekran zabezpieczeń: hasło | zablokowanie | …”, „zmiana hasła wysłana do skarbca”,
+„hasło zapisane | wyłączone”, „ekran zabezpieczeń zamknięty”.
+
 ## Granica zaufania
 Klient `ekran` w roli **powłoki**; prośby do nadzorcy wysyła kanałem fd 4. Nie widzi treści okien
 aplikacji (składa je ekran), nie ma plików ani urządzeń. Ufa tylko komunikatom, które sprawdza
@@ -204,8 +217,8 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   nie przyjmie od niego …”) z „Pozwól” i „Nie pozwalaj” (`OCHRONA` a = `K1_OCHR_USB_ZGODA` z numerem pytania); nowe pytanie
   zastępuje stare, c = 0 zamyka okienko; log „okienko (nowa mysz): Pozwól x,y; Nie pozwalaj x,y”. `SESJA` b = 1 przy
   pierwszym starcie (`rozm_pierwszy_start`: skarbiec nie miał rozmieszczenia) → „Ustaw hasło” („Twoje pliki nie mają hasła.
-  Bez niego każdy, kto weźmie ten komputer albo pendrive, przeczyta Twoje pliki.”) z „Ustaw hasło” (`POKAZ_USTAWIENIA` a =
-  `K1_UST_MIEJSCE_HASLO` — Ustawienia → Hasło) i „Później”; raz — rozmieszczenie zapisane od razu; log „okienko (bez
+  Bez niego każdy, kto weźmie ten komputer albo pendrive, przeczyta Twoje pliki.”) z „Ustaw hasło” (od 0.13.0 krok 6 — ekran
+  zabezpieczeń od razu na formularzu hasła; w kroku 5 Ustawienia → Hasło) i „Później”; raz — rozmieszczenie zapisane od razu; log „okienko (bez
   hasła): Ustaw hasło x,y; Później x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
   Od 0.10.5 krok 6 (D12 właściciela: szkic A „ikona + okna sesji”; T17): **Przeglądarka na pasku i pulpicie** — wiersz
@@ -287,6 +300,7 @@ treści ani innych folderów; RYZYKA R27, R48).
 | `test-m4.sh` (0.8.0): Kosz na pulpicie, plik z folderu Pulpit jako ikona, podwójne kliknięcie otwiera Pliki, „Usuń” z menu pliku, Kosz pełny / pusty | funkcjonalny |
 | `test-m4.sh` (0.7.5): ikony na zrzucie, podwójne kliknięcie, przeciągnięcie ikony, menu kontekstowe (odepnij, zamknij okno, usuń i dodaj do pulpitu), rozmieszczenie po ponownym starcie | funkcjonalny |
 | w systemie (0.7.5): warstwa pulpitu i zamykanie cudzych okien od aplikacji — odrzucone | negatywny |
+| `test-m4.sh` (0.13.0 krok 6): Ctrl+Alt+Del → ekran zabezpieczeń → „Hasło”: różne hasła odrzucone, hasło ustawione; Esc; z hasłem „Zablokuj” → ekran hasła; `test-m5.sh`: „Ustaw hasło” → formularz; `test-wzorce.sh`: `ekran-zabezpieczen`, `ekran-zabezpieczen-haslo` | funkcjonalny, negatywny |
 | `test-pliki.sh` (0.8.2 krok 6): folder przeciągnięty na folder na pulpicie (przeniesiony), folder na Kosz — okienko z pytaniem, „Przenieś do Kosza”; zrzuty `pliki-11-pulpit-na-folder.png`, `pliki-12-pulpit-pytanie.png` | funkcjonalny |
 | `test_rozmieszczenie` (0.8.2 krok 6, L19): więcej plików niż komórek — ostatnia wolna komórka dla „Jeszcze n”, stabilna przy kolejnych listach, przy pełnej siatce zwalnia ją ikona pliku, limit 96 ikon | jednostkowy |
 | `test_dokumenty` (0.8.2 krok 6): pulpit przenosi plik Pulpitu tylko do folderu Pulpitu (inny folder, plik zamiast folderu, cudzy plik — odmowa) | negatywny |

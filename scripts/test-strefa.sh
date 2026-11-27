@@ -335,6 +335,28 @@ q.pisz("volumedown")
 sprawdz("NEGATYWNY: klawisz głośności przy fokusie strefy — pigułka głośności K1, gość go nie dostaje",
         czekaj(r"K1-EKRAN: pigułka głośności: 0% \(brak karty\)", od=n, czas=60) and
         q.cisza(r"K1-GOSC: wejście: klawisze 6", 8))
+# 0.13.0 step 6 (ADR 0061, D8: A): Ctrl+Alt+Del while the zone has the focus — K1's security screen above the zone, the
+# rest darkened; the guest saw Ctrl and Alt go down (klawisze 7) and gets them going up, never Delete; nothing typed on the
+# security screen reaches it; after Esc a letter is the only key it holds
+n = q.ile(r"K1-GUI: ekran zabezpieczeń otwarty")
+q.monitor("sendkey ctrl-alt-delete")
+sprawdz("NEGATYWNY: Ctrl+Alt+Del przy fokusie strefy — ekran zabezpieczeń K1, gość dostaje tylko Ctrl i Alt",
+        czekaj(r"K1-GUI: ekran zabezpieczeń otwarty", od=n, czas=60) and
+        czekaj(r"K1-EKRAN: Ctrl\+Alt\+Del: do powłoki — ekran zabezpieczeń \(strefa z fokusem: puszczone Ctrl i Alt\)",
+               czas=10) and q.cisza(r"K1-GOSC: wejście: klawisze 8", 8))
+ciemno = lambda w, h, px: max(px(x + 30, y + h_ - 30)) < 110
+w, h, px = q.zrzut("zabezpieczenia", gdy=ciemno)
+sprawdz("zrzut strefa-zabezpieczenia: okno strefy przyciemnione pod ekranem zabezpieczeń", ciemno(w, h, px),
+        str(px(x + 30, y + h_ - 30)))
+q.pisz("x", "y")
+sprawdz("NEGATYWNY: klawisze przy ekranie zabezpieczeń nie trafiają do strefy", q.cisza(r"K1-GOSC: wejście: klawisze 8", 8))
+n = q.ile(r"K1-GUI: ekran zabezpieczeń zamknięty")
+q.pisz("esc")
+sprawdz("Esc: ekran zabezpieczeń zamknięty", czekaj(r"K1-GUI: ekran zabezpieczeń zamknięty", od=n, czas=30))
+q.pisz("b")
+sprawdz("po ekranie zabezpieczeń gość nie trzyma Ctrl ani Alt: przy literze wciśnięta tylko ona",
+        czekaj(r"K1-GOSC: wejście: klawisze 8, kliknięcia 1, wciśnięte 1\b", czas=60),
+        (re.findall(r"K1-GOSC: wejście: klawisze[^\n]*", q.tekst()) or ["brak"])[-1])
 
 # the dark theme: Ustawienia → Wygląd → Ciemny (as in the other tests)
 q.klik(ax + 2 * krok, ay)
@@ -346,9 +368,9 @@ if u and sk:
     q.klik(ux + int(sk.group(4)) + int(sk.group(6)) * 3 // 4, uy + int(sk.group(5)) + 10)
 sprawdz("ciemny motyw", czekaj(r"K1-EKRAN: ustawienie 1=1", czas=60))
 # the zone's window to the front: a click on its content (focus), the frame then in the full colour
-n = q.ile(r"K1-GOSC: wejście: klawisze 5, kliknięcia 2")
+n = q.ile(r"K1-GOSC: wejście: klawisze 8, kliknięcia 2")
 q.klik(x + w_ - 40, y + h_ - 40)
-czekaj(r"K1-GOSC: wejście: klawisze 5, kliknięcia 2", czas=60)
+czekaj(r"K1-GOSC: wejście: klawisze 8, kliknięcia 2", czas=60)
 ciemna_ramka = lambda w, h, px: blisko(px(x - 2, y + h_ // 2), TLO_OKNA["ciemny"], 8) and blisko(px(x + w_ // 2, y - 1), PIASEK)
 w, h, px = q.zrzut("6-ciemny", gdy=ciemna_ramka)
 sprawdz("ciemny motyw: ramka w tle okna, linia pod paskiem w kolorze strefy, pasek tytułu nad treścią (zrzut strefa-6-ciemny)",

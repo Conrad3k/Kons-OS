@@ -48,8 +48,9 @@ void t_okna_ipc(void)
     const size_t rozmiar = (size_t)w * (size_t)h * 8u;
     int fd = polacz(K1_ROLA_APLIKACJA, K1_APL_ZEGAR, 0), obcy = polacz(K1_ROLA_APLIKACJA, K1_APL_ZEGAR, K1_UID_ZEGAR);
     int null = open("/rdzen/jadro/dev/null", O_RDWR | O_CLOEXEC), m1 = memfd(rozmiar, 0), m2 = memfd(rozmiar / 2, 1),
-        m3 = memfd(rozmiar, 1), m4 = memfd(rozmiar, 1), m5 = memfd(rozmiar, 1), ok, ramka, ramka_obcy;
-    if (fd < 0 || obcy < 0 || null < 0 || m1 < 0 || m2 < 0 || m3 < 0 || m4 < 0 || m5 < 0) {
+        m3 = memfd(rozmiar, 1), m4 = memfd(rozmiar, 1), m5 = memfd(rozmiar, 1),
+        m6 = memfd(rozmiar, 1), ok, ramka, ramka_obcy, ramka_zab;
+    if (fd < 0 || obcy < 0 || null < 0 || m1 < 0 || m2 < 0 || m3 < 0 || m4 < 0 || m5 < 0 || m6 < 0) {
         check(0, "M4: protokół okien", "przygotowanie: %d %d %d %d %d %d %d %d", fd, obcy, null, m1, m2, m3, m4, m5);
         return;
     }
@@ -66,18 +67,23 @@ void t_okna_ipc(void)
      * window is the 9th, refused by the same check as minimising one above */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 7, w, h, K1_POW_PULPIT, 0, 0), m5); /* desktop layer */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZAMKNIJ_OKNO, 1, 0, 0, 0, 0, 0), -1);
+    /* 0.13.0 step 6 (ADR 0061): the security screen is the shell's — an application's is refused (no frame for it) */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 8, w, h, K1_POW_ZABEZPIECZENIA, 0, 0), m6);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 8, 0, 0, 0, 0, 0), -1);
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 6, w, h, K1_POW_OKNO, 0, 0), m4);   /* valid */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 6, 0, 0, 0, 0, 0), -1);
     ramka = czekaj_na(fd, K1_KOM_RAMKA, 6, 10000);
+    ramka_zab = czekaj_na(fd, K1_KOM_RAMKA, 8, 2000);
     /* a valid window from a foreign UID is not accepted */
     ok &= czekaj_na(obcy, K1_KOM_WITAJ, 0, 5000);
     ok &= wyslij_k(obcy, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 1, w, h, K1_POW_OKNO, 0, 0), m3);
     ok &= wyslij_k(obcy, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
     ramka_obcy = czekaj_na(obcy, K1_KOM_RAMKA, 1, 2000);
-    check(ok && ramka && !ramka_obcy && find_process("ekran") > 0,
-          "NEGATYWNY M4: ekran odrzuca złe powierzchnie (bez memfd, bez pieczęci, zły rozmiar), panel, warstwę pulpitu "
-          "i ustawienia od aplikacji, sterowanie i zamykanie cudzych okien i okno od obcego UID; poprawne okno przyjmuje",
-          "wysłanie=%d ramka=%d ramka_obcego=%d", ok, ramka, ramka_obcy);
+    check(ok && ramka && !ramka_obcy && !ramka_zab && find_process("ekran") > 0,
+          "NEGATYWNY M4: ekran odrzuca złe powierzchnie (bez memfd, bez pieczęci, zły rozmiar), panel, warstwę pulpitu, "
+          "ekran zabezpieczeń i ustawienia od aplikacji, sterowanie i zamykanie cudzych okien i okno od obcego UID; "
+          "poprawne okno przyjmuje",
+          "wysłanie=%d ramka=%d ramka_obcego=%d ramka_zabezpieczen=%d", ok, ramka, ramka_obcy, ramka_zab);
     close(fd);
     close(obcy);
     close(null);
@@ -86,6 +92,7 @@ void t_okna_ipc(void)
     close(m3);
     close(m4);
     close(m5);
+    close(m6);
 }
 
 /* 0.10.5 step 4 (T12): a zone's window changes its size only when ekran asks (ROZMIAR, after the user's gesture on K1's

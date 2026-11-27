@@ -29,7 +29,8 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 - Kanały klientów: `SKARB_CZYTAJ`, `SKARB_ZAPISZ` (+ zapieczętowany memfd o podanym rozmiarze),
   `SKARB_USUN` → `SKARB_DANE` (+ memfd) albo `SKARB_WYNIK` (wynik, tryb: dysk / pamięć).
 - Klienci (0.5.6): ekran (fd 5, obiekt `K1_OB_USTAWIENIA`), Notatki (fd 4; od 0.5.8 obiekt 1 = lista,
-  2…33 = notatki), Ustawienia (fd 5: `SKARB_INFO`, `SKARB_HASLO`), ekran hasła (`SKARB_ODBLOKUJ`),
+  2…33 = notatki), Ustawienia (fd 5: `SKARB_INFO`; `SKARB_HASLO` do 0.12.3), gui (fd 6, od 0.13.0 krok 6: `SKARB_INFO`, `SKARB_HASLO` — ekran
+  zabezpieczeń), ekran hasła (`SKARB_ODBLOKUJ`),
   nadzorca (0.6.0: właściciel `K1_WL_SYSTEM`, obiekt `K1_OB_BATERIA` — historia baterii, `k1_bat_arch.h`),
   gui (0.7.5: rozmieszczenie pulpitu; 0.8.0: pliki folderu Pulpit), Pliki (0.8.0: pliki — `DOK_*`, niżej), siec (0.9.1
   krok 2: fd 4, właściciel = profil 18, obiekt 1 — zapamiętane sieci Wi-Fi z kluczami sieci i przełącznik radia; format
@@ -37,7 +38,7 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
   właściciel = profil wiersza strefy — kawałki jej dysku, niżej), nadzorca (0.10.0 krok 5: sesje stref — obiekt 4,
   `komponenty/strefa.md`).
 - Hasło (0.5.7, ADR 0017): stan „zablokowany” (magazyn z hasłem, nieotwarty) → `SKARB_STAN` do nadzorcy;
-  `SKARB_ODBLOKUJ` tylko od ekranu hasła, `SKARB_HASLO` (obecne + nowe) tylko od Ustawień, `SKARB_INFO`
+  `SKARB_ODBLOKUJ` tylko od ekranu hasła, `SKARB_HASLO` (obecne + nowe) tylko od pulpitu (gui — ekran zabezpieczeń; do 0.12.3 od Ustawień; 0.13.0 krok 6, ADR 0061), `SKARB_INFO`
   od każdego; limit prób (od trzeciej złej: 5 s … 5 min) liczy skarbiec. Zablokowany: odczyt/zapis
   obiektów → błąd „złe hasło”.
 - Log: utworzenie/otwarcie magazynu, klienci, zapisy (numer obiektu i rozmiar — nigdy treść).

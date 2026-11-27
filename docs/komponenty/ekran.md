@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M2–M4) — `scripts/test-m4.sh` (zrzuty), testy w systemie (klatka, złośliwe IPC, restart) |
-| **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `pelny.c` (pełny ekran okna strefy, 0.11.0), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0; od 0.10.5 krok 4 zamiana powierzchni okna strefy w nowym rozmiarze), `rozmiar.c` (0.10.5 krok 4: zmiana rozmiaru i maksymalizacja okna strefy, obszar roboczy, zapamiętany rozmiar sesji), `wskaznik.c` (mysz, klawiatura), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
+| **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `pelny.c` (pełny ekran okna strefy, 0.11.0), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0; od 0.10.5 krok 4 zamiana powierzchni okna strefy w nowym rozmiarze), `rozmiar.c` (0.10.5 krok 4: zmiana rozmiaru i maksymalizacja okna strefy, obszar roboczy, zapamiętany rozmiar sesji), `wskaznik.c` (mysz, klawiatura), `zabezpieczenia.c` (Ctrl+Alt+Del i ekran zabezpieczeń, 0.13.0 krok 6), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
 | **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały), ADR 0008 (okna), ADR 0010 (simpledrm), ADR 0012 (przegląd, tryby); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -71,7 +71,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 
 | Komunikat | Kierunek | Kto może | Znaczenie |
 |---|---|---|---|
-| `POWIERZCHNIA` | klient → ekran | okno: aplikacja; panel: powłoka i logowanie; pulpit: tylko powłoka, jeden | nowe okno, panel albo warstwa pulpitu (0.7.5): szerokość, wysokość, rodzaj, położenie panelu; + memfd z pieczęciami. Okno z `e` = 1 (0.10.5 krok 4): zamienia powierzchnię okna `obiekt` — tylko w rozmiarze z ostatniego `ROZMIAR` |
+| `POWIERZCHNIA` | klient → ekran | okno: aplikacja; panel: powłoka i logowanie; pulpit: tylko powłoka, jeden; ekran zabezpieczeń (0.13.0 krok 6, `K1_POW_ZABEZPIECZENIA`): tylko powłoka, jeden | nowe okno, panel, warstwa pulpitu (0.7.5) albo ekran zabezpieczeń (jak panel, z położeniem; poza limitem pamięci): szerokość, wysokość, rodzaj, położenie panelu; + memfd z pieczęciami. Okno z `e` = 1 (0.10.5 krok 4): zamienia powierzchnię okna `obiekt` — tylko w rozmiarze z ostatniego `ROZMIAR` |
 | `ZATWIERDZ` | klient → ekran | właściciel powierzchni | gotowa połowa bufora i zmieniony prostokąt; okno strefy wraca nim do własnych pikseli (0.10.11) |
 | `STREFA_BUFOR` (0.10.11 krok 2, ADR 0051) | strefa (VMM) → ekran | rola `STREFA`, jej okno | bufor karty przeglądarki: `a` = numer 1…`K1_STREFA_BUFORY` (4), `b`, `c` = szerokość, wysokość, `d` = bajty wiersza (≥ 4·`b`, wielokrotność 4), `e` = początek obrazu w buforze (wielokrotność 4); + dma-buf (w teście memfd silnika testowego pośrednika). Ekran sprawdza rozmiar bufora (`lseek`), mapuje tylko do odczytu część z obrazem; numer zastępuje wcześniejszy bufor o tym numerze |
 | `STREFA_OBRAZ` (0.10.11 krok 2) | strefa (VMM) → ekran | rola `STREFA`, jej okno | okno pokazuje bufor `a` (wysłany wcześniej, nie większy niż okno), `b`…`e` = zmieniony prostokąt (`d` = `e` = 0: całość); `RAMKA` jak po `ZATWIERDZ` |
@@ -205,6 +205,17 @@ tekst (`SCHOWEK`), potem klawisz — VMM wstrzymuje klawisze, aż gość potwier
 0,5 s). Strona nie przeczyta schowka sama. Tekst z innej sesji — na ramce na 3 s „Wklejono z: Bank”. Log: `schowek:
 skopiowano N B (z K1 0 | ze strefy S)`, `schowek: Ctrl+V w oknie strefy S — tekst dany (N B, …)`, `schowek: wklejone w oknie W`.
 
+## Ctrl+Alt+Del i ekran zabezpieczeń (0.13.0 krok 6, ADR 0061, decyzja właściciela D8: A)
+Delete (i kropkę klawiatury numerycznej) z wciśniętymi Ctrl i Alt rozpoznaje ekran (`zabezpieczenia.c`, przed resztą
+`klawisz()` w `wskaznik.c`): nie dostaje go żadne okno — ani aplikacja, ani strefa — tylko powłoka (`KLAWISZ` z Delete do
+jej ekranu zabezpieczeń albo pierwszej powierzchni); puszczenie tego Delete nie idzie nigdzie. Pełny ekran strefy się
+kończy; strefa z fokusem dostaje puszczenie Ctrl i Alt. Na ekranie hasła przy starcie skrót jest zwykłym klawiszem.
+Powłoka pokazuje wtedy powierzchnię `K1_POW_ZABEZPIECZENIA` (tylko powłoka, jedna, poza limitem pamięci klienta): ekran
+składa ją nad wszystkim (warstwa 4 — nad pełnym ekranem strefy), resztę ekranu przyciemnia (`zab_zaslona`: ćwierć obrazu
+na `#1C1714`), okno strefy nie idzie wtedy na warstwę karty (`warstwa.c`). Póki jest widoczna, dostaje każdy klawisz
+(także modyfikatory nie idą do strefy) i każde kliknięcie (`pod_kursorem`), Alt+Tab nie przełącza. Log: „Ctrl+Alt+Del: do
+powłoki — ekran zabezpieczeń[ (strefa z fokusem: puszczone Ctrl i Alt)]”.
+
 ## Pigułka głośności (0.12.0 krok 2, decyzja właściciela D4: A)
 Klawisze głośności (`KEY_VOLUMEUP`, `KEY_VOLUMEDOWN`, `KEY_MUTE`) i klawisz mikrofonu (`KEY_MICMUTE`, X230 — bez skutku,
 póki K1 nie ma mikrofonu) ekran daje **tylko powłoce** (`wskaznik.c`, jak Alt+Tab) — nigdy oknu z fokusem, także oknu
@@ -307,11 +318,12 @@ w jądrze (ioctl).
 | Test | Rodzaj |
 |---|---|
 | `test-m4.sh` (początek): tryb, pierwsza klatka, mysz, strzałki, przycisk — log + zrzuty | funkcjonalny |
+| `test-m4.sh`, `test-strefa.sh` (0.13.0 krok 6): Ctrl+Alt+Del — ekran zabezpieczeń nad oknem Ustawień i nad strefą (zrzut przyciemnienia), okno nie dostaje Delete, strefa tylko puszczenie Ctrl i Alt, kliknięcie nie trafia do strefy; Esc — klawisze znów do strefy | funkcjonalny, negatywny |
 | `test-strefa.sh` (0.10.11 krok 2): okno strefy z bufora karty (strefa próbna, silnik testowy pośrednika) — kolor na zrzucie, powrót do własnych pikseli; na hoście `test_komunikat` (`STREFA_BUFOR`, `STREFA_OBRAZ` — każde pole poza zakresem) | funkcjonalny, negatywny (IPC) |
 | `test-m4.sh`: okna, przeciąganie, fokus, minimalizacja, motyw, tapeta — log + zrzuty | funkcjonalny |
 | w systemie: drugi proces nie przejmie ekranu (`SET_MASTER` → EBUSY) | negatywny |
 | w systemie: złośliwe zdarzenia wejścia i obcy nadawca (`odrzucone 5`) | negatywny (IPC) |
-| w systemie: powierzchnia bez memfd / bez pieczęci / zły rozmiar, panel od aplikacji, ustawienia od aplikacji, sterowanie cudzym oknem, okno od obcego UID — odrzucone; poprawne przyjęte (RAMKA) | negatywny (IPC) |
+| w systemie: powierzchnia bez memfd / bez pieczęci / zły rozmiar, panel od aplikacji, ekran zabezpieczeń od aplikacji (0.13.0 krok 6), ustawienia od aplikacji, sterowanie cudzym oknem, okno od obcego UID — odrzucone; poprawne przyjęte (RAMKA) | negatywny (IPC) |
 | w systemie: klatka, próba w klatce; awaria ekranu → wraca z klientami | negatywny |
 | w systemie (M4.1): późniejsze okno innej aplikacji nie dostaje fokusu; trzecie pełnoekranowe okno klienta odrzucone (limit pamięci) | negatywny |
 | host `test_zalegle`: RAMKA raz na powierzchnię, scalanie ruchów i ustawień, kolejność ważnych, przepełnienie (ruchy i powtórzenia najpierw, RAMKA nigdy) | jednostkowy (ASan/UBSan) |

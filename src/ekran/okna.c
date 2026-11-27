@@ -389,7 +389,7 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
     switch (m->typ) {
     case K1_KOM_POKAZ:
     case K1_KOM_PRZESUN:
-        if (s.p[i].rodzaj != K1_POW_PANEL)
+        if (s.p[i].rodzaj != K1_POW_PANEL && s.p[i].rodzaj != K1_POW_ZABEZPIECZENIA) /* 0.13.0 step 6: it is a panel too */
             { odrzuc(kl, "pokazywanie i przesuwanie tylko dla paneli"); return; }
         uszkodz_pow(&s.p[i]);
         if (m->typ == K1_KOM_POKAZ && m->a && !s.p[i].pokaz)

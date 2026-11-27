@@ -73,6 +73,8 @@ void odbierz_skarbiec(void)
             continue;
         if (w.typ == K1_KOM_SKARB_WYNIK && w.a == K1_KOM_SKARB_ZAPISZ && w.b != 0)
             k1_log(TAG, "skarbiec: zapis rozmieszczenia nieudany (%d)", (int)w.b);
+        if (w.typ == K1_KOM_SKARB_WYNIK) /* 0.13.0 step 6: the vault's state, the password's result */
+            zab_wynik_skarbca(&w);
         else if (w.typ >= K1_KOM_DOK_LISTA && w.typ <= K1_KOM_DOK_ZMIANA)
             pliki_odbierz(&w, fd);
         if (fd >= 0)

@@ -128,10 +128,10 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
         ekranie, hwsim tylko w testach, mniej kodu z zewnątrz
         — PR #252                                                               #231 (p. 1), #237
-[ ]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
-        zachęta do hasła — [w toku: Claude, gałąź claude/magical-curie-w0bgp2]
+[x]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
+        zachęta do hasła — PR #254
 [ ]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
-        ekranie K1
+        ekranie K1 — [w toku: Claude, gałąź claude/magical-curie-w0bgp2]
 [ ]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
 [ ]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
 (ADR: 0056 to następny wolny po 0055; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
@@ -488,3 +488,22 @@ Krok 4 (2026-11-27, Claude, PR #252, CI przebieg 391 zielony; ADR 0059):
     klawisze ekranu ratunkowego przychodziły za wcześnie albo z opóźnieniem — test naciska Enter dopiero, gdy ustalony
     obraz ma obwódkę na „Zapisz raport”; `test-strefa` — ponowne kliknięcie Start, gdy menu się nie pokazało.
   - „Później”: jądro wydania bez sterownika portu szeregowego (8250 zostaje, bo kopia testowa ma tę samą konfigurację).
+Krok 5 (2026-11-27, Claude, PR #254, CI przebieg 397 zielony; ADR 0060):
+  - D6 właściciela: A (okienko „Pozwolić?”), D7: A (zachęta z „Później”).
+  - T10: zgoda w K1, nie w jądrze — nadzorca nie daje usłudze `wejscie` urządzenia, które czeka (`src/nadzorca/wejscia.c`,
+    wydzielone z `urzadzenia.c`). `USB_DEFAULT_AUTHORIZATION_MODE` odpada: sysfs tylko do odczytu, zgoda działałaby też na
+    pendrive'y z plikami. Rodzaj urządzenia z bitmap sysfs — czyste `k1_urz_wejscia.c` (`test_urz_wejscia`).
+  - Pamiętane są tylko odpowiedzi właściciela w tym starcie, nie urządzenia ze startu: pierwsza wersja pamiętała też
+    urządzenia sprzed pulpitu i nowa mysz QEMU (te same identyfikatory) przechodziła bez pytania.
+  - Bez wolnych numerów typów: `OCHRONA` a = `USB`, `USB_ZGODA` z numerem pytania (odpowiedź do starszego — pomijana).
+  - Kopia testowa nie zachęca do hasła (testy klikają w środek ekranu), chyba że dysk-znak „k1-test-haslo”; kopię testową
+    poznaje nadzorca po konsoli jądra (`ttyS`). Obraz wydania pokazuje okienko (`test-wydanie`).
+  - QEMU: ruch myszy idzie do najnowszej myszy, klawisze — do najnowszej klawiatury; test wybiera pierwszą mysz
+    (`mouse_set` z `info mice`, `k1qemu.monitor_tekst`).
+  - CI z KVM (przebiegi 393, 395): w `test-ratunek` „nieudany start” przerywany w porę i tak dochodził do pierwszego obrazu
+    (licznik zerowany) — każde „w porę” to wyścig; nieudane starty idą teraz na maszynie bez karty graficznej
+    (`uruchom-qemu.sh --vga none`, działa też z `--dysk-uefi`).
+  - Testy lokalnie: test-m1, test-m5, test-wydanie, test-tpm, test-m4, test-ratunek; na hoście `test_urz_wejscia`,
+    `test_komunikat` (część `OCHRONA` w nowym pliku `test_komunikat_ochrona.c` — limit 600 wierszy).
+  - Do listy „co sprawdzić” (krok 8): mysz albo klawiatura USB podłączona po włączeniu na X230 i IdeaPadzie — okienko,
+    „Pozwól”, „Nie pozwalaj”; pierwszy start z pendrive'a — okienko „Ustaw hasło”.

@@ -44,7 +44,7 @@ Krótko, dlaczego nie.
 | [0014](0014-wskaznik-baterii.md) | Wskaźnik baterii na górnym pasku | Przyjęty |
 | [0015](0015-blob-vault-format-i-szyfrowanie.md) | Blob Vault: własny format na surowej partycji, szyfrowanie w przestrzeni użytkownika | Przyjęty |
 | [0016](0016-obraz-usb-z-partycja-danych.md) | Obraz na pendrive z partycją danych; skarbiec w łańcuchu startu | Przyjęty |
-| [0017](0017-haslo-i-ekran-logowania.md) | Hasło i ekran logowania (M5e) | Przyjęty |
+| [0017](0017-haslo-i-ekran-logowania.md) | Hasło i ekran logowania (M5e) | Przyjęty; hasło ustawia się i zmienia tylko na ekranie zabezpieczeń — ADR 0061 |
 | [0018](0018-instalator-na-dysk.md) | Instalator: K1 na dysku komputera (M5f) | Przyjęty |
 | [0019](0019-przeglad-0-5-9-i-nowy-plan.md) | Przegląd po 0.5.9 i nowy plan etapów (Fundament → Bezpieczne aktualizacje → Sieć → Przeglądarka → Pliki) | Przyjęty; kolejność zmieniona przez 0026, mapa drogi — 0035 |
 | [0020](0020-strefy-mikro-maszyny-na-aplikacje.md) | Strefy: każda obca aplikacja w swojej mikro-maszynie (trwałość i grafika do wyboru, zaufana ramka, pliki przez Gatekeepera) | Przyjęty |
@@ -88,4 +88,5 @@ Krótko, dlaczego nie.
 | [0058](0058-tryb-ratunkowy-grub-zostaje.md) | Tryb ratunkowy (0.13.0): ten sam `k1.efi` z `k1_tryb=r` w grubenv, menu GRUB-a po Esc albo po dwóch nieudanych startach, ekran ratunkowy (poprzednia wersja, raport na pendrive FAT16/FAT32); GRUB zostaje (termin ADR 0010 zamknięty) | Przyjęty, wdrożony (plan 0.13.0, krok 3) |
 | [0059](0059-obraz-wydania-bez-portu-szeregowego.md) | Obraz wydania (0.13.0): `console=ttynull` w `k1.efi` (nic na porcie szeregowym; testy — `k1-test.efi` i obrazy `-test`), ekran awarii (panika jądra z opisem K1, `DRM_PANIC`), „Zapisz raport na pendrive” w Ustawieniach → Informacje, `mac80211_hwsim` tylko w jądrze testów | Przyjęty, wdrożony (plan 0.13.0, krok 4) |
 | [0060](0060-dostep-fizyczny-zgoda-usb-zacheta-do-hasla.md) | Dostęp fizyczny (0.13.0): nowa klawiatura albo mysz z USB po pierwszym pulpicie czeka na „Pozwól” (nadzorca nie daje jej usłudze wejścia; zgoda w K1, nie w jądrze), okienko „Ustaw hasło” przy pierwszym starcie bez hasła | Przyjęty, wdrożony (plan 0.13.0, krok 5) |
+| [0061](0061-zaufany-ekran-ctrl-alt-del.md) | Zaufany ekran K1 (0.13.0): Ctrl+Alt+Del rozpoznaje ekran — nie dostaje go żadne okno — i zawsze prowadzi do ekranu zabezpieczeń powłoki (nowy rodzaj powierzchni, nad wszystkim, reszta przyciemniona); hasło K1 ustawia się i zmienia tylko tam | Przyjęty, wdrożony (plan 0.13.0, krok 6) |
 | [0064](0064-aplikacje-ze-sklepu.md) | Aplikacje ze Sklepu jako 0.14 (prośba właściciela z 2026-11-27): obce aplikacje tylko ze Sklepu K1 (bez pendrive'a), wiersz aplikacji w kodzie K1 i obraz z sieci podpisany kluczem wydań, zamknięte aplikacje pobierane od producenta w strefie, robot bez prawa weta, pamięć na start przy każdej aplikacji (Discord 500 MiB), obraz bazowy; Audyt → 0.15 | Przyjęty (kierunek); wdrożenie — plan 0.14.0 |

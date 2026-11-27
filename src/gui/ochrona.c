@@ -7,7 +7,8 @@
  *    for the owner (OCHRONA USB: what it is, how many, the question's number) — "Pozwól" / "Nie pozwalaj" (OCHRONA
  *    USB_ZGODA with that number); a newer question replaces it, c = 0 (nothing waits any more) closes it.
  *  - "Ustaw hasło" (step 5, D7: A): the first start on a lasting vault without a password (SESJA b, the arrangement read as
- *    the first start) — "Ustaw hasło" opens Ustawienia → Hasło, "Później" closes it; once: the arrangement is written at once.
+ *    the first start) — "Ustaw hasło" opens the security screen on the password's form (0.13.0 step 6; step 5:
+ *    Ustawienia → Hasło), "Później" closes it; once: the arrangement is written at once.
  * From nadzorca on fd 5. Drawn on the panel of the right-click menu (kontekst.c), like "Mało pamięci". */
 #include "gui.h"
 #include "k1_log.h"
@@ -49,7 +50,7 @@ static const struct {
       { "Pozwól", "Nie pozwalaj" }, "nowe urządzenie", { A_POZWOL, A_NIE_POZWALAJ } },
     { "Ustaw hasło",
       { "Twoje pliki nie mają hasła. Bez niego każdy, kto weźmie", "ten komputer albo pendrive, przeczyta Twoje pliki." },
-      { "Hasło ustawisz też później: Ustawienia → Hasło.", NULL },
+      { "Hasło ustawisz też później: Ctrl+Alt+Del, potem „Hasło”.", NULL },
       { "Ustaw hasło", "Później" }, "bez hasła", { A_USTAW_HASLO, A_NIC } },
 };
 static int rodzaj, hover = -1, pokazane;
@@ -114,8 +115,8 @@ static void wykonaj(int akcja)
     case A_NIE_POZWALAJ:
         do_nadzorcy(k1_komunikat_nowy(K1_KOM_OCHRONA, 0, K1_OCHR_USB_ZGODA, akcja == A_POZWOL, usb_pytanie, 0, 0));
         break;
-    case A_USTAW_HASLO:
-        do_nadzorcy(k1_komunikat_nowy(K1_KOM_POKAZ_USTAWIENIA, 0, K1_UST_MIEJSCE_HASLO, 0, 0, 0, 0));
+    case A_USTAW_HASLO: /* 0.13.0 step 6: on the security screen — the only place that asks for the password */
+        zab_otworz(1);
         break;
     default:
         break;

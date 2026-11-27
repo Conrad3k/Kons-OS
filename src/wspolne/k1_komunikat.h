@@ -295,7 +295,8 @@ enum k1_komunikat_typ {
     K1_KOM_SKARB_ZAPISZ = 71, /* obiekt=object id, a=length (0..K1_SKARB_MAKS); + 1 sealed memfd of that size */
     K1_KOM_SKARB_USUN = 72,   /* obiekt=object id */
     K1_KOM_SKARB_ODBLOKUJ = 73, /* login screen only (M5e): obiekt=1, a=password length 1..K1_HASLO_MAKS; + 1 memfd */
-    K1_KOM_SKARB_HASLO = 74,    /* Ustawienia only: obiekt=1, a=length; + 1 memfd "current\0new\0" (empty: none) */
+    K1_KOM_SKARB_HASLO = 74,    /* gui only (0.13.0 step 6: its security screen; until then Ustawienia): obiekt=1, a=length;
+                                 * + 1 memfd "current\0new\0" (empty: none) */
     K1_KOM_SKARB_INFO = 75,     /* obiekt=1: the state of the vault (reply: WYNIK with c, d, then MIEJSCE) */
     K1_KOM_SKARB_PODZIAL = 121, /* Ustawienia only (0.8.5 step 3, Miejsce): obiekt=1 — what takes the room for files
                                  * (reply: CZESC for every part, then WYNIK) */
@@ -711,7 +712,8 @@ enum k1_wifi_zdarzenie {
 /* OKNO: an application window; PANEL: a panel of the shell or the password screen, above the windows;
  * PULPIT (0.7.5): the shell's desktop layer (icons) — one, at 0,0, right above the wallpaper and below the
  * windows, catching the pointer in every pixel. */
-enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3 };
+enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3,
+       K1_POW_ZABEZPIECZENIA = 4 }; /* 0.13.0 step 6 (ADR 0061): the shell's security screen — a panel above everything */
 /* ROZMIAR c: how the zone's window shows (0.10.5 step 4; 0.11.0 step 1: full screen — the whole screen, no K1 frame) */
 enum { K1_ROZMIAR_ZWYKLY = 0, K1_ROZMIAR_ZMAKSYMALIZOWANY = 1, K1_ROZMIAR_PELNY = 2 };
 /* A zone's window shown from buffers of the card (0.10.11 step 2, ADR 0051 T4): at most this many per window (double or
@@ -980,8 +982,7 @@ enum { K1_BOK_ZAMKNIETE = 0, K1_BOK_OTWARTE = 1, K1_BOK_USTAWIENIA = 2 }; /* K1_
  * the updates' rows of their own messages). X(NAME, number 1.., the name in the log). */
 #define K1_UST_MIEJSCA(X)                                                                                \
     X(KOREKTOR, 1, "Dźwięk → Korektor") X(BATERIA, 2, "Bateria") X(AKTUALIZACJE, 3, "Aktualizacje")          \
-    X(PRZESTRZEN, 4, "Dźwięk → Kons Spatial Audio") \
-    X(HASLO, 5, "Hasło") /* 0.13.0 step 5: gui's window "Ustaw hasło" */
+    X(PRZESTRZEN, 4, "Dźwięk → Kons Spatial Audio")
 #define K1_X_UST_MIEJSCE(n, nr, ...) K1_UST_MIEJSCE_##n = nr,
 enum { K1_UST_MIEJSCA(K1_X_UST_MIEJSCE) };
 #define K1_X_UST_LICZ(...) +1

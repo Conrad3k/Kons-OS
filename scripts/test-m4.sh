@@ -81,8 +81,20 @@ if tryb == "haslo":
     sprawdz("po zablokowaniu hasło znów otwiera pulpit",
             czekaj(r"K1-SKARBIEC: magazyn odblokowany", od=1, czas=120) and
             czekaj(r"K1-GUI: pulpit gotowy", od=1, czas=90))
+    # 0.13.0 step 6: Ctrl+Alt+Del → "Zablokuj" (with a password the menu has it) — the password screen again
+    n_m = q.ile(r"K1-GUI: ekran zabezpieczeń: Zablokuj")
+    monitor("sendkey ctrl-alt-delete")
+    mz = czekaj(r"K1-GUI: ekran zabezpieczeń: Zablokuj (\d+),(\d+); Hasło", od=n_m, czas=30)
+    sprawdz("z hasłem: Ctrl+Alt+Del — ekran zabezpieczeń z „Zablokuj”", mz)
+    if mz:
+        klik(int(mz.group(1)), int(mz.group(2)))
+    sprawdz("ekran zabezpieczeń → Zablokuj: ekran hasła",
+            czekaj(r"K1-NADZORCA: zablokowanie na prośbę", od=1, czas=30) and
+            czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", od=2, czas=90))
+    pisz("t", "a", "j", "n", "e", "1", "ret")
+    sprawdz("i hasło znów otwiera pulpit", czekaj(r"K1-SKARBIEC: magazyn odblokowany", od=2, czas=120))
     t_ = tekst()
-    sprawdz("hasło nie trafia do logu", "tajne1" not in t_ and "zle1" not in t_)
+    sprawdz("hasło nie trafia do logu", "tajne1" not in t_ and "zle1" not in t_ and "tajne2" not in t_)
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in t_ and "BŁĄD" not in t_
             and "zabronione wywołanie" not in t_)
     sys.exit(0 if all(wyniki) else 1)
@@ -132,21 +144,41 @@ if tryb == "ponownie":
         klik(nx + int(u_n.group(6)), ny + int(u_n.group(7)))   # Usuń notatkę
         klik(nx + int(u_n.group(8)), ny + int(u_n.group(7)))   # Usuń (potwierdzenie)
         sprawdz("Notatki: usunięcie z potwierdzeniem (została 1)", czekaj(r"K1-NOTATKI: usunięto notatkę \(zostało: 1\)"))
-    # M5e: Ustawienia → Hasło: set the password "tajne1" (the next boot asks for it)
+    # M5e; 0.13.0 step 6 (ADR 0061, D8: A): the password "tajne1" on the security screen — Ctrl+Alt+Del, "Hasło" (the
+    # next boot asks for it). Ustawienia → Hasło only says where: no form there any more.
     klik(ax + 2 * krok, ay)
     uo = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if uo and sk:
         ux, uy = int(uo.group(4)), int(uo.group(5))
         klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + q.wiersz_sekcji(5) * int(sk.group(3)))  # Hasło
-        hp = czekaj(r"K1-USTAWIENIA: hasło: przełącznik (\d+),(\d+);", czas=20)
-        if hp:
-            klik(ux + int(hp.group(1)), uy + int(hp.group(2)))
-            pisz("t", "a", "j", "n", "e", "1", "tab", "t", "a", "j", "n", "e", "1", "ret")
-    sprawdz("Ustawienia → Hasło: hasło ustawione (skarbiec)", czekaj(r"K1-SKARBIEC: hasło ustawione", czas=90))
+    sprawdz("Ustawienia → Hasło: bez formularza, odsyła do ekranu zabezpieczeń (Ctrl+Alt+Del)",
+            czekaj(r"K1-USTAWIENIA: hasło: wyłączone, zmiana na ekranie zabezpieczeń \(Ctrl\+Alt\+Del\)", czas=20))
+    zrzut("ponownie-ustawienia-haslo")
+    n_otw = q.ile(r"K1-GUI: ekran zabezpieczeń otwarty")
+    monitor("sendkey ctrl-alt-delete")
+    menu_z = czekaj(r"K1-GUI: ekran zabezpieczeń: Hasło (\d+),(\d+); Uruchom ponownie", czas=30)
+    sprawdz("Ctrl+Alt+Del przy oknie Ustawień: ekran zabezpieczeń (bez „Zablokuj” — nie ma hasła); okno nie dostaje Delete",
+            menu_z and q.ile(r"K1-GUI: ekran zabezpieczeń otwarty") > n_otw and
+            czekaj(r"K1-EKRAN: Ctrl\+Alt\+Del: do powłoki", czas=10))
+    zrzut("ponownie-zabezpieczenia")
+    if menu_z:
+        klik(int(menu_z.group(1)), int(menu_z.group(2)))
+        pf = czekaj(r"K1-GUI: ekran zabezpieczeń: pola 2 od (\d+),(\d+) co (\d+); Wróć (\d+),(\d+); Zapisz (\d+),(\d+)", czas=30)
+        sprawdz("ekran zabezpieczeń → Hasło: formularz „Nowe hasło”, „Powtórz” (magazyn bez hasła)", pf)
+        if pf:
+            zrzut("ponownie-zabezpieczenia-haslo")
+            pisz("t", "a", "j", "n", "e", "1", "tab", "t", "a", "j", "n", "e", "2", "ret")
+            sprawdz("NEGATYWNE: różne hasła — skarbiec nic nie dostaje", q.cisza(r"K1-GUI: zmiana hasła wysłana", 5))
+            klik(int(pf.group(1)), int(pf.group(2)))
+            pisz(*["backspace"] * 6, "t", "a", "j", "n", "e", "1", "tab", *["backspace"] * 6, "t", "a", "j", "n", "e", "1", "ret")
+    sprawdz("ekran zabezpieczeń → Hasło: hasło ustawione (skarbiec)", czekaj(r"K1-SKARBIEC: hasło ustawione", czas=90))
     sprawdz("po ustawieniu hasła w menu Start od razu jest „Zablokuj” (0.11.5)",
             czekaj(r"K1-GUI: hasło ustawione: Zablokuj dostępne", czas=30))
     zrzut("ponownie-haslo")
+    n_z = q.ile(r"K1-GUI: ekran zabezpieczeń zamknięty")
+    pisz("esc")
+    sprawdz("Esc zamyka ekran zabezpieczeń", czekaj(r"K1-GUI: ekran zabezpieczeń zamknięty", od=n_z, czas=30))
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in tekst() and "BŁĄD" not in tekst()
             and "zabronione wywołanie" not in tekst())
     sys.exit(0 if all(wyniki) else 1)

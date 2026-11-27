@@ -1,41 +1,25 @@
-/* K1 Ustawienia — Hasło (M5e): set, change, remove; skarbiec checks the current one and limits attempts.
- * The password travels only in a memfd to skarbiec (fd 5) and is wiped here right after; never logged. */
+/* K1 Ustawienia — Hasło: whether the data has a password and where to set it. Since 0.13.0 step 6 (ADR 0061, D8: A) the
+ * password is set, changed and switched off only on K1's security screen (Ctrl+Alt+Del → "Hasło", gui zabezpieczenia.c):
+ * a window — this one too — never asks for K1's password, so a page drawn like it cannot either. M5e–0.13.0 step 5: the
+ * form was here. The channel to skarbiec (fd 5) stays: the state of the vault, and Miejsce's requests. */
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <linux/input-event-codes.h>
-
 #include "k1_kanal.h"
-#include "k1_klawiatura.h"
 #include "k1_log.h"
-#include "k1_memfd.h"
 #include "k1_odbior.h"
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
 #include "ustawienia.h"
 
-enum { F_BRAK, F_USTAW, F_ZMIEN, F_WYLACZ };
-#define POLE_X TRESC_X
-#define POLE_W 280
-#define POLE_H 36
-/* 0.10.7 step 2: the switch and what it means on one card; the form under it */
 #define KARTA_X TRESC_X
-#define WIERSZ_Y (seg_y() + 12) /* the switch's row in the card (36 px) */
-#define WNETRZE (KARTA_X + 16)  /* the card's content */
-#define KARTA_MALA 60           /* the card's height with the form open: the switch only */
-#define POLA_Y (seg_y() + KARTA_MALA + 36) /* first field (its label is 18 px above) */
-#define POLA_KROK 62
+#define WNETRZE (KARTA_X + 16) /* the card's content */
 
 static struct {
-    int znane, wlaczone, tryb, przerwa, czeka, usb;
-    int formularz, pole; /* F_*, active field */
-    char tekst[3][K1_HASLO_MAKS + 1];
-    size_t dl[3];
-    char komunikat[120];
-    int blad;
-} hs = { 0, 0, -1, 0, 0, 0, F_BRAK, 0, { "", "", "" }, { 0, 0, 0 }, "", 0 };
+    int znane, wlaczone, tryb, usb;
+} hs;
 static int skarb = -1;
 
 int haslo_start(void)
@@ -45,94 +29,11 @@ int haslo_start(void)
     return skarb;
 }
 
-static void hs_wyczysc(void)
-{
-    volatile char *p = &hs.tekst[0][0];
-    size_t i;
-    for (i = 0; i < sizeof hs.tekst; i++)
-        p[i] = 0;
-    hs.dl[0] = hs.dl[1] = hs.dl[2] = 0;
-}
-
 void haslo_info(void)
 {
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_INFO, 1, 0, 0, 0, 0, 0);
     if (skarb >= 0)
         k1_kanal_wyslij(skarb, &m, sizeof m, -1);
-}
-
-/* Field names of the current form: obecne (current), nowe, powtórz. */
-static int pola(const char **nazwy)
-{
-    switch (hs.formularz) {
-    case F_USTAW:
-        nazwy[0] = "Nowe hasło (co najmniej 4 znaki)";
-        nazwy[1] = "Powtórz nowe hasło";
-        return 2;
-    case F_ZMIEN:
-        nazwy[0] = "Obecne hasło";
-        nazwy[1] = "Nowe hasło (co najmniej 4 znaki)";
-        nazwy[2] = "Powtórz nowe hasło";
-        return 3;
-    case F_WYLACZ:
-        nazwy[0] = "Obecne hasło";
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-static int32_t przycisk_y(void)
-{
-    const char *n[3];
-    return POLA_Y + pola(n) * POLA_KROK - 8;
-}
-
-static void hs_wyslij(void)
-{
-    const char *n[3];
-    int ile = pola(n);
-    const char *stare = hs.formularz == F_USTAW ? "" : hs.tekst[0];
-    const char *nowe = hs.formularz == F_WYLACZ ? "" : hs.tekst[ile - 2];
-    const char *powt = hs.formularz == F_WYLACZ ? "" : hs.tekst[ile - 1];
-    char buf[2 * K1_HASLO_MAKS + 2];
-    size_t n1 = strlen(stare), n2 = strlen(nowe), znaki = 0, i;
-    struct k1_komunikat m;
-    int fd;
-    hs.blad = 1;
-    znaki = k1_utf8_znaki(nowe, n2);
-    if (hs.formularz != F_WYLACZ && strcmp(nowe, powt) != 0) {
-        snprintf(hs.komunikat, sizeof hs.komunikat, "Nowe hasła się różnią");
-        return;
-    }
-    if (hs.formularz != F_WYLACZ && znaki < 4) {
-        snprintf(hs.komunikat, sizeof hs.komunikat, "Hasło musi mieć co najmniej 4 znaki");
-        return;
-    }
-    if (hs.formularz != F_USTAW && n1 == 0) {
-        snprintf(hs.komunikat, sizeof hs.komunikat, "Podaj obecne hasło");
-        return;
-    }
-    memcpy(buf, stare, n1 + 1);
-    memcpy(buf + n1 + 1, nowe, n2 + 1);
-    fd = k1_memfd_z_danymi("k1-haslo", buf, n1 + n2 + 2);
-    m = k1_komunikat_nowy(K1_KOM_SKARB_HASLO, 1, (int32_t)(n1 + n2 + 2), 0, 0, 0, 0);
-    if (fd >= 0 && k1_kanal_wyslij(skarb, &m, sizeof m, fd) == 0) {
-        hs.czeka = 1;
-        hs.blad = 0;
-        snprintf(hs.komunikat, sizeof hs.komunikat, "Zapisuję… (to trwa chwilę, hasło jest wzmacniane)");
-        k1_log(TAG, "zmiana hasła wysłana do skarbca"); /* never the password itself */
-    } else {
-        snprintf(hs.komunikat, sizeof hs.komunikat, "Nie udało się wysłać");
-    }
-    if (fd >= 0)
-        close(fd);
-    {
-        volatile char *p = buf;
-        for (i = 0; i < sizeof buf; i++)
-            p[i] = 0;
-    }
-    hs_wyczysc();
 }
 
 int skarbiec_kanal(void)
@@ -167,180 +68,50 @@ void haslo_odbierz(void)
         hs.tryb = k.c;
         hs.wlaczone = k.d & 1;
         hs.usb = (k.d & 2) != 0;
-        hs.przerwa = k.e;
         if (k.a == K1_KOM_SKARB_POWIEKSZ)
             miejsce_wynik(&k);
         if (k.a == K1_KOM_SKARB_PODZIAL)
             miejsce_podzial();
-        if (k.a != K1_KOM_SKARB_HASLO)
-            continue;
-        hs.czeka = 0;
-        if (k.b == 0) {
-            snprintf(hs.komunikat, sizeof hs.komunikat, "%s",
-                     hs.formularz == F_WYLACZ ? "Hasło wyłączone."
-                                              : "Hasło zapisane. Będzie potrzebne przy następnym włączeniu.");
-            k1_log(TAG, "%s", hs.formularz == F_WYLACZ ? "hasło wyłączone" : "hasło zapisane");
-            hs.formularz = F_BRAK;
-            hs.blad = 0;
-        } else if (k.b == K1_SKARB_ZLE_HASLO) {
-            snprintf(hs.komunikat, sizeof hs.komunikat, k.e > 0 ? "Złe obecne hasło. Spróbuj za %d s" : "Złe obecne hasło",
-                     k.e);
-            hs.blad = 1;
-            hs.pole = 0;
-        } else {
-            snprintf(hs.komunikat, sizeof hs.komunikat, "Nie udało się zmienić hasła");
-            hs.blad = 1;
-        }
+        k1_apl_odswiez(&apl);
     }
 }
 
-
-static void pole_hasla(struct k1_obraz *o, const struct k1_motyw *m, int i, const char *nazwa)
-{
-    int32_t y = POLA_Y + i * POLA_KROK;
-    size_t z = 0, j;
-    k1_tekst(o, K1_CZ_MALA, POLE_X, y - 6, nazwa, k1_kolor(m->tekst2, 255), 0);
-    k1_zaokraglony(o, POLE_X, (float)y, POLE_W, POLE_H, 8, k1_kolor(m->pole, 255));
-    k1_obrys(o, POLE_X, (float)y, POLE_W, POLE_H, 8, i == hs.pole ? 1.5f : 1.0f,
-             k1_kolor(i == hs.pole ? m->akcent : m->tekst, i == hs.pole ? 255 : 40));
-    z = k1_utf8_znaki(hs.tekst[i], hs.dl[i]);
-    for (j = 0; j < z && j < 20; j++)
-        k1_kolo(o, (float)(POLE_X + 18 + (int32_t)j * 13), (float)y + 18, 3.6f, k1_kolor(m->tekst, 255));
-}
-
-/* The card's height: the switch, and with the form closed what the switch means (8 px under it). */
-static int32_t karta_wys(int ile)
-{
-    return ile > 0 ? KARTA_MALA : (hs.wlaczone ? 124 : 140);
-}
-
-static void karta(struct k1_obraz *o, const struct k1_motyw *m, int ile)
-{
-    int32_t w = apl.szer - TRESC_X - 24, y = WIERSZ_Y + 46; /* the first line: 8 px under the switch */
-    uint32_t kolor = k1_kolor(m->tekst2, 255);
-    k1_zaokraglony(o, KARTA_X, (float)seg_y(), (float)w, (float)karta_wys(ile), 10, k1_kolor(m->pole, 255));
-    k1_obrys(o, KARTA_X, (float)seg_y(), (float)w, (float)karta_wys(ile), 10, 1.0f, k1_kolor(m->tekst, 24));
-    if (ile > 0)
-        return;
-    k1_tekst(o, K1_CZ_MALA, WNETRZE, y, "Zapomniane hasło oznacza założenie nowego konta.", kolor, 0);
-    k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 18, "Zaszyfrowanych danych nie da się odzyskać.", kolor, 0);
-    k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 44,
-             hs.wlaczone ? "Dane są zaszyfrowane hasłem." : "Bez hasła dane są zaszyfrowane, ale bez ochrony przed",
-             k1_kolor(m->tekst3, 255), 0);
-    if (!hs.wlaczone)
-        k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 62, hs.usb ? "kradzieżą pendrive'a." : "kradzieżą komputera.",
-                 k1_kolor(m->tekst3, 255), 0);
-}
-
+/* One card: the state and its meaning; under it where the password is set (0.13.0 step 6). */
 void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[160];
-    const char *n[3];
-    int ile, i;
+    int32_t w = apl.szer - TRESC_X - 24, y = seg_y();
+    uint32_t t2 = k1_kolor(m->tekst2, 255), t3 = k1_kolor(m->tekst3, 255);
     naglowek(o, m, "Hasło");
     if (skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM)) {
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Nie znaleziono miejsca na dane (partycji K1-DANE)",
-                 k1_kolor(m->tekst2, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, "Hasło i zapis po wyłączeniu wymagają K1 zainstalowanego na dysku",
-                 k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, y + 16, "Nie znaleziono miejsca na dane (partycji K1-DANE)", t2, 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 40, "Hasło i zapis po wyłączeniu wymagają K1 zainstalowanego na dysku", t3, 0);
         snprintf(buf, sizeof buf, "(Instalator) albo pendrive'a z pliku k1-%s-usb.img.xz. Teraz dane są tylko w pamięci.",
                  K1_WERSJA);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 60, buf, k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 60, buf, t3, 0);
         return;
     }
-    ile = pola(n);
-    karta(o, m, ile);
-    k1_przelacznik(o, m, WNETRZE, WIERSZ_Y + 8, hs.wlaczone, !hs.znane || hs.czeka);
-    k1_tekst(o, K1_CZ_TEKST, WNETRZE + 48, WIERSZ_Y + 23, "Wymagaj hasła przy włączaniu", k1_kolor(m->tekst, 255), 0);
-    if (hs.wlaczone && hs.formularz == F_BRAK)
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, WNETRZE + 300, WIERSZ_Y + 23, "Zmień hasło", k1_kolor(m->akcent_tekst, 255), 0);
-    for (i = 0; i < ile; i++)
-        pole_hasla(o, m, i, n[i]);
-    if (ile > 0) {
-        int32_t y = przycisk_y();
-        k1_zaokraglony(o, POLE_X, (float)y, 120, 36, 8, k1_kolor(m->akcent, hs.czeka ? 120 : 255));
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, POLE_X + 60 - k1_tekst_szer(K1_CZ_TEKST_MOCNA, "Zapisz") / 2, y + 24, "Zapisz",
-                 k1_kolor(m->na_akcencie, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, POLE_X + 140, y + 24, "Anuluj", k1_kolor(m->tekst2, 255), 0);
-    }
-    if (hs.komunikat[0])
-        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, ile > 0 ? przycisk_y() + 60 : seg_y() + karta_wys(ile) + 28, hs.komunikat,
-                 k1_kolor(hs.blad ? m->akcent_tekst : m->tekst2, 255), apl.szer - TRESC_X - 24);
-}
-
-static void hs_formularz(int f)
-{
-    hs_wyczysc();
-    hs.formularz = f;
-    hs.pole = 0;
-    hs.komunikat[0] = '\0';
-    hs.blad = 0;
-    k1_apl_odswiez(&apl);
-}
-
-/* Clicks in the password section; returns 1 if handled. The tests click by the logged positions. */
-int haslo_klik(int32_t x, int32_t y)
-{
-    const char *n[3];
-    int ile = pola(n), i;
-    if (skarb < 0 || !hs.znane || hs.tryb == K1_SKARB_RAM || hs.czeka)
-        return 0;
-    if (x >= WNETRZE && x < WNETRZE + 280 && y >= WIERSZ_Y && y < WIERSZ_Y + 36) {
-        hs_formularz(hs.formularz != F_BRAK ? F_BRAK : (hs.wlaczone ? F_WYLACZ : F_USTAW));
-        return 1;
-    }
-    if (hs.wlaczone && hs.formularz == F_BRAK && x >= WNETRZE + 300 && x < WNETRZE + 420 && y >= WIERSZ_Y &&
-        y < WIERSZ_Y + 36) {
-        hs_formularz(F_ZMIEN);
-        return 1;
-    }
-    for (i = 0; i < ile; i++)
-        if (x >= POLE_X && x < POLE_X + POLE_W && y >= POLA_Y + i * POLA_KROK && y < POLA_Y + i * POLA_KROK + POLE_H) {
-            hs.pole = i;
-            k1_apl_odswiez(&apl);
-            return 1;
-        }
-    if (ile > 0 && y >= przycisk_y() && y < przycisk_y() + 36) {
-        if (x >= POLE_X && x < POLE_X + 120)
-            hs_wyslij();
-        else if (x >= POLE_X + 130 && x < POLE_X + 200)
-            hs_formularz(F_BRAK);
-        k1_apl_odswiez(&apl);
-        return 1;
-    }
-    return 0;
-}
-
-void haslo_klawisz(unsigned kod, int wartosc, unsigned mody)
-{
-    const char *n[3];
-    int ile = pola(n);
-    if (ile == 0 || wartosc == 0 || hs.czeka)
-        return;
-    if (kod == KEY_TAB) {
-        hs.pole = (hs.pole + ((mody & K1_MOD_SHIFT) ? ile - 1 : 1)) % ile;
-    } else if (kod == KEY_ENTER || kod == KEY_KPENTER) {
-        if (hs.pole < ile - 1)
-            hs.pole++;
-        else
-            hs_wyslij();
-    } else if (kod == KEY_ESC) {
-        hs_formularz(F_BRAK);
-    } else if (!k1_pole_klawisz(hs.tekst[hs.pole], &hs.dl[hs.pole], K1_HASLO_MAKS, kod, mody)) {
-        return;
-    }
-    k1_apl_odswiez(&apl);
-}
-
-void haslo_zamknij(void)
-{
-    hs_formularz(F_BRAK);
+    k1_zaokraglony(o, KARTA_X, (float)y, (float)w, 132, 10, k1_kolor(m->pole, 255));
+    k1_obrys(o, KARTA_X, (float)y, (float)w, 132, 10, 1.0f, k1_kolor(m->tekst, 24));
+    k1_ikona(o, K1_IK_KLODKA, WNETRZE, (float)y + 16, 18, k1_kolor(hs.wlaczone ? m->akcent_tekst : m->tekst2, 255));
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, WNETRZE + 30, y + 31,
+             !hs.znane ? "Sprawdzam…" : hs.wlaczone ? "Hasło przy włączaniu: włączone" : "Hasło przy włączaniu: wyłączone",
+             k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 64,
+             hs.wlaczone ? "Dane są zaszyfrowane hasłem." : "Bez hasła dane są zaszyfrowane, ale bez ochrony przed", t2, 0);
+    if (!hs.wlaczone)
+        k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 82, hs.usb ? "kradzieżą pendrive'a." : "kradzieżą komputera.", t2, 0);
+    k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 112, "Zapomniane hasło oznacza założenie nowego konta.", t3, 0);
+    k1_tekst(o, K1_CZ_TEKST, TRESC_X, y + 168, "Hasło ustawisz, zmienisz albo wyłączysz na ekranie zabezpieczeń:",
+             k1_kolor(m->tekst, 255), w);
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y + 192, "naciśnij Ctrl+Alt+Del i wybierz „Hasło”.", k1_kolor(m->akcent_tekst, 255), w);
+    k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 224, "Okno, także to, nigdy nie prosi o hasło K1: tak strona nie podrobi tej prośby.",
+             t3, w);
 }
 
 void haslo_loguj(void)
 {
-    k1_log(TAG, "hasło: przełącznik %d,%d; zmień %d,%d; pola od %d,%d co %d; Zapisz %d,+%d", WNETRZE + 18, WIERSZ_Y + 18,
-           WNETRZE + 340, WIERSZ_Y + 18, POLE_X + 40, POLA_Y + 18, POLA_KROK, POLE_X + 60, 26);
+    k1_log(TAG, "hasło: %s, zmiana na ekranie zabezpieczeń (Ctrl+Alt+Del)", hs.wlaczone ? "włączone" : "wyłączone");
 }
 
 int haslo_tylko_pamiec(void)

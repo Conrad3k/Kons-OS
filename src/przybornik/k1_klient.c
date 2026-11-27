@@ -139,7 +139,8 @@ void k1_pow_utworz(struct k1_klient *k, struct k1_powierzchnia *p, uint32_t id, 
 {
     size_t rozmiar = (size_t)szer * (size_t)wys * 4u * 2u;
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, id, szer, wys, rodzaj,
-                                              rodzaj == K1_POW_PANEL ? x : 0, rodzaj == K1_POW_PANEL ? y : 0);
+                                              rodzaj == K1_POW_PANEL || rodzaj == K1_POW_ZABEZPIECZENIA ? x : 0,
+                                              rodzaj == K1_POW_PANEL || rodzaj == K1_POW_ZABEZPIECZENIA ? y : 0);
     uint32_t *mem;
     int fd = pamiec_powierzchni(k, rozmiar, &mem);
     memset(p, 0, sizeof *p);
