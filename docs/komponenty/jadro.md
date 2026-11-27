@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M1) — start w QEMU, testy `scripts/test-m1.sh` |
 | **Wersja** | 7.3.5 — najnowsza linia stabilna, nie długoterminowa (`jadro/wersja.env`; od 0.10.5 krok 7, D14, T20 — wcześniej 6.18 LTS), decyzje: ADR 0003 |
-| **Pliki** | `jadro/k1.config` (fragment Kconfig), `jadro/cmdline`, `jadro/klucze/`, `scripts/zbuduj-jadro.sh`; zamknięte jądro: `jadro/k1-zamkniete.config`, `scripts/zbuduj-k1efi.sh`, klucz Secure Boot: `narzedzia/klucz_sb.py` (ADR 0022) |
+| **Pliki** | `jadro/k1.config` (fragment Kconfig), `jadro/cmdline` (testy), `jadro/cmdline-wydanie` (`k1.efi`, 0.13.0), `jadro/klucze/`, `scripts/zbuduj-jadro.sh`; zamknięte jądro: `jadro/k1-zamkniete.config`, `scripts/zbuduj-k1efi.sh`, klucz Secure Boot: `narzedzia/klucz_sb.py` (ADR 0022) |
 
 ## Cel
 Jedyny kod działający z pełnymi uprawnieniami sprzętowymi. Wspólna granica zaufania całego świata
@@ -17,11 +17,23 @@ Luka w jądrze = przejęcie całego świata natywnego; stąd minimalna konfigura
 osobne jądro dla przeglądarki (0.10, strefy).
 
 ## Wejścia i wyjścia
-- Wejście: linia poleceń (`jadro/cmdline`: `console=ttyS0 panic=-1 oops=panic k1.rdzen=/dev/vda`),
-  initramfs, urządzenie blokowe z obrazem rdzenia, wywołania systemowe procesów.
-- Wyjście: konsola na porcie szeregowym `ttyS0` (tylko w developmencie).
-- `panic=-1` — po panic natychmiastowy restart (w QEMU z `-no-reboot` = koniec maszyny);
-  `oops=panic` — każdy „oops” jądra kończy się panic (stan jądra po oopsie jest niepewny).
+- Wejście: linia poleceń — testy (`jadro/cmdline`: `console=ttyS0 panic=-1 oops=panic k1.rdzen=/dev/vda
+  mac80211_hwsim.radios=0`), wydanie (`jadro/cmdline-wydanie`, wbudowana w `k1.efi`: `console=ttynull panic=60 oops=panic
+  k1.rdzen=wbudowany`), initramfs, urządzenie blokowe z obrazem rdzenia, wywołania systemowe procesów.
+- Wyjście: konsola na porcie szeregowym `ttyS0` tylko w testach (`bzImage`, `k1-test.efi`); wydanie od 0.13.0 krok 4
+  (ADR 0059) — `ttynull` (`NULL_TTY`: `/dev/console` jest, ale pisze donikąd); ekran paniki (`DRM_PANIC`, niżej).
+- `panic=-1` (testy) — po panic natychmiastowy restart (w QEMU z `-no-reboot` = koniec maszyny); `panic=60` (wydanie) —
+  ekran paniki zostaje minutę, potem restart; `oops=panic` — każdy „oops” jądra kończy się panic (stan jądra po oopsie
+  jest niepewny).
+
+## Ekran paniki (0.13.0 krok 4, ADR 0059, R17)
+`DRM_PANIC` z `DRM_PANIC_SCREEN="kmsg"`: panika rysuje ostatnie wiersze logu jądra na obrazie, który sterownik już
+wyświetla (simpledrm z obrazem z firmware, i915, bochs i virtio — tylko gdy mają ustawiony obraz; vmwgfx nie ma tej
+funkcji), w kolorach ciemnego motywu K1 (`DRM_PANIC_BACKGROUND_COLOR=0x262523`, `…FOREGROUND…=0xeeebe5`), czcionką jądra
+8×16 (`FONT_8x16`, bez polskich liter). Błąd krytyczny startu K1 (`k1_awaria`, PID 1) czyści log jądra, wpisuje do niego
+opis po polsku bez polskich liter i kończy PID 1 — więc ekran pokazuje tylko ten opis i wiersz paniki. Kod QR
+(`DRM_PANIC_SCREEN_QR_CODE`) wymaga Rusta w jądrze — nie. NIEPEWNE: ekran na X230 i IdeaPadzie przed ekranem K1 (i915
+przejmuje obraz BIOS-u) — lista „co sprawdzić”.
 
 ## Zabezpieczenia i odstępstwa od KSPP
 Lista KSPP: `scripts/sprawdz-kspp.sh` (dane z kernel-hardening-checker v0.6.17.1). Wynik dla
@@ -183,7 +195,8 @@ czeka chwilę czynnie przed HLT; włącza go `cpuidle_haltpoll.force=1` od VMM-a
 `WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),
 sterowniki kart PCIe: Intel iwlwifi (DVM, MVM), Qualcomm Atheros ath9k (z `ATH9K_PCOEM`) i ath10k, Realtek rtlwifi
 (8723BE, 8821AE), rtw88 (8822CE, 8822BE, 8821CE, 8723DE), rtw89 (8852BE), MediaTek MT7921E; `MAC80211_HWSIM` do testów
-(`mac80211_hwsim.radios=0` w linii poleceń wydania). **Pliki od producentów** kart są wbudowane (`EXTRA_FIRMWARE`, tabela
+— od 0.13.0 krok 4 (#234 p. 3, ADR 0059) tylko w jądrze testów `bzImage` (`mac80211_hwsim.radios=0` w `jadro/cmdline`);
+`k1.efi` go nie ma (`jadro/k1-zamkniete.config`). **Pliki od producentów** kart są wbudowane (`EXTRA_FIRMWARE`, tabela
 `jadro/oprogramowanie-kart.txt`, 32 pliki z linux-firmware 20261019, 27 MB) — `scripts/zbuduj-jadro.sh` dokłada
 `CONFIG_EXTRA_FIRMWARE` i `CONFIG_EXTRA_FIRMWARE_DIR` do fragmentu (`build/jadro-fragment.config`), więc sprawdzenie
 konfiguracji obejmuje i je. **Baza przepisów radiowych** (`regulatory.db` z wireless-regdb 2026.09.03) wbudowana
@@ -228,8 +241,8 @@ wersji), w systemie: `testy/system/t_system.c` (LSM, lockdown, Landlock, usunię
 
 ## Zamknięte jądro `k1.efi` (0.7.0, ADR 0022)
 Wydania (pendrive, dysk, ISO) uruchamiają `k1.efi`: to samo jądro z `k1.config` plus `jadro/k1-zamkniete.config`
-— `CMDLINE_BOOL` + `CMDLINE_OVERRIDE` (linia z `jadro/cmdline`, `k1.rdzen=wbudowany`, `k1.rdzen_skrot`, `noinitrd`,
-`quiet loglevel=7`) i `INITRAMFS_SOURCE` (initramfs + `rdzen.squashfs`, bez osobnej kompresji). Podpisane do Secure
+— `CMDLINE_BOOL` + `CMDLINE_OVERRIDE` (linia z `jadro/cmdline-wydanie` — do 0.12.3 z `jadro/cmdline`; `k1.rdzen=wbudowany`,
+`k1.rdzen_skrot`, `noinitrd`, `quiet loglevel=7`) i `INITRAMFS_SOURCE` (initramfs + `rdzen.squashfs`, bez osobnej kompresji). Podpisane do Secure
 Boot (`sbsign`, RSA-2048 z `narzedzia/klucz_sb.py`, zegar zamrożony `faketime` — powtarzalne). Bez protokołu „EFI
 handover” (wyłączony) i z `noinitrd` program ładujący nie ma jak podać initrd — sprawdzone w QEMU z GRUB-em
 Ubuntu. Budowane w tym samym katalogu co jądro deweloperskie (`bzImage`, które zostaje dla testów `test-m1`).
@@ -238,6 +251,9 @@ Od 0.13.0 krok 2 (ADR 0057) `k1-zamkniete.config` dodaje `EFI_SBAT_FILE`: sekcja
 `k1,<generacja>,Kons K1,k1,<wersja>,…` (generacja — `K1_GENERACJA` w `src/wspolne/k1_tpm.h`; plik CSV robi
 `scripts/zbuduj-k1efi.sh`). Shim sprawdza SBAT obrazu od GRUB-a tylko, gdy sekcja jest, a generacji „k1” w swojej
 `SbatLevel` nie ma — odwołanie starszych wersji robi więc TPM (nadzorca); sekcja czeka na własny shim.
+Od 0.13.0 krok 4 (ADR 0059) `scripts/zbuduj-k1efi.sh` składa dwa pliki z tej samej konfiguracji: `k1.efi` (wydanie,
+`console=ttynull`) i `k1-test.efi` (ta sama linia z dopiskiem `console=ttyS0 panic=-1` — kopia testowa wydania, tylko do obrazów
+`k1-<wersja>-test.iso` i `-test-usb.img`, nigdy w wydaniu); `k1-zamkniete.config` wyłącza też `MAC80211_HWSIM`.
 
 ## TPM (0.13.0 krok 2, ADR 0057)
 `TCG_TPM`, `TCG_TIS` (TPM 2.0 przez FIFO, ACPI `MSFT0101`; w testach QEMU `tpm-tis` z swtpm), `TCG_CRB` (TPM w firmware

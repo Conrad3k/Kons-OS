@@ -179,7 +179,13 @@ kafelek ją przywraca). Każda zmiana idzie od razu do usługi (`DZWIEK_SCENA`);
 pasmo Góra”. Opis ekranu: przełącznik „Kons Spatial Audio” (przycisk; wybrany — włączony), kafelki po nazwach scen
 (wybrany — ta gra), punkty pasm po nazwach pasm („Bas” — pierścień, „Środek”…), wiersze listy „pasmo Bas”…, „Posłuchaj”.
 `USTAWIENIA_MIEJSCE` a = PRZESTRZEN (wiersz „Kons Spatial Audio” okienka „Dźwięk”) otwiera tę zakładkę.
-Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
+Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane; od 0.13.0 krok 4 (ADR 0059, D4: A) przycisk „Zapisz raport
+na pendrive” — ten sam raport co w trybie ratunkowym (wersja, nośniki, dyski, ostatnie wpisy logu; bez plików i haseł)
+na pierwszy pendrive bez K1 (FAT32/FAT16): `INST_START` obiekt = 0, a = `K1_INST_RAPORT` kanałem aktualizacji (fd 7),
+wynik `INST_WYNIK` b = `K1_INST_RAPORT` (`aktualizacje.c` przekazuje go `informacje_wynik`); pod przyciskiem stan słowami
+z `k1_raport_opis` (przybornik — te same zdania co ekran ratunkowy), log „informacje: raport zapisany / niezapisany (kod
+N)”. Wydanie nie pisze nic na port szeregowy: raport to sposób na zgłoszenie błędu. Wygląd i Ekran (karty tapet, tryby
+ekranu) — od 0.13.0 krok 4 w `wyglad.c` (podział przed rozbudową).
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).
 Od 0.10.7 krok 2 (`docs/WYGLAD.md`, „Ustawienia: sekcje w środku”): bez baterii sekcji „Bateria” nie ma na liście

@@ -1,7 +1,8 @@
 # 0022. A/B i Secure Boot (M6c, M6d): zamknięte jądro k1.efi, dwa miejsca na system, klucz K1 w MOK
 
 - Status: Przyjęty, wdrożony w 0.7.0 (zamyka etap M6); punkt 3 (manifest formatu 1) i konsekwencja o plikach startowych
-  zmienione w 0.9.0 [uzupełnienie: ADR 0038]
+  zmienione w 0.9.0 [uzupełnienie: ADR 0038]; od 0.13.0 linia poleceń wydania `jadro/cmdline-wydanie` (`console=ttynull`)
+  i testowa kopia `k1-test.efi` [uzupełnienie: ADR 0059]
 - Data: 2026-11-08
 - Dotyczy: ADR 0021 (M6a–M6b), ADR 0018 (instalator), ADR 0010 (ISO), SPEC §6, RYZYKA R1, R25, R41, R42–R45
 

@@ -81,7 +81,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 - Nadzorca: uruchamia i restartuje usługi. Awaria GUI nie może powodować kernel panic.
 - Brak terminala:
   - nie ma /bin/sh, basha, SSH, emulatorów terminala, getty, dostępnych TTY ani devpts,
-  - w developmencie tylko jednokierunkowy log na port szeregowy,
+  - w developmencie tylko jednokierunkowy log na port szeregowy (wydanie: log tylko w pamięci, raport na pendrive na prośbę użytkownika; błąd krytyczny startu — ekran awarii) [korekta: ADR 0059],
   - brak terminala sam w sobie nie jest zabezpieczeniem.
 - Uprawnienia:
   - osobne UID/GID dla usług i minimalne capabilities,

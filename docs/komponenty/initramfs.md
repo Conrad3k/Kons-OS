@@ -42,11 +42,15 @@ z `DM_VERITY` i SHA-256.
 ## Wywołania systemowe
 `getpid`, `umask`, `mount` (proc, devtmpfs, tmpfs, squashfs, remount ro, MS_MOVE), `umount2`, `open`,
 `read`, `close`, `stat`, `nanosleep`, `mkdir`, `unlink`, `rmdir`, `chdir`, `chroot`, `execve`,
-`write` (log), `sync`, `reboot` (przy błędzie), `ioctl` (`/dev/mapper/control`).
+`write` (log), `sync`, `syslog` (`SYSLOG_ACTION_CLEAR` przy błędzie, od 0.13.0), `ioctl` (`/dev/mapper/control`).
 
 ## Obsługa błędów
-Każdy błąd → `k1_awaria()`: komunikat `BŁĄD KRYTYCZNY`, 5 s, wyłączenie zasilania (ADR 0005).
-Nigdy `exit()` (kernel panic).
+Każdy błąd → `k1_awaria()`: komunikat `BŁĄD KRYTYCZNY` (na konsolę — w wydaniu donikąd, `console=ttynull`), potem
+**ekran awarii** (od 0.13.0 krok 4, ADR 0059): log jądra wyczyszczony, w `/dev/kmsg` opis po polsku bez polskich liter
+(„Kons K1 … nie moze wystartowac”, powód, co zrobić), koniec procesu → panika jądra, której ekran (`DRM_PANIC`) pokazuje ten
+opis do `panic=60`, potem ponowne uruchomienie (GRUB liczy nieudany start — ADR 0058). Pierwszy krok to devtmpfs na `/dev`,
+żeby `/dev/kmsg` był już przy błędzie linii poleceń. Do 0.12.3: 5 s i wyłączenie zasilania (ADR 0005). Nigdy `exit()` poza
+`k1_awaria()`.
 
 ## Powierzchnia ataku
 - Parser linii poleceń — mały, czysta funkcja, testy jednostkowe z ASan/UBSan i fuzzing (libFuzzer).
@@ -58,10 +62,11 @@ Nigdy `exit()` (kernel panic).
 | Test | Co sprawdza |
 |---|---|
 | `qemu: start`, `qemu: testy-w-systemie` | poprawny start, układ korzenia (w systemie) |
-| `qemu: neg-brak-dysku` | brak urządzenia → komunikat po 10 s, wyłączenie |
-| `qemu: neg-dysk-bez-obrazu` | dysk bez SquashFS → komunikat, wyłączenie |
-| `qemu: neg-obraz-bez-init` | SquashFS bez `/rdzen/init` → komunikat, wyłączenie |
+| `qemu: neg-brak-dysku` | brak urządzenia → komunikat po 10 s, ekran awarii (opis K1 w logu jądra, panika) |
+| `qemu: neg-dysk-bez-obrazu` | dysk bez SquashFS → komunikat, ekran awarii |
+| `qemu: neg-obraz-bez-init` | SquashFS bez `/rdzen/init` → komunikat, ekran awarii |
 | `qemu: neg-brak-parametru`, `neg-zly-parametr`, `neg-powtorzony-parametr` | odrzucenie linii poleceń |
 | `qemu: neg-brak-skrotu`, `neg-zly-skrot` | brak / zły `k1.rdzen_skrot` → awaria (dm-verity) |
-| `qemu: neg-zmieniony-obraz` | jeden zmieniony bajt obrazu → „obraz rdzenia jest zmieniony…”, wyłączenie |
+| `qemu: neg-zmieniony-obraz` | jeden zmieniony bajt obrazu → „obraz rdzenia jest zmieniony…”, ekran awarii |
+| `test-wydanie: awaria` | linia poleceń wydania (`console=ttynull`), zły skrót → ekran awarii na zrzucie (UEFI, simpledrm); port szeregowy pusty |
 | `jednostkowe`, `fuzzing` | parser `k1_cmdline` (32 przypadki, ~5 mln losowych wejść) |

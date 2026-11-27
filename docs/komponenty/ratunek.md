@@ -37,8 +37,10 @@ nadzorcy: memfd z raportem (fd 4) i cały pendrive (fd 5, `O_EXCL`).
 - Ekran ratunkowy: fd 4 prośby (`OCHRONA`, `WYLACZ`), fd 5 stan (`OCHRONA` a = `RATUNEK`: ta wersja, wersja drugiego
   miejsca, `K1_RAP_*` i numer pliku albo błąd). Log: „ekran ratunkowy: <przycisk> x,y; …” (położenia dla testów),
   „ekran ratunkowy: zapisz raport”, „… raport zapisany”.
-- Raport (`K1RAPORT.TXT`, do 64 KiB, UTF-8, CRLF): wersja, czas UTC, nośnik startu, miejsca A/B, grubenv, TPM, dyski,
-  ostatnie wiersze logu tego startu (ten sam tekst, co port szeregowy — niezmiennik 8).
+- Raport (`K1RAPORT.TXT`, do 64 KiB, UTF-8, CRLF; od 0.13.0 krok 4 w `src/nadzorca/raport.c` — ten sam z Ustawień →
+  Informacje, ADR 0059): „Kons K1: raport”, wersja, tryb („ratunkowy” albo „zwykły start”), czas UTC, nośnik startu,
+  miejsca A/B, grubenv, TPM, dyski, ostatnie wiersze logu tego startu od nadzorcy (ten sam tekst, co konsola — niezmiennik
+  8; wydanie nie ma już konsoli na porcie szeregowym, więc to jego jedyny log). Zdania o stanie raportu: `k1_raport_opis`.
 - Program zapisujący: `INST_ZADANIE` a = `K1_INST_RAPORT`, c = bajty raportu; `INST_GOTOWE` b = numer pliku (0 —
   `K1RAPORT.TXT`, 1…9 — `K1RAPORn.TXT`); błędy: `K1_INST_BLAD_FAT` (nie FAT16/FAT32), `K1_INST_BLAD_MALY` (brak miejsca,
   pełny katalog, dziesięć raportów), `K1_INST_BLAD_ZAPIS`.
