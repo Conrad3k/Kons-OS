@@ -28,6 +28,8 @@ wynik() { # $1 = nazwa, $2 = 0/1, $3 = opis
 
 # scenariusz NAZWA TRYB OBRAZ CMDLINE OCZEKIWANE...
 #   TRYB=wylaczenie: maszyna ma się sama wyłączyć (kontrolowane wyłączenie) przed upływem limitu
+#   TRYB=awaria:     błąd krytyczny startu (0.13.0 krok 4, ADR 0059): ekran awarii — opis K1 w logu jądra, PID 1 się
+#                    kończy, panika jądra (tylko „Attempted to kill init”), panic=-1: maszyna kończy się sama
 #   TRYB=czekaj:     po pojawieniu się wszystkich oczekiwanych napisów test zamyka QEMU
 #   OBRAZ=-        : bez dysku
 # Zawsze niedozwolone: "Kernel panic", "[BŁĄD]" z testów w systemie.
@@ -62,11 +64,19 @@ scenariusz() {
     kod=0; wait $qpid 2>/dev/null || kod=$?
     problem=""
     for w in "$@"; do zawiera "$log" "$w" || problem="$problem brak:'$w'"; done
-    grep -q 'Kernel panic' "$log" && problem="$problem kernel-panic"
+    if [ "$tryb" = awaria ]; then
+        for w in "K1: Kons K1 $K1_WERSJA nie moze wystartowac (blad krytyczny)." "K1: Powod (" "ekran awarii, ponowne uruchomienie" \
+            "Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000100"; do
+            zawiera "$log" "$w" || problem="$problem brak:'$w'"
+        done
+        [ "$(grep -c 'Kernel panic' "$log")" -le 2 ] || problem="$problem inna-panika" # the line and its "end Kernel panic"
+    else
+        grep -q 'Kernel panic' "$log" && problem="$problem kernel-panic"
+    fi
     grep -qF 'K1-TEST: [BŁĄD]' "$log" && problem="$problem nieudany-test-w-systemie"
     grep -qF 'K1-PROBA: [BŁĄD]' "$log" && problem="$problem nieudana-próba-klatki"
     grep -qF 'zabronione wywołanie systemowe' "$log" && problem="$problem usługa-zatrzymana-przez-seccomp"
-    [ "$tryb" = wylaczenie ] && [ $sam -eq 0 ] && problem="$problem brak-wyłączenia-przed-limitem"
+    [ "$tryb" != czekaj ] && [ $sam -eq 0 ] && problem="$problem brak-wyłączenia-przed-limitem"
     if [ -z "$problem" ]; then wynik "qemu: $nazwa (${t} s)" 0 ""
     else wynik "qemu: $nazwa" 1 "$problem; czas ${t} s, QEMU zakończyło się samo: $sam, kod: $kod (log: $log)"; fi
 }
@@ -147,23 +157,23 @@ neg() { # the arguments of scenariusz
     if [ "$ROWNOLEGLE" = 1 ]; then (scenariusz "$@") > "$TESTY/$1.wynik" 2>&1 &
     else (scenariusz "$@") > "$TESTY/$1.wynik" 2>&1 || true; fi
 }
-neg neg-brak-dysku wylaczenie - "$CMDLINE k1.rdzen_skrot=$ZERA_SKROT" \
-    "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
-neg neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \
-    "nie udało się zamontować obrazu rdzenia z /dev/vda" "reboot: Power down"
-neg neg-obraz-bez-init wylaczenie "$TESTY/bez-init.squashfs" "$CMDLINE" \
-    "obraz rdzenia nie zawiera programu init" "reboot: Power down"
-# One bad k1.rdzen is enough here (the system shuts down): the parser's cases (missing, "..", repeated, too long)
+neg neg-brak-dysku awaria - "$CMDLINE k1.rdzen_skrot=$ZERA_SKROT" \
+    "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda"
+neg neg-dysk-bez-obrazu awaria "$TESTY/zera.img" "$CMDLINE" \
+    "nie udało się zamontować obrazu rdzenia z /dev/vda"
+neg neg-obraz-bez-init awaria "$TESTY/bez-init.squashfs" "$CMDLINE" \
+    "obraz rdzenia nie zawiera programu init"
+# One bad k1.rdzen is enough here (the start stops): the parser's cases (missing, "..", repeated, too long)
 # are checked on the host (test_cmdline, fuzz_cmdline) — since 0.10.0 not one start each.
-neg neg-zly-parametr wylaczenie "$K1_WYNIK/rdzen.squashfs" "$BAZA k1.rdzen=/dev/../vda" \
-    "niepoprawny parametr k1.rdzen: dozwolone tylko" "reboot: Power down"
+neg neg-zly-parametr awaria "$K1_WYNIK/rdzen.squashfs" "$BAZA k1.rdzen=/dev/../vda" \
+    "niepoprawny parametr k1.rdzen: dozwolone tylko"
 # M6b (ADR 0021): dm-verity — no root hash, a wrong one, one changed byte in the image
-neg neg-brak-skrotu wylaczenie "$TESTY/bez-skrotu.squashfs" "$CMDLINE" \
-    "brak parametru k1.rdzen_skrot" "reboot: Power down"
-neg neg-zly-skrot wylaczenie "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen_skrot=$(echo "$ZERA_SKROT" | tr 0 a)" \
-    "obraz rdzenia jest zmieniony albo uszkodzony" "reboot: Power down"
-neg neg-zmieniony-obraz wylaczenie "$TESTY/zmieniony.squashfs" "$CMDLINE" \
-    "obraz rdzenia jest zmieniony albo uszkodzony" "reboot: Power down"
+neg neg-brak-skrotu awaria "$TESTY/bez-skrotu.squashfs" "$CMDLINE" \
+    "brak parametru k1.rdzen_skrot"
+neg neg-zly-skrot awaria "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen_skrot=$(echo "$ZERA_SKROT" | tr 0 a)" \
+    "obraz rdzenia jest zmieniony albo uszkodzony"
+neg neg-zmieniony-obraz awaria "$TESTY/zmieniony.squashfs" "$CMDLINE" \
+    "obraz rdzenia jest zmieniony albo uszkodzony"
 wait
 for n in $NEG; do
     cat "$TESTY/$n.wynik"
