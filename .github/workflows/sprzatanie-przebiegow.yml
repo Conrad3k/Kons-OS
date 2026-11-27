@@ -1,0 +1,99 @@
+name: Sprzątanie przebiegów
+
+# Tylko ręcznie: Actions → „Sprzątanie przebiegów” → Run workflow. Usuwa stare przebiegi workflow (wpisy na liście
+# Actions razem z ich logami i artefaktami), żeby lista była krótka. Opis: docs/komponenty/sprzatanie.md.
+#   - zostają przebiegi z ostatnich N dni (pole „dni”) i zawsze najnowszy przebieg każdego workflow,
+#   - trwające przebiegi i ten przebieg nie są ruszane,
+#   - „tylko policz” pokazuje, ile by usunął, i nic nie usuwa.
+# Wydania (Releases: ISO, obraz USB, ogłoszenia, paczki) to nie przebiegi — zostają. GitHub pozwala tokenowi
+# workflow na ok. 1000 próśb na godzinę: jeden bieg usuwa najwyżej 900 przebiegów, resztę następny (za godzinę).
+on:
+  workflow_dispatch:
+    inputs:
+      dni:
+        description: "Zostaw przebiegi z ostatnich ilu dni (0 = usuń wszystkie oprócz najnowszego każdego workflow)"
+        required: true
+        default: "30"
+      workflow:
+        description: "Których przebiegów"
+        type: choice
+        default: wszystkie
+        options:
+          - wszystkie
+          - k1.yml
+          - robot.yml
+          - ogloszenie.yml
+          - sprzatanie-artefaktow.yml
+          - sprzatanie-przebiegow.yml
+      tylko_policz:
+        description: "Tylko policz, nic nie usuwaj"
+        type: boolean
+        default: false
+
+concurrency:
+  group: sprzatanie-przebiegow
+  cancel-in-progress: false
+
+jobs:
+  sprzataj:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: write
+    steps:
+      - name: Usuń stare przebiegi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DNI: ${{ inputs.dni }}
+          WORKFLOW: ${{ inputs.workflow }}
+          TYLKO_POLICZ: ${{ inputs.tylko_policz }}
+          TEN_PRZEBIEG: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          case "$DNI" in
+            ''|*[!0-9]*) echo "::error::Pole „dni” musi być liczbą (np. 30), a jest: $DNI"; exit 1 ;;
+          esac
+          if [ "$DNI" -gt 3650 ]; then echo "::error::Pole „dni” — najwyżej 3650"; exit 1; fi
+          granica=$(date -u -d "$DNI days ago" +%Y-%m-%dT%H:%M:%SZ)
+
+          if [ "$WORKFLOW" = wszystkie ]; then
+            adres="repos/$REPO/actions/runs?per_page=100"
+          else
+            adres="repos/$REPO/actions/workflows/$WORKFLOW/runs?per_page=100"
+          fi
+          # workflow, czas, numer, stan, nazwa — od najnowszego w każdym workflow
+          gh api --paginate "$adres" \
+            --jq '.workflow_runs[] | [.workflow_id, .created_at, .id, .status, .name] | @tsv' \
+            | sort -t "$(printf '\t')" -k1,1 -k2,2r > wszystkie.tsv
+          # pierwszy (najnowszy) wiersz każdego workflow zostaje zawsze
+          awk -F '\t' -v g="$granica" -v ja="$TEN_PRZEBIEG" '
+            $1 == poprz && $4 == "completed" && $2 < g && $3 != ja { print $3 "\t" $2 "\t" $5 }
+            { poprz = $1 }' wszystkie.tsv > stare.tsv
+
+          wszystkich=$(wc -l < wszystkie.tsv)
+          do_usuniecia=$(wc -l < stare.tsv)
+          echo "Przebiegów ($WORKFLOW): $wszystkich, starszych niż $granica do usunięcia: $do_usuniecia"
+          if [ "$TYLKO_POLICZ" = true ]; then
+            echo "Tylko policz: nic nie usuwam."
+            echo "Do usunięcia: **$do_usuniecia** z $wszystkich przebiegów ($WORKFLOW, starsze niż $DNI dni). Nic nie usunięto (tylko policz)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          usuniete=0
+          while IFS="$(printf '\t')" read -r id czas nazwa; do
+            if [ "$usuniete" -ge 900 ]; then break; fi
+            if ! gh api -X DELETE "repos/$REPO/actions/runs/$id" < /dev/null > /dev/null; then
+              echo "::warning::Nie udało się usunąć przebiegu $id — GitHub mógł ograniczyć liczbę próśb. Uruchom ponownie za godzinę."
+              break
+            fi
+            usuniete=$((usuniete + 1))
+            echo "usunięty: $nazwa ($czas)"
+          done < stare.tsv
+
+          zostalo=$((do_usuniecia - usuniete))
+          echo "Usunięto $usuniete przebiegów; do usunięcia zostało $zostalo."
+          echo "Usunięto **$usuniete** z $wszystkich przebiegów ($WORKFLOW, starsze niż $DNI dni). Do usunięcia zostało: $zostalo." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$zostalo" -gt 0 ]; then
+            echo "::notice::Zostało $zostalo starych przebiegów — uruchom ten workflow ponownie za godzinę."
+          fi

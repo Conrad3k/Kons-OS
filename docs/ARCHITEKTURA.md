@@ -42,7 +42,7 @@ asystentów — skill `kons-dev`, §3.
 | `scripts/` | budowa, QEMU, testy, kontrole, robot (niżej) |
 | `docs/` | SPEC, ADR, ten plik, `DO_ZROBIENIA.txt` (plan), plany wersji, TESTY, SLOWNIK, WYGLAD, ZALEZNOSCI, RYZYKA, `komponenty/`, `archiwum/` (zamknięte plany) |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/skills/kons-dev/` | zasady dla asystentów (Claude, Codex) i przewodnik po pracy w repo |
-| `.github/workflows/` | `k1.yml` — CI: na PR-ze z etykietą `testy` budowa i pełne testy, na `main` sama budowa i wydanie (tag, ISO, obraz USB, ogłoszenie, paczka), gdy `VERSION` ma nową wersję; `robot.yml` — robot aktualizacji (`docs/komponenty/robot.md`); `sprzatanie-artefaktow.yml` |
+| `.github/workflows/` | `k1.yml` — CI: na PR-ze z etykietą `testy` budowa i pełne testy, na `main` sama budowa i wydanie (tag, ISO, obraz USB, ogłoszenie, paczka), gdy `VERSION` ma nową wersję; `robot.yml` — robot aktualizacji (`docs/komponenty/robot.md`); `sprzatanie-artefaktow.yml`, `sprzatanie-przebiegow.yml` (`docs/komponenty/sprzatanie.md`) |
 | `.github/ISSUE_TEMPLATE/` | szablony zgłoszeń (Feedback z testu, Błąd, Pomysł) |
 | `build/` | wszystko, co powstaje przy budowie (ignorowane przez git) |
 
