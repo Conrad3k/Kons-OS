@@ -59,10 +59,12 @@ q = Maszyna(log, mon, out, limit, "ratunek")
 czekaj, sprawdz, ile = q.czekaj, q.sprawdz, q.ile
 N = r"K1-NADZORCA: "
 if tryb.startswith("nieudany"):
-    # killed at nadzorca's first lines: before ekran's picture — this start never reached the screen
-    sprawdz(f"{tryb}: K1 startuje (nadzorca)", czekaj(N + r"TPM", czas=limit * 0.7))
-    sprawdz(f"{tryb}: zwykły start (nie tryb ratunkowy)", ile(r"TRYB RATUNKOWY") == 0)
+    # killed at the initramfs's first line: long before ekran's picture — this start never reached the screen (until
+    # 0.13.0 step 5 at nadzorca's first lines; CI run 393 with KVM: the picture came before "quit", the counter was zeroed)
+    sprawdz(f"{tryb}: K1 startuje (initramfs)", czekaj(r"K1-INITRAMFS: start", czas=limit * 0.7))
     q.monitor("quit")
+    sprawdz(f"{tryb}: zwykły start (nie tryb ratunkowy), bez obrazu", ile(r"TRYB RATUNKOWY") == 0 and
+            ile(r"K1-EKRAN: obraz na ekranie") == 0)
     q.koniec(wylacz=False)
 if tryb == "ratunek":
     sprawdz("ratunek: po dwóch nieudanych startach GRUB uruchamia tryb ratunkowy",
