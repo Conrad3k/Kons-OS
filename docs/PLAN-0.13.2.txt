@@ -406,3 +406,16 @@ Krok 1 (2026-11-27, ADR 0063; źródła: Firefox ESR 153.7.0 z Debiana, Linux 7.
     STREFA_FILMY (prośba VMM-a), STREFA_FILMY_KANAL (+ kanał do dekodera), STREFA_FILMY_ODMOWA; klatka do bufora strefy
     nowym typem z deskryptorem (VMM → dekoder). Dekoder kończy się z ostatnim kontekstem filmów; po błędzie — koniec
     filmów kartą do końca sesji.
+Krok 2 (2026-11-27):
+  - T4: FFmpeg 7.1.5 z Debiana 13 (libavcodec.so.61 — Firefox bierze .62 … .53, L6), nie 8.x: wersja, którą Debian
+    łata w poprawkach bezpieczeństwa (człowiek przenosi nowy wiersz). scripts/zbuduj-ffmpeg.sh: --disable-everything,
+    --disable-autodetect, dekoder i parser H.264, h264_vaapi, --enable-small, nasm; budowa w drzewie źródeł (ścieżki
+    względne) — POTWIERDZONE powtarzalna (dwie budowy w różnych katalogach: te same sumy). Wynik 1740 KiB; NEEDED tylko
+    libc, libm, libva.so.2, libva-drm.so.2 (skrypt to sprawdza); FFmpeg 7: komponenty w config_components.h.
+  - libva: libva2 i libva-drm2 2.22.0-3 (Debian 13) — KORZENIE w odswiez-strefe.py (robot je odświeża); tabela dostała
+    tylko te dwa wiersze — Firefox 153.8 (wyszedł w Debianie 2026-11-27) zostawiony robotowi.
+  - Pref: media.ffmpeg.enabled domyślnie true — bez zmian; martwy media.ffmpeg.vaapi.enabled usunięty z k1.js.
+  - POTWIERDZONE (stanowisko, testy/stanowisko/film.py): film H.264 High 640×360 gra — canPlayType „probably”,
+    MediaSource.isTypeSupported(avc1) true, ≥ 60 klatek; kontrola bez libavcodec.so.61 w obrazie: canPlayType „”,
+    MSE false, 0 klatek. Obraz strefy 138 184 KiB z drzewem dm-verity (zapas miejsca A/B bez zmian w praktyce).
+  - Do kroku 5: „robot dla FFmpeg strefy” do „Później” w DO_ZROBIENIA (R114).

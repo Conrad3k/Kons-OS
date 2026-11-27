@@ -104,6 +104,8 @@ libthai0 0.1.29-2+b1 debian e6364c07aeeffe9a95f267061d9df168e48e9dc9126c3b40e19d
 libtiff6 4.7.0-3+deb13u3 debian-security 6bb2038f36817ae1ee6d33df03917b21835dcc2e0f3e3e80a71390e83c171173 pool/updates/main/t/tiff/libtiff6_4.7.0-3+deb13u3_amd64.deb
 libudev1 257.13-1~deb13u1 debian 5d41c284f5a93b05bc7d648b61a02dd2bb9ff05b2261ad1a8b7d96044a0cfa88 pool/main/s/systemd/libudev1_257.13-1~deb13u1_amd64.deb
 libunistring5 1.3-2 debian 6dd3490bef06ea1096f32d10766b7e016cf579bfae8451d1b7df15ce05b8aa46 pool/main/libu/libunistring/libunistring5_1.3-2_amd64.deb
+libva-drm2 2.22.0-3 debian 5dce5007ddc0ce87a61db4d71476ce1a5a135737b5185ce2e8b7067342fcafc6 pool/main/libv/libva/libva-drm2_2.22.0-3_amd64.deb
+libva2 2.22.0-3 debian b76bdd330de47a826698aaed10f53435b703e9a7d4415dd68269c97709f46a9b pool/main/libv/libva/libva2_2.22.0-3_amd64.deb
 libvpx9 1.15.0-2.1+deb13u1 debian-security 5c2baac5c97a1fe01c4f0a2216743b901dc72437351e7451725a394c08037bcc pool/updates/main/libv/libvpx/libvpx9_1.15.0-2.1+deb13u1_amd64.deb
 libwayland-client0 1.23.1-3 debian d1607e1db1a7c5378a2e5c6ae7b20f64dc6acf134f953d84a7f5204b74339f33 pool/main/w/wayland/libwayland-client0_1.23.1-3_amd64.deb
 libwayland-cursor0 1.23.1-3 debian 26fccae2b1228744de0cad6c688550b8d13cd4e8d4ccf0cfdae015634ece673f pool/main/w/wayland/libwayland-cursor0_1.23.1-3_amd64.deb

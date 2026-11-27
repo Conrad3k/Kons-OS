@@ -195,7 +195,10 @@ ADR 0044), wszystkie procesory komputera do `K1_STREFA_PROCESORY_MAKS` = 254 (0.
   skryptów pakietów, bez powłoki; nasze: `/init` (`gosc`), `/usr/lib/k1/kompozytor`, `/usr/lib/k1/przekaznik`, mapa
   klawiatury (`strefy/klawiatura-pl.xkb`), ustawienia Firefoksa (`strefy/przegladarka/k1.js`, `policies.json`) i GTK
   (`strefy/przegladarka/gtk-settings.ini`: pusty układ przycisków okna — Firefox nie rysuje własnych minimalizuj /
-  powiększ / zamknij, krok 3, S28).
+  powiększ / zamknij, krok 3, S28); od 0.10.9 krok 6 nasza Mesa (szybka grafika); od 0.13.2 krok 2 nasz **FFmpeg**
+  (`scripts/zbuduj-ffmpeg.sh`: `libavcodec.so.61` i `libavutil.so.59`, tylko H.264 i VA-API — ADR 0063 pkt 7) z libva
+  z tabeli (`libva2`, `libva-drm2`): Firefox gra filmy H.264 procesorem (wcześniej nie grał ich wcale; VP8, VP9, AV1 —
+  jego wbudowane ffvpx); kartą (VA-API) — od kroku 4, w sesji z filmami kartą.
 - **`gosc`** (tryb przeglądarki, `gosc/przegladarka.c`): tmpfs na `/tmp`, `/run`, `/home`, `/dev/shm`, pętla zwrotna, nowy
   `machine-id`; przekaźnik, kompozytor, Firefox jako użytkownik 1000; koniec przeglądarki = koniec maszyny; „zamknij” →
   zamknięcie okien (krok 5): `gosc` daje kompozytorowi SIGUSR1, ten wysyła każdemu oknu `xdg_toplevel.close` — Firefox
