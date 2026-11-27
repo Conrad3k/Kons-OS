@@ -104,8 +104,27 @@ if tryb == "ratunek":
         return ciemne >= 120 and szeroki
     w, h, px = q.zrzut("ratunek", gdy=ekran_ratunkowy, czas=limit * 0.7)
     sprawdz("ratunek: k1_licznik=2 → GRUB uruchamia tryb ratunkowy (zrzut wydanie-ratunek.png)", ekran_ratunkowy(w, h, px))
-    q.zrzut("ratunek-gotowy")  # the screen finished drawing (the same picture three times)
-    q.monitor("sendkey down", "sendkey ret")  # Uruchom K1 normalnie → Zapisz raport na pendrive (slot B is empty)
+    # The keys only when the rescue screen takes them: ↓ until the keyboard's ring (terracotta) leaves the main button
+    # for the next one — "Zapisz raport na pendrive" (slot B is empty) — then Enter. Enter on the main button would
+    # restart K1, so never before the ring moved (CI with KVM: the screen was drawn before its keys worked).
+    def glowny(w, h, px):  # the rows of the main button: the wide terracotta bar
+        r = [y for y in range(h // 4, h - 40, 2) if sum(akcent(px(x, y)) for x in range(w // 4, 3 * w // 4, 2)) >= 100]
+        return (min(r), max(r)) if r else None
+
+    def obwodka(w, h, px, g):  # terracotta around the next button
+        return g and sum(akcent(px(x, y)) for x in range(w // 4, 3 * w // 4, 2)
+                         for y in range(g[1] + 8, min(h, g[1] + 80), 2)) >= 60
+    g = glowny(w, h, px)
+    przeszla = False
+    for _ in range(10):
+        q.monitor("sendkey down")
+        w2, h2, px2 = q.zrzut("ratunek-wybrany", gdy=lambda w_, h_, p_: obwodka(w_, h_, p_, g), czas=4)
+        if obwodka(w2, h2, px2, g):
+            przeszla = True
+            break
+    sprawdz("ratunek: ↓ — obwódka na „Zapisz raport na pendrive” (ekran ratunkowy bierze klawisze)", przeszla)
+    if przeszla:
+        q.monitor("sendkey ret")
     t = raport(120)
     sprawdz("ratunek: ↓, Enter — K1RAPORT.TXT na pendrivie", t is not None)
     t = t or ""

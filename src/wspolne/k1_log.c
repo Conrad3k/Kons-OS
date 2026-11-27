@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/klog.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -209,6 +210,7 @@ void k1_awaria(const char *tag, const char *fmt, ...)
     k1_log(tag, "BŁĄD KRYTYCZNY: %s", opis);
     k1_log(tag, "ekran awarii, ponowne uruchomienie");
     ekran_awarii(tag, opis);
+    tcdrain(2); /* the console's buffer out first: a panic does not flush it (CI with KVM lost these last lines) */
     sync();
     /* PID 1 ending is a kernel panic: its screen (DRM_PANIC) shows the lines above until panic=N restarts the computer
      * (the release: 60 s; the tests: -1 — at once, QEMU -no-reboot ends). */
