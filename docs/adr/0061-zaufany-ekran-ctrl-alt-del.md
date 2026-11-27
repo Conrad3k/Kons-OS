@@ -39,7 +39,7 @@ dostaje. Bez znaku na górnym pasku przy fokusie strefy (wariant odrzucony w D8)
    włączaniu: włączone / wyłączone”) i podpowiedź „naciśnij Ctrl+Alt+Del i wybierz „Hasło””; okno, także Ustawień, nigdy
    nie prosi o hasło K1. Wiersz `K1_UST_MIEJSCA` „Hasło” z kroku 5 usunięty: okienko „Ustaw hasło” (ADR 0060) otwiera
    ekran zabezpieczeń od razu na formularzu.
-5. **Ścieżka klawiszy hasła** (wejscie → ekran → gui) zostaje jak dla każdego klawisza (R40); jej przegląd — audyt 0.14
+5. **Ścieżka klawiszy hasła** (wejscie → ekran → gui) zostaje jak dla każdego klawisza (R40); jej przegląd — audyt 0.15
    (Issue #236 p. 3).
 
 ## Skutki
