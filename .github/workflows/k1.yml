@@ -62,7 +62,7 @@ jobs:
       - name: Przywróć kopię pakietów (pamięć podręczna)
         id: zapas-apt
         continue-on-error: true
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/k1-apt-zapas
           key: ${{ steps.klucz-apt.outputs.klucz }}
@@ -94,7 +94,7 @@ jobs:
       - name: Przywróć zbudowane jądro (tylko PR — wydanie zawsze od zera)
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             build/jadro-obj
@@ -112,7 +112,7 @@ jobs:
       - name: Przywróć pobrane pliki (pamięć podręczna)
         id: pobrane
         continue-on-error: true
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             build/pobrane
@@ -130,7 +130,7 @@ jobs:
         id: mesa
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/mesa
           key: ${{ steps.klucz-mesy.outputs.klucz }}
@@ -184,7 +184,7 @@ jobs:
       - name: Przywróć korpus fuzzingu (pamięć podręczna)
         if: (github.event_name == 'pull_request' || inputs.testy)
         continue-on-error: true
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/fuzz-korpus-*
           key: k1-fuzz-${{ github.run_id }}
