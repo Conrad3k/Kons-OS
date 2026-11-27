@@ -121,10 +121,10 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR      Issue
 [x]  1  Łańcuch wydań: poczekalnia / drugi podpis, termin     L1–L5            0.12.3      D1, T1, T2     M        0056     #230,
         ogłoszenia, data z HTTPS, akcje przypięte skrótem                                                                    #238 (p. 2)
-[ ]  2  TPM i odwoływanie: TPM w jądrze, SBAT w k1.efi,        L6–L11           1           T3–T6          L        0057     #235 (p. 2)
-        licznik wersji, cofnięcie skarbca
-        [w toku: Claude, gałąź claude/ecstatic-ritchie-eemw1a]
+[x]  2  TPM i odwoływanie: TPM w jądrze, SBAT w k1.efi,        L6–L11           1           T3–T6          L        0057     #235 (p. 2)
+        licznik wersji, cofnięcie skarbca — PR #250
 [ ]  3  Tryb ratunkowy; GRUB zostaje (ADR)                     L12–L14          1, 2        D2, D3, T7     L        0058
+        [w toku: Claude, gałąź claude/ecstatic-ritchie-eemw1a]
 [ ]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
         ekranie, hwsim tylko w testach, mniej kodu z zewnątrz                                                                #231 (p. 1), #237
 [ ]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
@@ -426,7 +426,7 @@ Krok 1 (2026-11-26, Claude, PR #245, CI przebieg 371 zielony; ADR 0056):
   - Testy lokalnie: test-m1, test-aktualizacja-siec (31 sprawdzeń), test-dzwiek, test-wzorce (po przyjęciu wzorców),
     testy na hoście, fuzzing ogloszenie, stopka, paczka, korektor, przestrzen po 60 s.
 
-Krok 2 (2026-11-26, Claude; ADR 0057):
+Krok 2 (2026-11-26, Claude, PR #250, CI przebieg 381 zielony; ADR 0057):
   - T5 — decyzja właściciela: starsza wersja → **blokada danych** (skarbiec bez K1-DANE, okienko „Ta wersja K1 jest za
     stara”, wyjście: aktualizacja). Dane cofnięte — okienko z „To moje dane” / „Później”, dane działają (to dane
     właściciela, nie znana dziura); znak „cofnięte” w TPM zostaje do decyzji.
