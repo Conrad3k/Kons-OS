@@ -1,12 +1,13 @@
 /* K1 — host test of what the windows of the writing program may ask nadzorca for (src/nadzorca/inst_prawa.c; 0.10.5
  * step 1, T1). NEGATIVE: Ustawienia never installs (wipes a disk), never turns on Secure Boot, never powers off and
- * restarts only after its finished update; Instalator never updates; nobody else is a window; unknown types refused. */
+ * restarts only after its finished update (0.13.0 step 4: a report is no such job — instalacja.c); Instalator never
+ * updates nor writes the report; nobody else is a window; unknown types refused. */
 #include "k1_test_host.h"
 #include "inst_prawa.h"
 
 static int moze(int okno, uint8_t typ, int32_t a, int sukces, int sb)
 {
-    struct k1_komunikat k = k1_komunikat_nowy(typ, typ == K1_KOM_INST_START ? 1 : 0, a, 0, 0, 0, 0);
+    struct k1_komunikat k = k1_komunikat_nowy(typ, typ == K1_KOM_INST_START && a != K1_INST_RAPORT ? 1 : 0, a, 0, 0, 0, 0);
     return inst_dozwolone(okno, &k, sukces, sb);
 }
 
@@ -20,6 +21,10 @@ int main(void)
     EXPECT(moze(OKNO_USTAWIENIA, K1_KOM_INST_START, K1_INST_AKTUALIZUJ, 0, 0));
     EXPECT(!moze(OKNO_USTAWIENIA, K1_KOM_INST_START, K1_INST_INSTALUJ, 0, 0)); /* NEGATIVE: never wipes a disk */
     EXPECT(!moze(OKNO_USTAWIENIA, K1_KOM_INST_START, K1_INST_INSTALUJ, 1, 1));
+    /* 0.13.0 step 4: the report onto a USB stick — Ustawienia → Informacje only (the rescue mode asks by OCHRONA) */
+    EXPECT(moze(OKNO_USTAWIENIA, K1_KOM_INST_START, K1_INST_RAPORT, 0, 0));
+    EXPECT(!moze(OKNO_INSTALATOR, K1_KOM_INST_START, K1_INST_RAPORT, 0, 0));
+    EXPECT(!moze(OKNO_USTAWIENIA, K1_KOM_INST_START, K1_INST_SIEC_ZAINSTALUJ, 0, 0)); /* NEGATIVE: nadzorca's own jobs */
     /* restart: after a finished job; Instalator also for MokManager */
     EXPECT(!moze(OKNO_USTAWIENIA, K1_KOM_WYLACZ, 1, 0, 0));
     EXPECT(!moze(OKNO_USTAWIENIA, K1_KOM_WYLACZ, 1, 0, 1)); /* the K1 key is Instalator's */

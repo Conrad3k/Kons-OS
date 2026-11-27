@@ -429,7 +429,13 @@ void ratunek_raport_wynik(int wynik, int numer);
 void ratunek_nowy_ekran(void);
 void ratunek_okresowe(void);
 int rozruch_to_wydanie(const struct k1_manifest *m);
-int inst_raport(int fd_raport, uint32_t dl); /* instalacja.c: the writing program with the report and the USB stick */
+/* instalacja.c: the writing program with the report and the USB stick; its result to window `okno` (OKNO_USTAWIENIA:
+ * INST_WYNIK), or — okno < 0 — to the rescue mode (ratunek_raport_wynik) */
+int inst_raport(int fd_raport, uint32_t dl, int okno);
+int ratunek_nosnik(int i, struct k1_efi *e, const char **nazwa); /* the media K1 started from (the report) */
+/* raport.c (0.13.0 step 4, ADR 0059): the report (the rescue mode: okno < 0; Ustawienia → Informacje: OKNO_USTAWIENIA)
+ * — 0: the writing program writes it, or K1_INST_BLAD_* */
+int raport_zapisz(int okno);
 /* obraz_strefy.c (0.10.9 step 4, ADR 0050): a zone image for the VMM (fd, read only), from the core or from the slot of
  * this build under dm-verity; -1 when there is none that verifies */
 int obraz_strefy_otworz(const char *nazwa);

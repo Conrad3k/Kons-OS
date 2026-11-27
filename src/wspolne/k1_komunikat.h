@@ -125,7 +125,8 @@ enum k1_komunikat_typ {
                                * channel to skarbiec as that owner, the test program (UID 0) its sender */
     /* Instalator application → nadzorca (M5f, ADR 0018) */
     K1_KOM_INST_DYSKI = 54,   /* obiekt=0: list the disks (reply: INST_DYSK…, INST_LISTA) */
-    K1_KOM_INST_START = 55,   /* obiekt=disk 1..K1_INST_DYSKI_MAKS from the last list, a=K1_INST_* mode */
+    K1_KOM_INST_START = 55,   /* obiekt=disk 1..K1_INST_DYSKI_MAKS from the last list, a=K1_INST_* mode; 0.13.0 step 4:
+                               * obiekt=0, a=K1_INST_RAPORT — the report onto a USB stick (Ustawienia → Informacje) */
     /* instalator (the writing program) → nadzorca */
     K1_KOM_INST_ETAP = 56,    /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
     K1_KOM_INST_GOTOWE = 57,  /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=1 a new slot to try (A/B, 0.7.0) */
@@ -326,7 +327,8 @@ enum k1_komunikat_typ {
                                * 0 none (not started from a K1 stick — e.g. the .iso on it), 2 two K1 sticks;
                                * c=its version (M6a manifest; 0 = none), d=1 signed */
     K1_KOM_INST_POSTEP = 68,  /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
-    K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode, c=1 new slot (A/B) */
+    K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode, c=1 new slot (A/B);
+                               * b=K1_INST_RAPORT (0.13.0 step 4): c=the report's file 0..9 (as INST_GOTOWE b) */
     /* nadzorca → Instalator window (0.7.0, ADR 0022): A/B and Secure Boot */
     K1_KOM_INST_AB = 76,      /* obiekt=disk 1..K1_INST_DYSKI_MAKS (after its INST_DYSK), a=version it runs, b=version in the
                                * other slot (0: none), c=slot it runs (1=A, 2=B), d=K1_AB_FL_* flags, e=1 the manifest of
@@ -338,7 +340,8 @@ enum k1_komunikat_typ {
     /* Instalator window → nadzorca */
     K1_KOM_SB_KLUCZ = 78,     /* obiekt=0: prepare the enrolment of the K1 key (MokNew + MokAuth for MokManager) */
     /* 0.10.5 step 1: updates moved to Ustawienia → Aktualizacje (KANAL_AKTUALIZACJI: Ustawienia's fd 7 — INST_DYSKI,
-     * INST_START with K1_INST_AKTUALIZUJ only, WYLACZ a=1 after a finished update; back INST_DYSK, INST_AB, INST_LISTA,
+     * INST_START with K1_INST_AKTUALIZUJ (0.13.0 step 4: or K1_INST_RAPORT) only, WYLACZ a=1 after a finished update;
+     * back INST_DYSK, INST_AB, INST_LISTA,
      * INST_POSTEP, INST_WYNIK) */
     /* 185: AKT_POKAZ (0.10.5–0.12.2) — a row of K1_UST_MIEJSCA since 0.12.3 step 3; since 0.13.0 step 2 (ADR 0057): */
     K1_KOM_OCHRONA = 185,     /* obiekt=0. a=K1_OCHR_STAN: nadzorca → gui (fd 5), Ustawienia (fd 7): b=K1_TPM_* what TPM

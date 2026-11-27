@@ -10,17 +10,12 @@
  *  - ratunek_obraz(): ekran shows its first picture — the start succeeded, k1_licznik on those media back to empty (not in
  *    the rescue mode: "Uruchom K1 normalnie" and "Uruchom poprzednią wersję" clear it).
  *  - The rescue screen's requests (OCHRONA, fd 4 of the screen): NORMALNIE — restart; POPRZEDNIA — grubenv k1_nowy = the
- *    other slot (tried once, as "Wróć" in Ustawienia), restart; RAPORT — the report (this file: the versions, A/B,
- *    grubenv, disks, TPM, the last lines of the log — the same text as the serial port, nothing more; niezmiennik 8) in a
- *    memfd for the writing program (instalacja.c: inst_raport) with the first USB stick that is not K1's (FAT16/FAT32).
+ *    other slot (tried once, as "Wróć" in Ustawienia), restart; RAPORT — the report (raport.c, the same one as
+ *    Ustawienia → Informacje writes since 0.13.0 step 4) onto the first USB stick that is not K1's (FAT16/FAT32).
  *  - Its state to the rescue screen (OCHRONA RATUNEK, fd 5). */
 #include "nadzorca.h"
 
-#include <stdarg.h>
 #include <time.h>
-
-#include "k1_memfd.h"
-#include "k1_tpm.h"
 
 #define NOSNIKI 4
 
@@ -149,85 +144,26 @@ void ratunek_obraz(void)
         k1_log(TAG, "start udany: licznik nieudanych startów wyzerowany");
 }
 
-/* ---- the report ---- */
-
-static size_t dopisz(char *b, size_t n, size_t p, const char *fmt, ...) __attribute__((format(printf, 4, 5)));
-static size_t dopisz(char *b, size_t n, size_t p, const char *fmt, ...)
+/* The i-th medium K1 started from, for the report (raport.c): 0 and its K1-EFI in *e, 1 it is not readable now, -1 no
+ * more media. */
+int ratunek_nosnik(int i, struct k1_efi *e, const char **nazwa)
 {
-    va_list ap;
-    int w;
-    if (p >= n)
-        return p;
-    va_start(ap, fmt);
-    w = vsnprintf(b + p, n - p, fmt, ap);
-    va_end(ap);
-    return w < 0 ? p : p + (size_t)w < n ? p + (size_t)w : n - 1;
-}
-
-static const char *rodzaj_dysku(int r)
-{
-    return r == K1_DYSK_SATA ? "SATA" : r == K1_DYSK_NVME ? "NVMe" : r == K1_DYSK_VIRTIO ? "virtio" : "inny";
-}
-
-/* The text of the report into `b` (n bytes): its length. */
-static size_t tresc(char *b, size_t n)
-{
-    struct k1_dyski l;
-    struct timespec t;
-    struct tm tm;
-    char w[16], w2[16];
-    size_t p = 0;
-    int i;
-    clock_gettime(CLOCK_REALTIME, &t);
-    gmtime_r(&t.tv_sec, &tm);
-    p = dopisz(b, n, p, "Kons K1: raport trybu ratunkowego\r\n=================================\r\n");
-    p = dopisz(b, n, p, "Wersja: %s\r\nCzas (UTC): %04d-%02d-%02d %02d:%02d\r\n", K1_WERSJA, tm.tm_year + 1900,
-               tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min);
-    for (i = 0; i < n_nosnikow; i++) {
-        struct k1_efi e;
-        int fd;
-        if (otworz_efi(nosniki[i], 0, &e, &fd) != 0)
-            continue;
-        close(fd);
-        k1_wersja_tekst(e.slot[0].wersja, w, sizeof w);
-        k1_wersja_tekst(e.slot[1].wersja, w2, sizeof w2);
-        p = dopisz(b, n, p, "Start z: %s, miejsce A: %s, miejsce B: %s\r\n", nosniki[i], e.slot[0].wersja ? w : "puste",
-                   e.slot[1].wersja ? w2 : "puste");
-        p = dopisz(b, n, p, "grubenv: k1_slot=%c k1_start=%c k1_nowy=%c k1_proba=%c k1_licznik=%c k1_tryb=%c\r\n",
-                   e.env.slot ? e.env.slot : '-', e.env.start ? e.env.start : '-', e.env.nowy ? e.env.nowy : '-',
-                   e.env.proba ? e.env.proba : '-', e.env.licznik ? e.env.licznik : '-', e.env.tryb ? e.env.tryb : '-');
-    }
-    p = dopisz(b, n, p, "%s\r\n", tpm_opis());
-    if (k1_dyski_skanuj(SYS, &l) == 0) {
-        for (i = 0; i < l.n; i++)
-            p = dopisz(b, n, p, "Dysk %s: %s, %llu GiB%s%s\r\n", l.d[i].nazwa, rodzaj_dysku(l.d[i].rodzaj),
-                       (unsigned long long)(l.d[i].bajty >> 30), l.d[i].efi[0] ? ", K1-EFI" : "",
-                       l.d[i].dane[0] ? ", K1-DANE" : "");
-        p = dopisz(b, n, p, "Pendrive'y z K1: %d\r\n", l.zrodel);
-    }
-    p = dopisz(b, n, p, "\r\nOstatnie wpisy logu tego startu:\r\n");
-    if (p + 1 < n) {
-        size_t m = logi_ostatnie(b + p, n - p - 1), j, k = p;
-        for (j = 0; j < m; j++) /* the log's '\n' as it is: Windows' Notatnik reads both since 2018 */
-            b[k++] = b[p + j];
-        p = k;
-    }
-    return p;
+    int fd;
+    if (i < 0 || i >= n_nosnikow)
+        return -1;
+    *nazwa = nosniki[i];
+    if (otworz_efi(nosniki[i], 0, e, &fd) != 0)
+        return 1;
+    close(fd);
+    return 0;
 }
 
 static void raport_zrob(void)
 {
-    static char b[K1_RAPORT_BAJTY];
-    size_t dl = tresc(b, sizeof b);
-    int fd = k1_memfd_z_danymi("k1-raport", b, dl), r;
-    r = fd < 0 ? K1_INST_BLAD_ARG : inst_raport(fd, (uint32_t)dl);
-    if (fd >= 0)
-        close(fd);
+    int r = raport_zapisz(-1);
     raport = r == 0 ? K1_RAP_ZAPISUJE : r == K1_INST_BLAD_ZRODLO ? K1_RAP_BRAK_PENDRIVE : K1_RAP_BLAD;
     raport_e = r < 0 && r != K1_INST_BLAD_ZRODLO ? r : 0;
     ekran_wyslano = 0;
-    k1_log(TAG, "tryb ratunkowy: raport (%zu B) — %s", dl,
-           r == 0 ? "zapisuję na pendrive" : r == K1_INST_BLAD_ZRODLO ? "brak pendrive'a" : "nie da się zapisać");
 }
 
 /* The writing program's result (instalacja.c). */

@@ -30,6 +30,7 @@ void pliki(void);
 void otwieranie(void);
 void pendrive(void);
 void dekoder(void);
+void raport(void); /* 0.13.0 step 4 */
 /* test_komunikat_strefy.c (0.10.0 step 5) */
 void strefy(void);
 void pobrane(void); /* 0.11.0 step 2 (ADR 0052) */

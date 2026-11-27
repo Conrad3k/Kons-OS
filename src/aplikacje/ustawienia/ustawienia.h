@@ -179,6 +179,9 @@ void przestrzen_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened:
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int informacje_najechanie(int32_t x, int32_t y);         /* 0.13.0 step 4: the report's button; x < 0: none; 1 = redraw */
+int informacje_klik(int32_t x, int32_t y);               /* 1 = handled */
+void informacje_wynik(int32_t wynik, int32_t plik);      /* INST_WYNIK b=K1_INST_RAPORT from nadzorca */
 
 /* miejsce.c */
 void miejsce_info(void);                           /* asks skarbiec: SKARB_INFO and SKARB_PODZIAL */

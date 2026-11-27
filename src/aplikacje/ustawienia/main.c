@@ -244,6 +244,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         k1_apl_odswiez(&apl);
     if (sekcja == S_AKTUALIZACJE && aktualizacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
+    if (sekcja == S_INFO && informacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
+        k1_apl_odswiez(&apl);
     if (wyglad_najechanie(rodzaj == K1_WSK_WYJSCIE || nav >= 0 ? -1 : x, y))
         k1_apl_odswiez(&apl);
     if (nav != hover_nav || seg != hover_seg) {
@@ -264,6 +266,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (sekcja == S_PRZEGLADARKA && nav < 0 && przegladarka_klik(x, y))
         return;
     if (sekcja == S_AKTUALIZACJE && nav < 0 && aktualizacje_klik(x, y))
+        return;
+    if (sekcja == S_INFO && nav < 0 && informacje_klik(x, y))
         return;
     if (nav >= 0) {
         ustawienia_pokaz(nav);

@@ -248,10 +248,11 @@ int inst_siec(int tryb, int zrodlo, int ogl, int test)
     return 0;
 }
 
-/* 0.13.0 step 3 (ADR 0058): the writing program with the rescue mode's report — fd 4 the report (`fd_raport`, `dl`
- * bytes), fd 5 the first USB stick that is not K1's, whole and exclusively (raport.c writes one file in its FAT).
+/* 0.13.0 step 3 (ADR 0058): the writing program with the report (nadzorca raport.c) — fd 4 the report (`fd_raport`, `dl`
+ * bytes), fd 5 the first USB stick that is not K1's, whole and exclusively (instalator raport.c writes one file in its
+ * FAT). The result to `okno` (step 4: Ustawienia → Informacje), okno < 0: to the rescue mode.
  * 0, K1_INST_BLAD_ZRODLO (no stick), K1_INST_BLAD_ZAJETY, K1_INST_BLAD_TRWA, K1_INST_BLAD_ARG. */
-int inst_raport(int fd_raport, uint32_t dl)
+int inst_raport(int fd_raport, uint32_t dl, int okno)
 {
     struct k1_komunikat k;
     char dysk[32];
@@ -283,7 +284,7 @@ int inst_raport(int fd_raport, uint32_t dl)
     if (inst_ster >= 0)
         close(inst_ster);
     inst_ster = para[1];
-    zadanie = ZADANIE_RAPORT;
+    zadanie = okno >= 0 ? okno : ZADANIE_RAPORT;
     k = k1_komunikat_nowy(K1_KOM_INST_ZADANIE, 0, K1_INST_RAPORT, 512, (int32_t)dl, 0, 0);
     k1_kanal_wyslij(inst_ster, &k, sizeof k, -1);
     k1_log(TAG, "raport: zapis na pendrive %s (pid %d)", dysk, (int)instalator()->pid);
@@ -330,6 +331,10 @@ static void obsluz_okno(int okno)
             otworz_aktualizacje();
         } else if (k.typ == K1_KOM_AKT_PROSBA) { /* 0.10.5 step 2b: aktualizacja.c */
             akt_prosba(k.a);
+        } else if (k.typ == K1_KOM_INST_START && k.a == K1_INST_RAPORT) { /* 0.13.0 step 4: Ustawienia → Informacje */
+            int r = raport_zapisz(okno);
+            if (r != 0)
+                inst_odmowa(okno, k.a, r);
         } else if (k.typ == K1_KOM_INST_START) {
             int r = inst_zapis(okno, (int)k.obiekt, k.a);
             if (r != 0)
@@ -391,11 +396,13 @@ void obsluz_zapis(void)
             wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_POSTEP, 0, k.a, k.b, 0, 0, 0));
         } else {
             inst_wynik_wyslany = 1;
-            if (zadanie >= 0)
-                sukces[zadanie] = k.a == 0;
+            if (zadanie >= 0) /* a report written is no job that may ask for a restart */
+                sukces[zadanie] = k.a == 0 && inst_tryb != K1_INST_RAPORT;
             wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, k.a, inst_tryb, k.b, 0, 0));
-            k1_log(TAG, "instalator: %s", k.a == 0 ? (k.b ? "zakończono pomyślnie (nowe miejsce A/B)" : "zakończono pomyślnie")
-                                                   : "błąd");
+            k1_log(TAG, "instalator: %s", k.a != 0                   ? "błąd"
+                                          : inst_tryb == K1_INST_RAPORT ? "raport zapisany"
+                                          : k.b                         ? "zakończono pomyślnie (nowe miejsce A/B)"
+                                                                        : "zakończono pomyślnie");
         }
     }
 }
