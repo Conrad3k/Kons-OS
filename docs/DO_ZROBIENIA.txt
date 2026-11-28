@@ -17,7 +17,8 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 --------------------------------------------------------------------------------------------
 Wersja 0.13.2 wydana 2026-11-28 (plan w docs/archiwum/PLAN-0.13.2.txt, ADR 0063; Twoje decyzje D1: A, D3: A; D2 z 0.10.9;
 D4 — X230 bez filmów kartą — wynikła ze źródeł). Pięć kroków, PR #262, #263, #264, #265 i #267. Wydana bez testu na
-IdeaPadzie (Twoja decyzja z 2026-11-28: „wydawaj od razu”) — sprawdź ją, punkt 4, „Najpierw — nowe w 0.13.2”. Gdyby
+IdeaPadzie (Twoja decyzja z 2026-11-28: „wydawaj od razu”); tego samego dnia potwierdziłeś: YouTube 1080p płynnie,
+IdeaPad bierze 12,7 W. Reszta listy — punkt 4, „Najpierw — nowe w 0.13.2”. Gdyby
 filmy kartą coś psuły: wyłącz przełącznik „Szybka grafika i filmy” w sesji (filmy wracają na procesor) i zgłoś to.
 Robot wydał w trakcie 0.13.1 (Firefox 153.8).
 
@@ -137,12 +138,14 @@ Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej czę�
 Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.13.2;
 aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
-0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
+0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22), filmy kartą na
+IdeaPadzie (0.13.2: YouTube 1080p płynnie, laptop bierze 12,7 W — 2026-11-28).
 [!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
 Najpierw — nowe w 0.13.2 (filmy kartą; IdeaPad — X230 nie ma szybkiej grafiki, tam tylko ostatni punkt):
     [ ] Ustawienia → Przeglądarka: pod listą „Karta graficzna rozpakowuje filmy: H.264.”; przy Ogólnej przełącznik
         „Szybka grafika i filmy” (włącz, jeśli wyłączony; działa od następnego otwarcia sesji)
-    [ ] Ogólna z przełącznikiem: YouTube 1080p — płynnie, dźwięk zgodny z ustami; about:support → „Media” — dekodowanie
+    [x] Ogólna z przełącznikiem: YouTube 1080p płynnie, IdeaPad bierze 12,7 W (Ty, 2026-11-28); do sprawdzenia przy okazji:
+        dźwięk zgodny z ustami, about:support → „Media” — dekodowanie
         sprzętowe H.264; Zasoby w czasie filmu — procesor sesji wyraźnie niższy niż bez przełącznika
     [ ] to samo bez przełącznika (zamknij i otwórz sesję) — film gra procesorem; przewijanie strony w czasie filmu,
         pełny ekran, 10 minut filmu — sesja żyje; zamknij i od razu otwórz sesję — filmy dalej kartą
