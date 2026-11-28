@@ -1,8 +1,11 @@
-K1 — PLAN WERSJI 0.13.5 „MIKROFON” (krok w temacie 0.12 Dźwięk, wydany po 0.13.2)
-=================================================================================
+K1 — PLAN WERSJI 0.13.5 „MIKROFON” (krok w temacie 0.12 Dźwięk + laptopy; wydany po 0.13.2)
+===========================================================================================
 
 Data: 2026-11-28 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-28, w trakcie
-wydania 0.13.2): „napisz plan na 0.13.5, w którym będzie dodanie obsługi mikrofonu. Krótki, na jeden, góra dwa kroki”.
+wydania 0.13.2): „napisz plan na 0.13.5, w którym będzie dodanie obsługi mikrofonu. Krótki, na jeden, góra dwa kroki”;
+zaraz potem: „raczej cyfrowa obsługa” (mikrofon wbudowany w laptopach jest cyfrowy — L5) i „dodaj trzeci krok …: obsługa
+gładzików Apple (dla MacBooków starszych), oraz lepsze rozpoznawanie ładowania przez baterię (na Lenovo Y700, bateria
+rośnie, ale nie ma ikonki ładowania)” — krok 3 (temat „Laptop”, PATCH w dowolnej wersji — DO_ZROBIENIA).
 Mikrofon był „Później” od 0.12.0 (ADR 0054, D1 = A), potem krokiem 4 a–b planu 0.14.0 (ADR 0064); ta wersja bierze go
 stamtąd wcześniej — w planie 0.14.0 zostają zgoda Discorda na mikrofon i UDP w Raptor Bridge (krok 4 c–d).
 Wersja stoi na 0.13.2 „Filmy kartą” (docs/archiwum/PLAN-0.13.2.txt) i na 0.12.0 / 0.12.3 (usługa dźwięku, ADR 0054, 0055).
@@ -17,9 +20,12 @@ w 0.13.5 Ustawienia (próba: „Powiedz coś”, pasek poziomu się rusza) i ses
 „Mikrofon” (rozmowy na stronach: Meet, Teams, Messenger w przeglądarce). Kiedy cokolwiek słucha, na górnym pasku i na
 pasku okna tej sesji jest **znak „mikrofon włączony”**, który rysuje K1 — strona nie może go ukryć ani podrobić;
 kliknięcie wycisza mikrofon. Kartę dźwiękową dalej ma tylko usługa dźwięku K1; strefa dostaje próbki, nigdy kartę.
+Przy okazji (krok 3): na starszych MacBookach działa gładzik (jak touchpad laptopa: ruch, dwa palce, stuknięcia), a ikona
+baterii pokazuje ładowanie także na laptopach, które go wprost nie zgłaszają (Lenovo Y700: procent rośnie, ikony nie ma).
 
-Kroki: DWA. 1 — mikrofon w K1: usługa dźwięku nagrywa, Ustawienia → Dźwięk (wybór, poziom, próba), znak na górnym pasku.
-2 — mikrofon w przeglądarce: wejście virtio-snd w strefie, przełącznik „Mikrofon” przy sesji, znak na pasku okna; test
+Kroki: TRZY. 1 — mikrofon w K1: usługa dźwięku nagrywa (także mikrofon cyfrowy laptopa), Ustawienia → Dźwięk (wybór,
+poziom, próba), znak na górnym pasku. 2 — mikrofon w przeglądarce: wejście virtio-snd w strefie, przełącznik „Mikrofon”
+przy sesji, znak na pasku okna. 3 — gładziki Apple (starsze MacBooki), ładowanie baterii rozpoznane pewniej; test
 właściciela na laptopach; porządki i wydanie 0.13.5 (wydanie jest zawsze ostatnią częścią ostatniego kroku).
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł → docs/DO_ZROBIENIA.txt („Później”). Krok, który
@@ -33,14 +39,16 @@ Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.13.2), ZE ŹRÓDEŁ, POTWIERDZON
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Właściciel wpisuje (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.13.5.txt.”
-Decyzje [!] (punkt 4) czat zada na początku kroku: krok 1 — D2 (szkice znaku), D3; krok 2 — D1.
+Decyzje [!] (punkt 4) czat zada na początku kroku: krok 1 — D2 (szkice znaku), D3, D4 (tylko gdy mikrofon cyfrowy
+potrzebuje plików od Intela — L5); krok 2 — D1.
 Nowy czat: skill kons-dev (świeży main, PR-y i Issue robota); przeczytaj CEL, swój krok, luki i decyzje, ADR 0054, 0055,
 docs/komponenty/dzwiek.md, strefa.md (karta virtio-snd); pierwszy commit — „[w toku: …]” w tabeli punktu 2; nowe
 komunikaty i formaty — przepis z SKILL (pole po polu, test na hoście, fuzzing, test negatywny w systemie); limity
 czytelności (Z KODU: src/dzwiek/main.c 507 wierszy — dzielić przed rozbudową, osobny commit); wygląd — szkice przed kodem,
 wzorce po „OK” właściciela; testy: test-m1, test-dzwiek, test-m4, test-wzorce, test-strefa; pełny komplet — CI na PR-ze.
 Robot: krok 1 jest gotowy dla użytkownika sam w sobie (mikrofon tylko w Ustawieniach); krok 2 też (przełącznik domyślnie
-wyłączony) — robot może działać. Numer: robot może zająć 0.13.3–0.13.5 — wydanie bierze następny wolny PATCH.
+wyłączony); krok 3 — każda część osobno — robot może działać. Krok 3 dopisuje opcje jądra (jadro/k1.config — nie listy
+odrzuconych, te zmienia człowiek): nigdy równolegle z otwartym PR-em robota ze zmianą jądra. Numer: robot może zająć 0.13.3–0.13.5 — wydanie bierze następny wolny PATCH.
 
 
 1. W SKRÓCIE (dla właściciela)
@@ -49,14 +57,20 @@ wyłączony) — robot może działać. Numer: robot może zająć 0.13.3–0.13
     sam, jak wyjście), poziom, wycisz i próbę „Powiedz coś” z paskiem poziomu. Gdy coś słucha — znak na górnym pasku.
   - Krok 2: przeglądarka słyszy mikrofon — tylko sesja z włączonym przełącznikiem „Mikrofon” (Ustawienia → Przeglądarka,
     domyślnie wyłączony wszędzie — D1); strona i tak pyta (okienko Firefoksa). Znak mikrofonu także na pasku okna sesji;
-    kliknięcie wycisza. Twój test: rozmowa na stronie na X230 i IdeaPadzie. Potem wydanie.
+    kliknięcie wycisza.
+  - Krok 3: starsze MacBooki (z gładzikiem na USB w środku, mniej więcej lata 2008–2015) — gładzik działa jak touchpad
+    laptopa; Magic Trackpad na kablu — jeśli jądro go obsłuży tak samo (NIEPEWNE). Ikona baterii: ładowanie rozpoznane
+    także wtedy, gdy laptop podaje „stan nieznany”, a zasilacz jest podłączony i procent rośnie (Twój Lenovo Y700).
+    Twój test: rozmowa na stronie (X230, IdeaPad), MacBook, Y700. Potem wydanie.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat)
 ---------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Mikrofon w K1: nagrywanie, Ustawienia → Dźwięk, znak   L1–L5            0.13.2      D2, D3, T1–T4    M        0065
-[ ]  2  Mikrofon w przeglądarce, test na laptopach; wydanie    L6–L8            1           D1, T5, T6       M        —
+[ ]  2  Mikrofon w przeglądarce                               L6–L8            1           D1, T5, T6       M        —
+[ ]  3  Gładziki Apple, ładowanie baterii; test na laptopach;  L9–L12           2           T7, T8           M        —
+        wydanie
 
 
 3. KROKI
@@ -84,7 +98,7 @@ KROK 1: Mikrofon w K1                                                   M · D2,
   Dokumenty: ADR (mikrofon w K1), dzwiek.md, aplikacje.md (Ustawienia), gui/ekran (znak), WYGLAD (znak), RYZYKA (nowy
   wiersz: mikrofon — podsłuch), SLOWNIK („mikrofon”, „znak mikrofonu”).
 
-KROK 2: Mikrofon w przeglądarce; test na laptopach; wydanie            M · D1, T5, T6
+KROK 2: Mikrofon w przeglądarce                                         M · D1, T5, T6
   Cel: strona w sesji z przełącznikiem „Mikrofon” słyszy mikrofon; reszta sesji nie ma wejścia wcale.
   a. VMM (T5): karta virtio-snd gościa dostaje drugi strumień — nagrywanie (Z KODU: src/strefa/dzwiek.c, dzwiek_prosby.c
      — dziś jeden strumień wyjścia); próbki z pierścienia od usługi dźwięku do bufora gościa; bez zgody sesji VMM nie
@@ -95,12 +109,45 @@ KROK 2: Mikrofon w przeglądarce; test na laptopach; wydanie            M · D1,
   c. Znak mikrofonu na pasku okna sesji (obok głośnika z 0.12.0), kliknięcie wycisza mikrofon tej sesji.
   d. Firefox w strefie (NIEPEWNE, L7): ALSA gościa → cubeb „alsa” (k1.js: media.cubeb.backend = alsa — Z KODU) nagrywa;
      okienko zgody strony to okno Firefoksa (strefa) — zgoda K1 jest wyżej (przełącznik i znak).
-  e. Test właściciela (X230, IdeaPad): mikrofon wbudowany i w słuchawkach, próba w Ustawieniach, rozmowa testowa na
-     stronie (np. webcammictest albo Meet), znak na pasku i na oknie, wyciszenie, sesja bez przełącznika — strona nie widzi
-     mikrofonu; potem wydanie (porządki, CHANGELOG z „Opis w K1:”, DO_ZROBIENIA, README, plan → docs/archiwum/).
+  e. Obraz USB z PR-a dla właściciela (rozmowa testowa na stronie) — wynik w opisie PR-a; scalanie bez czekania na niego
+     (przełącznik domyślnie wyłączony), uwagi poprawia krok 3.
   Testy: strefa próbna z trybem „nagrywaj” (z przełącznikiem — próbki z testowego źródła docierają; bez — gość nie widzi
   wejścia, NEGATYWNY), fuzzing próśb virtio-snd wejścia; test-m4 / test-wzorce (przełącznik w Ustawieniach).
   Dokumenty: strefa.md, dzwiek.md, aplikacje.md, RYZYKA, plan 0.14.0 (krok 4 — Discord używa tej samej drogi).
+
+KROK 3: Gładziki Apple, ładowanie baterii; test na laptopach; wydanie   M · T7, T8
+  Cel: K1 działa na starszych MacBookach z ich gładzikiem i pokazuje ładowanie na każdym laptopie, który ładuje.
+  a. Gładzik MacBooka (T7, L9): sterownik jądra bcm5974 (gładzik wewnętrzny MacBooków / Air / Pro z ok. 2008–2015, na USB
+     w środku — NIEPEWNE lata i modele: sprawdzić w źródłach jądra, drivers/input/mouse/bcm5974.c, tabela urządzeń);
+     opcja w jadro/k1.config z komentarzem (`MOUSE_BCM5974` — nazwa ZE ŹRÓDEŁ do potwierdzenia, `depends on`).
+     Magic Trackpad na kablu USB — `hid-magicmouse` (NIEPEWNE, czy daje to samo wielodotykowe wejście); gładziki SPI
+     (MacBooki od 2015/2016, `applespi`) — „Później”. Klawiatura MacBooka (to samo urządzenie USB): sprawdzić, czy działa
+     zwykłym HID; Fn i klawisze specjalne — `hid-apple` tylko, jeśli bez niego klawisze są złe (NIEPEWNE).
+  b. Wejście (src/wejscie/touchpad.c, Z KODU: touchpad we własnym trybie — palce, dwa palce, stuknięcia, przycisk):
+     bcm5974 to touchpad wielodotykowy z przyciskiem pod płytą (cały gładzik się wciska) — sprawdzić, co zgłasza (osie,
+     szerokość palca, BTN_TOOL_*, INPUT_PROP_BUTTONPAD) i dopasować rozpoznanie i rozmiar płyty (duży gładzik: czułość,
+     strefy przycisków bez podziału — jak „clickpad”); `k1_urz_wejscia.c`: gładzik wbudowany na USB nie może trafić do
+     „Pozwól?” (ADR 0060: wbudowane nigdy nie pytają — rozpoznanie po nazwie i porcie USB, L10).
+  c. Ładowanie baterii (T8, L11): nadzorca bateria.c (Z KODU: stan tylko ze słowa `status` — „Charging”, „Discharging”,
+     „Full”, „Not charging”; „Unknown” → brak stanu, ikony ładowania nie ma). Nowa reguła w czystej funkcji (test na hoście):
+     „Unknown” albo „Not charging” + zasilacz podłączony (`Mains` online) + procent albo energia rośnie między pomiarami
+     (z marginesem, żeby szum pomiaru nie migał ikoną) → ładowanie; zasilacz bez wzrostu i bez spadku → „podłączony,
+     nie ładuje” (jak dziś „Not charging”); zasilacz odłączony → rozładowanie, choćby `status` mówił co innego. Log:
+     „bateria: status „…”, zasilacz …, kierunek …” (liczby i słowa jądra — bez danych osobistych). Lenovo: tryb oszczędzania
+     baterii (ładowanie do 60 %, `ideapad_laptop` — NIEPEWNE, czy Y700 go ma) daje „Not charging” przy 60 % — ma zostać
+     „nie ładuje”.
+  d. Test właściciela: X230 i IdeaPad — mikrofon (wbudowany, w słuchawkach), próba w Ustawieniach, rozmowa na stronie,
+     znak, wyciszenie, sesja bez przełącznika nie widzi mikrofonu; MacBook — gładzik (ruch, przewijanie dwoma palcami,
+     stuknięcie, wciśnięcie płyty), klawiatura; Y700 — ikona ładowania przy podłączonym zasilaczu, po odłączeniu znika.
+     Raport z Ustawień → Informacje, gdy coś nie działa (nazwa urządzenia wejścia, słowa baterii z jądra).
+  e. Wydanie 0.13.5 (albo następny wolny PATCH): porządki, CHANGELOG z „Opis w K1:”, DO_ZROBIENIA (lista dla laptopów),
+     README, plan → docs/archiwum/.
+  Testy: host — reguła ładowania (test_bateria: „Unknown” + zasilacz + wzrost → ładowanie, szum ±1 % bez migania,
+  odłączony zasilacz, tryb oszczędzania przy 60 %), touchpad z danymi bcm5974 (test_touchpad: nagrane zdarzenia albo
+  zdarzenia z opisu sterownika); QEMU test-m5 (bateria ACPI z „Unknown” i zasilaczem — jeśli tablica testowa to umie,
+  NIEPEWNE); sprawdz-kspp / porownaj-jadro przy nowych opcjach. MacBook i Y700 — właściciel.
+  Dokumenty: jadro.md (nowe opcje), komponenty: wejscie.md (gładzik Apple), nadzorca.md / bateria (reguła ładowania),
+  RYZYKA (nowe sterowniki USB wejścia w jądrze), SLOWNIK (jeśli nowe pojęcie).
 
 
 4. DECYZJE
@@ -113,6 +160,10 @@ Twoje (produkt):
       głośnika; miejsce na górnym pasku: przy dźwięku; na pasku okna sesji: obok głośnika).
   [!] D3 (krok 1) Ustawienia → Dźwięk → Mikrofon: A (zalecane) źródło, poziom, „Wycisz”, „Powiedz coś” z paskiem
       poziomu; B — tylko „Wycisz” i pasek poziomu (bez wyboru i poziomu).
+  [!] D4 (krok 1, tylko jeśli L5 tak wyjdzie) Mikrofon cyfrowy wpięty w procesor dźwięku Intela (DSP), a nie w kodek:
+      A — pliki od Intela dla DSP w jądrze (jak pliki kart Wi-Fi: zamknięty kod na karcie, tabela z sumami) i jego
+      sterownik; B — na tym laptopie tylko mikrofon w słuchawkach (bez zamkniętego kodu). Rekomendacja — w kroku, z tym,
+      co pokaże log karty.
 Techniczne (decyduje czat w ADR kroku 1, Ty dostajesz krótkie wyjaśnienie):
   T1 Nagrywanie w tej samej usłudze dźwięku (jeden właściciel karty — ADR 0054 pkt 1), jeden format i 48 kHz; mono czy
      stereo — z karty (NIEPEWNE); bez przetwarzania (bez tłumienia echa i szumu — „Później”).
@@ -124,8 +175,13 @@ Techniczne (decyduje czat w ADR kroku 1, Ty dostajesz krótkie wyjaśnienie):
      liczby (kto słucha, ile ramek), nigdy próbki ani poziomy w czasie (niezmiennik 8).
   T5 virtio-snd: strumień wejścia gościa tylko przy zgodzie sesji (bez zgody urządzenie ma 1 strumień — gość nie wie
      o mikrofonie); kierunek „input” w prośbach pole po polu.
-  T6 Test bez prawdziwego mikrofonu: QEMU HDA ma wejście, ale `-audiodev wav` tylko zapisuje (NIEPEWNE, L5) — źródło
+  T6 Test bez prawdziwego mikrofonu: QEMU HDA ma wejście, ale `-audiodev wav` tylko zapisuje (NIEPEWNE) — źródło
      testowe w usłudze dźwięku (ton, tylko obraz testowy, jak dekoder testowy) albo audiodev QEMU z wejściem.
+  T7 (krok 3) Gładzik Apple: sterownik z jądra (bcm5974; D0 — sterowniki zawsze z jądra, nie własne), dopasowanie
+     w touchpad.c przez cechy urządzenia (osie, BUTTONPAD), nie przez listę modeli; Magic Trackpad tylko na kablu.
+  T8 (krok 3) Ładowanie: reguła z kilku źródeł (status, zasilacz, kierunek procentu i energii) w czystej funkcji;
+     kierunek liczony z historii pomiarów, którą nadzorca już trzyma (Z KODU: bateria.c — historia baterii, NIEPEWNE
+     jej gęstość), z progiem, żeby ikona nie migała.
 
 
 5. LUKI (Z KODU po 0.13.2, chyba że napisano inaczej)
@@ -134,18 +190,32 @@ Techniczne (decyduje czat w ADR kroku 1, Ty dostajesz krótkie wyjaśnienie):
   L2 Nadzorca szuka tylko węzła odtwarzania (dzwiek.c, sysfs class/sound); kontrolki.c celowo nie dotyka wejść.
   L3 Brak części „Mikrofon” w Ustawieniach i znaku na pasku; tabela K1_DZW_KLIENCI bez kolumny „słucha”.
   L4 Komunikaty: brak numerów typów (T3).
-  L5 NIEPEWNE: wejście HDA w QEMU z pliku; mikrofon wbudowany IdeaPada — analogowy HDA czy cyfrowy (DMIC przez SOF,
-     z plikami od producenta — wtedy osobna sprawa w jądrze: krok 1 sprawdza log karty na sprzęcie i zapisuje wynik).
+  L5 Mikrofon wbudowany jest cyfrowy (właściciel, 2026-11-28: „raczej cyfrowa obsługa”). NIEPEWNE, gdzie jest wpięty:
+     (a) w kodek HD Audio (Realtek / Conexant z wejściem DMIC) — działa przez obecny snd_hda_intel, kodek pokazuje
+     „Internal Mic” (wtedy tylko kontrolki wejścia, krok 1 b); (b) w procesor dźwięku Intela (Skylake: DSP, sterownik
+     SST / SOF z plikami od Intela) — jądro K1 tego nie ma (Z KODU: jadro/k1.config — „na Skylake bez SOF/AVS zostaje
+     zwykły HDA”), wtedy D4. Krok 1 zaczyna od raportu z obu laptopów (wiersze karty i kodeka, piny wejścia) i zapisuje
+     wynik w „Ustaleniach”. Wejście HDA w QEMU z pliku — NIEPEWNE (T6).
   L6 Karta virtio-snd strefy ma jeden strumień wyjścia (src/strefa/dzwiek.c); gość (jądro strefy) — czy ma sterownik
      virtio-snd z nagrywaniem (strefa.config — NIEPEWNE, sprawdzić).
   L7 NIEPEWNE: Firefox ESR 153 nagrywa przez cubeb ALSA w strefie (piaskownica procesu treści — dostęp do /dev/snd).
   L8 Brak przełącznika „Mikrofon” przy sesji i jego zapisu w skarbcu (format sesji — sesje.c, wzór: szybka grafika).
+  L9 Jądro K1 nie ma sterowników gładzików Apple (bcm5974, hid-magicmouse; Z KODU: jadro/k1.config bez nich) — NIEPEWNE,
+     czy któryś jest w jadro/k1-odrzucone.txt (wtedy zmiana listy — człowiek, ten krok to prośba właściciela).
+  L10 Zgoda USB (ADR 0060, k1_urz_wejscia.c): wbudowany gładzik MacBooka jest urządzeniem USB — przy starcie jest przed
+     pulpitem (nie pyta), ale po uśpieniu albo ponownym podłączeniu przez jądro mógłby trafić do „Pozwól?” — sprawdzić.
+  L11 Ładowanie (Z KODU: src/nadzorca/bateria.c, podsumuj()): „Unknown” → brak stanu; zasilacz (`Mains` online) jest
+     czytany, ale nie zmienia stanu baterii.
+  L12 Lenovo Y700 i MacBooki to nowy sprzęt właściciela do testów (2026-11-28) — w AGENTS.md są X230 i IdeaPad; czat
+     kroku 3 dopisuje je w opisie PR-a i w liście testów (DO_ZROBIENIA), AGENTS.md zmienia właściciel.
 
 
 6. NIE W TEJ WERSJI (→ „Później”)
 ---------------------------------
   - Tłumienie echa i szumu, automatyczny poziom; kamera; mikrofon USB i Bluetooth; mikrofon dla aplikacji ze Sklepu
     (Discord — plan 0.14.0, krok 4, na drodze z tej wersji).
+  - Gładziki SPI nowszych MacBooków (applespi), Magic Trackpad przez Bluetooth, gesty trzema palcami; Wi-Fi i kamera
+    MacBooków; jasność i klawisze Fn (osobny punkt „Laptop” w DO_ZROBIENIA).
 
 
 7. RYZYKA (wiersze w docs/RYZYKA.md — zmienia krok, który je dotyka)
@@ -154,6 +224,9 @@ Techniczne (decyduje czat w ADR kroku 1, Ty dostajesz krótkie wyjaśnienie):
     rysowany przez K1 (strona go nie ukryje), wyciszenie jednym kliknięciem, cisza przy ekranie zabezpieczeń.
   - Nowy (krok 2): strona w sesji z przełącznikiem słyszy mikrofon — zgoda K1 (przełącznik, domyślnie wyłączony) i zgoda
     Firefoksa; Bank i Prywatna domyślnie bez.
+  - Krok 1 przy D4 „A”: zamknięty kod DSP dźwięku na karcie (jak pliki kart Wi-Fi — RYZYKA, #237).
+  - Krok 3: nowe sterowniki wejścia USB w jądrze (bcm5974, ewentualnie hid-magicmouse, hid-apple) — dane z urządzenia
+    USB (R18: powierzchnia jądra); zgoda USB (ADR 0060) dalej obejmuje urządzenia podłączone po pulpicie.
 
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)

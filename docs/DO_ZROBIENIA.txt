@@ -21,8 +21,9 @@ IdeaPadzie (Twoja decyzja z 2026-11-28: „wydawaj od razu”) — sprawdź ją,
 filmy kartą coś psuły: wyłącz przełącznik „Szybka grafika i filmy” w sesji (filmy wracają na procesor) i zgłoś to.
 Robot wydał w trakcie 0.13.1 (Firefox 153.8).
 
-Plan następnej: docs/PLAN-0.13.5.txt „Mikrofon” (Twoja prośba z 2026-11-28; dwa kroki: 1 — mikrofon w K1, Ustawienia →
-Dźwięk i znak „mikrofon włączony”, 2 — mikrofon w przeglądarce z przełącznikiem przy sesji, Twój test, wydanie).
+Plan następnej: docs/PLAN-0.13.5.txt „Mikrofon” (Twoja prośba z 2026-11-28; trzy kroki: 1 — mikrofon w K1 (także
+cyfrowy mikrofon laptopa), Ustawienia → Dźwięk i znak „mikrofon włączony”, 2 — mikrofon w przeglądarce z przełącznikiem
+przy sesji, 3 — gładziki starszych MacBooków i pewniejsze rozpoznawanie ładowania (Lenovo Y700), Twój test, wydanie).
 Co wpisać w nowym czacie:
     „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.5.txt.”
 Po 0.13.5: docs/PLAN-0.14.0.txt „Aplikacje” (ADR 0064: Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi — mikrofon
@@ -53,7 +54,8 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
 
 3. NASTĘPNE WERSJE I PÓŹNIEJ (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 -------------------------------------------------------------------------------------------------------------------
-0.13.5 Mikrofon — plan: docs/PLAN-0.13.5.txt (mikrofon z planu 0.14.0, krok 4 a–b — Twoja prośba z 2026-11-28)
+0.13.5 Mikrofon — plan: docs/PLAN-0.13.5.txt (mikrofon z planu 0.14.0, krok 4 a–b, gładziki Apple i ładowanie baterii —
+    Twoja prośba z 2026-11-28)
 
 0.14 Aplikacje — plan: docs/PLAN-0.14.0.txt (stąd wziął: wspólny obraz bazowy, mikrofon — od 2026-11-28 w 0.13.5; Twoje decyzje z 2026-11-27 —
     tylko Sklep, bez pendrive'a; robot pomaga, nie warunkuje; pierwsza aplikacja Discord; pamięć na start przy każdej
@@ -304,8 +306,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     Intel PTT albo TPM); GitHub: logowanie dwuetapowe kluczem sprzętowym i „Watch → Releases” (powiadomienie o każdym
     wydaniu — w ciągu 20 minut możesz je zatrzymać, usuwając wydanie).
 [x] 0.13.2 — decyzje D1: A, D3: A podjęte, D2 z 0.10.9, D4 ze źródeł (docs/archiwum/PLAN-0.13.2.txt, punkt 4).
-[!] 0.13.5 — decyzje D1 (mikrofon w przeglądarce), D2 (szkice znaku), D3 (Ustawienia → Mikrofon) — docs/PLAN-0.13.5.txt,
-    punkt 4; czat zada je na początku kroków.
+[!] 0.13.5 — decyzje D1 (mikrofon w przeglądarce), D2 (szkice znaku), D3 (Ustawienia → Mikrofon), D4 (pliki Intela dla
+    mikrofonu cyfrowego — tylko jeśli potrzebne) — docs/PLAN-0.13.5.txt, punkt 4; czat zada je na początku kroków.
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
