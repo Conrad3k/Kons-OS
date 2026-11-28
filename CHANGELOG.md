@@ -3,6 +3,50 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.13.2] — 2026-11-28
+
+**Filmy kartą** (krok tematu 0.10 Strefy; Twoja prośba z 2026-11-26). Film w przeglądarce — YouTube i inne strony —
+rozpakowuje karta graficzna laptopa, nie procesor: płynniej, ciszej i dłużej na baterii. Działa w sesji z włączonym
+przełącznikiem, który w Ustawieniach → Przeglądarka nazywa się teraz **„Szybka grafika i filmy”**; pod listą sesji jest
+linia, co karta umie rozpakować. Strona dostaje wtedy prośbę o H.264 (to umie karta obu laptopów), więc YouTube daje
+najwyżej 1080p. Strefa dalej nie steruje kartą: każdy kawałek filmu sprawdza dekoder filmów K1. Przy okazji przeglądarka
+w ogóle zaczęła grać filmy H.264 (wcześniej nie grała ich wcale) — we wszystkich sesjach, procesorem albo kartą. X230:
+filmy dalej rozpakowuje procesor (bez szybkiej grafiki Firefox nie używa karty do filmów).
+
+Opis w K1: Filmy w przeglądarce rozpakowuje karta graficzna, nie procesor: płynniej i dłużej na baterii. Włączasz to
+w Ustawieniach, Przeglądarka, przełącznikiem „Szybka grafika i filmy”. Filmy H.264 grają teraz w każdej sesji.
+
+### Dodane
+- **Filmy H.264 w przeglądarce** (krok 2, PR #263): nasz mały FFmpeg (tylko H.264, LGPL) i libva z Debiana w obrazie
+  strefy.
+- **Kontekst filmów** (krok 3, PR #264, ADR 0063): drugi rodzaj kontekstu karty w strefie z szybką grafiką; VMM przekazuje
+  jego prośby dekoderowi filmów sesji, który rusza dopiero przy pierwszym filmie (mniej pamięci); klatka trafia prosto do
+  bufora karty strefy.
+- **Sterownik VA strefy** (krok 4, PR #265): nasz `virtio_gpu_drv_video.so` — Firefox rozpakowuje nim H.264 przez K1;
+  prefy filmów kartą tylko w sesji z przełącznikiem; Ustawienia → Przeglądarka: „Szybka grafika i filmy” i linia o
+  filmach (Twoje D1: A).
+- Testy: `test_va_strefy` (sterownik przez tabelę libva przeciw udawanemu K1, który sprawdza każdą prośbę jak dekoder),
+  `fuzz_va_strefy`; strefa próbna w trybach 23 i 24 (uczciwy i złośliwy gość kontekstu filmów); wzorce Ustawień →
+  Przeglądarka (przyjęte po Twoim „OK”).
+
+### Zmienione
+- ADR 0049 pkt 4–6 poprawione przez ADR 0063 (droga w strefie, klatka w buforze karty, dekoder na prośbę; bramka zysku:
+  pomiar na IdeaPadzie to dowód, nie warunek — Twoje D3: A; X230 bez filmów kartą — D4 ze źródeł).
+- RYZYKA: R98 (prośby dekodera ze strefy), nowe R114 (FFmpeg i libva w strefie), R115 (nasz sterownik VA w procesie
+  RDD Firefoksa).
+
+### Naprawione
+- Sesja zamknięta i od razu otwarta mogła stracić filmy kartą: dekoder zabity razem z poprzednią sesją, posprzątany po
+  starcie nowej, liczył się jak awaria (krok 4; znalezione w CI).
+- Test strefy próbnej (tryb 16) robił zrzut już po zamknięciu jej okna.
+
+### Porządki
+- Przegląd „Tymczasowe”: w kodzie nie ma żadnego rozwiązania tymczasowego. Pliki zmienione w wersji pod limitem
+  600 wierszy (najdłuższy `gpu_lacze.c`, 551).
+- Martwy pref `media.ffmpeg.vaapi.enabled` usunięty z ustawień przeglądarki (krok 2).
+- Plan 0.13.2 w `docs/archiwum/`; do „Później”: robot dla FFmpeg strefy, filmy bez kopii (kafelki Y), HEVC/VP8,
+  VP9/AV1 kartą, szerszy typ komunikatu K1.
+
 ## [0.13.1] — 2026-11-28
 
 <!-- k1: poprawki -->

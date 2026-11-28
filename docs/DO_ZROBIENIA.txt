@@ -4,31 +4,26 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
-Stan: 0.13.0 „Bezpieczny start” — zwłoka wydania 20 minut i ogłoszenie z terminem, TPM 2.0 (starsza wersja nie otwiera
-danych, cofnięte dane wykryte), tryb ratunkowy, obraz wydania bez portu szeregowego, zgoda na nowe klawiatury i myszy
-USB, Ctrl+Alt+Del i ekran zabezpieczeń K1. Następna — 0.13.2 „Filmy kartą” (docs/PLAN-0.13.2.txt, punkt 1).
-Data: 2026-11-27.
+Stan: 0.13.2 „Filmy kartą” — film w przeglądarce rozpakowuje karta (sesja z „Szybka grafika i filmy”), filmy H.264
+grają w każdej sesji; przed nią 0.13.0 „Bezpieczny start” i 0.13.1 (robot: Firefox 153.8). Następna — 0.14 „Aplikacje”
+(docs/PLAN-0.14.0.txt, punkt 1).
+Data: 2026-11-28.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — po wydaniu 0.13.0 „Bezpieczny start”: następna 0.13.2 „Filmy kartą”
--------------------------------------------------------------------------------
-Wersja 0.13.0 wydana 2026-11-27 (plan w docs/archiwum/PLAN-0.13.0.txt, ADR 0056–0062; Twoje decyzje D1: zwłoka 20 minut,
-D2: poprzednia wersja i raport, D3: A, D4: A, D5: A, D6: A, D7: A, D8: A). Osiem kroków, PR #245, #250, #251, #252, #254,
-#258, #260 i #261. Sprawdź ją na laptopach — punkt 4, „Najpierw — nowe w 0.13.0” (najpierw Secure Boot i TPM
-włączone w BIOS-ie — punkt 5). Reszta zgłoszeń bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox,
-kCFI) — 0.15 Audyt.
+1. TERAZ — po wydaniu 0.13.2 „Filmy kartą”: następna 0.14 „Aplikacje”
+------------------------------------------------------------------
+Wersja 0.13.2 wydana 2026-11-28 (plan w docs/archiwum/PLAN-0.13.2.txt, ADR 0063; Twoje decyzje D1: A, D3: A; D2 z 0.10.9;
+D4 — X230 bez filmów kartą — wynikła ze źródeł). Pięć kroków, PR #262, #263, #264, #265 i #267. Wydana bez testu na
+IdeaPadzie (Twoja decyzja z 2026-11-28: „wydawaj od razu”) — sprawdź ją, punkt 4, „Najpierw — nowe w 0.13.2”. Gdyby
+filmy kartą coś psuły: wyłącz przełącznik „Szybka grafika i filmy” w sesji (filmy wracają na procesor) i zgłoś to.
+Robot wydał w trakcie 0.13.1 (Firefox 153.8).
 
-Plan następnej: docs/PLAN-0.13.2.txt „Filmy kartą” (Twoja prośba z 2026-11-26: film w przeglądarce ma rozpakowywać karta,
-nie procesor). Pięć kroków: 1 — próba ze źródeł i na stanowisku, ADR (także: czy X230 może — D4), 2 — FFmpeg i libva
-w strefie (H.264 zaczyna grać), 3 — droga w K1 (VMM → dekoder filmów, dekoder przy pierwszym filmie), 4 — sterownik VA
-w strefie, prośba o H.264, przełącznik „Szybka grafika i filmy”, Twój test na IdeaPadzie, 5 — porządki i wydanie.
+Plan następnej: docs/PLAN-0.14.0.txt „Aplikacje” (ADR 0064: Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi).
 Co wpisać w nowym czacie:
-    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.2.txt.”
-
-Po 0.13.2 (ADR 0064): 0.14 Aplikacje — Sklep i Discord, plan docs/PLAN-0.14.0.txt.
+    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.14.0.txt.”
 
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
@@ -43,8 +38,8 @@ Po 0.13.2 (ADR 0064): 0.14 Aplikacje — Sklep i Discord, plan docs/PLAN-0.14.0.
              0.12.3 Dźwięk wysokiej jakości — gotowe (korektor, czystszy tor, Kons Spatial Audio)
     0.13     Bezpieczny start — gotowe: 0.13.0 (łańcuch wydań, TPM, tryb ratunkowy, obraz wydania, dostęp fizyczny,
              zaufany ekran K1, decyzje o jądrze)                                    (M10)
-             0.13.2 Filmy kartą — NASTĘPNA (docs/PLAN-0.13.2.txt; krok tematu 0.10 Strefy)
-    0.14     Aplikacje — PLAN (docs/PLAN-0.14.0.txt, ADR 0064): Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi
+             0.13.2 Filmy kartą — gotowe (karta rozpakowuje H.264 w przeglądarce; krok tematu 0.10 Strefy, ADR 0063)
+    0.14     Aplikacje — NASTĘPNA (docs/PLAN-0.14.0.txt, ADR 0064): Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi
     0.15     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
@@ -54,9 +49,6 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
 
 3. NASTĘPNE WERSJE I PÓŹNIEJ (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 -------------------------------------------------------------------------------------------------------------------
-0.13.2 Filmy kartą — plan: docs/PLAN-0.13.2.txt (stąd wziął: filmy kartą, które wypadły z 0.10.9 — Twoja decyzja
-    z 2026-11-20)
-
 0.14 Aplikacje — plan: docs/PLAN-0.14.0.txt (stąd wziął: wspólny obraz bazowy, mikrofon; Twoje decyzje z 2026-11-27 —
     tylko Sklep, bez pendrive'a; robot pomaga, nie warunkuje; pierwsza aplikacja Discord; pamięć na start przy każdej
     aplikacji, Discord 500 MiB — ADR 0064)
@@ -89,7 +81,11 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna; ADR 0024);
         przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
     [ ] Przeglądarka K1: okno, karty i pasek adresu jako aplikacja K1, silnik (kierunek: WPE WebKit) w strefie (ADR 0025)
-    [ ] filmy kartą (wypadły z 0.10.9, Twoja decyzja z 2026-11-20) — od 2026-11-26 w planie 0.13.2 (docs/PLAN-0.13.2.txt)
+    [x] filmy kartą (wypadły z 0.10.9) — w 0.13.2 (docs/archiwum/PLAN-0.13.2.txt)
+    [ ] z planu 0.13.2 (punkt 6 i ustalenia kroków): filmy bez kopii (karta rozpakowuje prosto do bufora strefy — bufor
+        w kafelkach Y, L5); HEVC i VP8 kartą na IdeaPadzie; VP9 i AV1 kartą (nowsze karty, sterownik xe); robot dla FFmpeg
+        strefy (RYZYKA R114); procesor dekodera filmów doliczony do sesji w Zasobach; szerszy typ komunikatu K1 (wszystkie
+        255 numerów zajęte — przed następnym tematem z nowymi komunikatami)
     [ ] okno wyboru pliku K1 dla „Prześlij plik” na stronie (portal = D-Bus w strefie; ADR 0052 p. 14)
     [ ] obraz przeglądarki na ISO (ADR 0050): jądro K1 bez napędu CD, więc K1 z ISO nie ma przeglądarki
     [ ] z planu 0.10.11: karty Intela ze sterownikiem xe (Lunar Lake i nowsze), Arc, AMD, NVIDIA; ekran składający pulpit
@@ -130,12 +126,21 @@ Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej czę�
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.13.0;
+Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.13.2;
 aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
 0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
 [!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
-Najpierw — nowe w 0.13.0 (bezpieczny start; najpierw w BIOS-ie obu laptopów Secure Boot z kluczem K1 i TPM — punkt 5;
+Najpierw — nowe w 0.13.2 (filmy kartą; IdeaPad — X230 nie ma szybkiej grafiki, tam tylko ostatni punkt):
+    [ ] Ustawienia → Przeglądarka: pod listą „Karta graficzna rozpakowuje filmy: H.264.”; przy Ogólnej przełącznik
+        „Szybka grafika i filmy” (włącz, jeśli wyłączony; działa od następnego otwarcia sesji)
+    [ ] Ogólna z przełącznikiem: YouTube 1080p — płynnie, dźwięk zgodny z ustami; about:support → „Media” — dekodowanie
+        sprzętowe H.264; Zasoby w czasie filmu — procesor sesji wyraźnie niższy niż bez przełącznika
+    [ ] to samo bez przełącznika (zamknij i otwórz sesję) — film gra procesorem; przewijanie strony w czasie filmu,
+        pełny ekran, 10 minut filmu — sesja żyje; zamknij i od razu otwórz sesję — filmy dalej kartą
+    [ ] Bank (bez przełącznika) i X230: film gra procesorem; strona z plikiem .mp4 (H.264) gra w każdej sesji;
+        X230: Ustawienia → Przeglądarka mówią „Bez szybkiej grafiki filmy rozpakowuje procesor.”
+Nowe w 0.13.0 (bezpieczny start; najpierw w BIOS-ie obu laptopów Secure Boot z kluczem K1 i TPM — punkt 5;
 log K1 czytasz teraz z raportu: Ustawienia → Informacje → „Zapisz raport na pendrive”, plik na pendrivie z FAT32):
     [ ] Ctrl+Alt+Del przy pulpicie, przy przeglądarce i na pełnym ekranie przeglądarki: zawsze ekran zabezpieczeń K1
         (reszta przyciemniona), strona nic nie dostaje; Esc wraca; „Hasło” → ustaw hasło → po wyłączeniu i włączeniu ekran
@@ -292,8 +297,7 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     MokManagera — Instalator → „Secure Boot…”), TPM włączony w BIOS-ie (X230: Security → Security Chip → Active; IdeaPad:
     Intel PTT albo TPM); GitHub: logowanie dwuetapowe kluczem sprzętowym i „Watch → Releases” (powiadomienie o każdym
     wydaniu — w ciągu 20 minut możesz je zatrzymać, usuwając wydanie).
-[!] 0.13.2 — decyzje D1, D3, D4 (docs/PLAN-0.13.2.txt, punkt 4; D2 — prośba o H.264 — przyjęta z 0.10.9): czat zada
-    je na początku kroków 1 i 4.
+[x] 0.13.2 — decyzje D1: A, D3: A podjęte, D2 z 0.10.9, D4 ze źródeł (docs/archiwum/PLAN-0.13.2.txt, punkt 4).
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
@@ -328,6 +332,7 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 ---------------------------------------------------------------------------------------------------
     Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
+    [x] przegląd przy porządkach 0.13.2 (2026-11-28): w kodzie nie ma żadnego rozwiązania tymczasowego.
     [x] przegląd przy porządkach 0.13.0 (2026-11-27): GRUB w ISO i obrazie USB („tymczasowy do M10” = 0.13, ADR 0010) —
         zamknięte decyzją: GRUB zostaje (ADR 0058 pkt 1; potrzebny do Secure Boot z kluczami Microsoftu, liczy starty
         i prowadzi do trybu ratunkowego); w kodzie nie ma żadnego rozwiązania tymczasowego.
@@ -338,5 +343,5 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.13.2 (docs/PLAN-0.13.2.txt, punkt 4, T1–T8): VA w strefie, FFmpeg, droga VMM → dekoder filmów — ADR 0063
+    0.14 (docs/PLAN-0.14.0.txt): decyzje techniczne planu — ADR kroków tej wersji
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

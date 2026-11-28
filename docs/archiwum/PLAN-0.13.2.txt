@@ -130,10 +130,11 @@ przełącznikiem szybkiej grafiki — Bank i Prywatna domyślnie bez (Twoje D5 z
 [x]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
         na prośbę, złośliwy gość
         PR #264 (kontekst filmów K1_FILMY = 20, dekoder na prośbę, klatka do bufora strefy; tryby 23 i 24)
-[ ]  4  Sterownik VA strefy, prefy, prośba o H.264,           L1–L3, L5,       2, 3        D1, D2, T2, T3,  L        —
+[x]  4  Sterownik VA strefy, prefy, prośba o H.264,           L1–L3, L5,       2, 3        D1, D2, T2, T3,  L        —
         Ustawienia; test na IdeaPadzie                         L10, L11, L14               T6, T8
-        [w toku: Claude, gałąź claude/gracious-davinci-e32l9s]
-[ ]  5  Porządki; wydanie 0.13.2                               L13, L16         1–4         —                S        —
+        PR #265 (D1: A; wzorce Ustawień — „OK” właściciela; test na IdeaPadzie — po wydaniu, decyzja właściciela)
+[x]  5  Porządki; wydanie 0.13.2                               L13, L16         1–4         —                S        —
+        PR #267 (wydanie 0.13.2; robot wydał w trakcie 0.13.1 — numer z planu został wolny)
 (ADR: 0063 przewidywany — następny wolny po krokach 0.13.0.)
 
 
@@ -445,3 +446,30 @@ Krok 3 (2026-11-28):
     testowy dla VMM-a strefy próbnej ma argument „s” (klient: UID strefy), jak silnik testowy pośrednika — z „t” przyjmował
     tylko UID 0. Drugi film zaraz po zamknięciu ostatniego kontekstu: nadzorca może jeszcze nie zauważyć końca starego
     dekodera — odpowiada STREFA_ODMOWA a = K1_STREFA_ODM_LIMIT, VMM pyta znowu (do 2 s). Przebieg 416: wszystko zielone.
+Krok 4 (2026-11-28, PR #265):
+  - D1: A (właściciel — „OK” na obrazy przed / po): przełącznik „Szybka grafika i filmy”, pod listą linia o filmach
+    („Karta graficzna rozpakowuje filmy: H.264.”; X230: „Bez szybkiej grafiki filmy rozpakowuje procesor.”).
+  - Sterownik VA strefy (src/strefa/gosc/va/, ADR 0063 — uzupełnienie z kroku 4): virtio_gpu_drv_video.so budowany przez
+    make na glibc strefy (gcc komputera budowy, nagłówki libva-dev), tylko libc, jedna funkcja widoczna
+    (__vaDriverInit_1_0); libva Debiana szuka go w /usr/lib/x86_64-linux-gnu/dri — POTWIERDZONE (strings libva.so.2,
+    skrypt to sprawdza). Libva sprawdza po starcie 39 funkcji tabeli (va.c, CHECK_VTABLE) i max_* > 0 (także
+    podobrazów) — test_va_strefy pilnuje obu.
+  - ZE ŹRÓDEŁ (FFmpeg 7.1.5, libavcodec/vaapi_decode.c): przy VA-API 1.x pula powierzchni rośnie sama
+    (initial_pool_size 0), vaCreateContext bez listy powierzchni — numery powierzchni filmu daje klatki.c (oddaje numer
+    powierzchni, do której obraz się nie odwołuje). hwcontext_vaapi wymaga choć jednego formatu obrazu (NV12) i pyta
+    vaQuerySurfaceAttributes dwa razy (najpierw liczba). vaDeriveImage nieobsługiwane — FFmpeg to akceptuje.
+  - Prefy: media.hardware-video-decoding.enabled i .force-enabled (lista zablokowanych sterowników Firefoksa nie zna
+    naszego), media.mediasource.vp9.enabled i media.av1.enabled = false w sesji z filmami kartą (k1.filmy=1 od VMM-a,
+    gdy urządzenie ma zbiór K1_FILMY).
+  - Z CI (przebiegi 418–430): wyścig strefy próbnej w trybie 16 (zrzut po końcu okna — gość czeka teraz 5 s) i błąd
+    z kroku 3: dekoder zabity razem z VMM-em, posprzątany po starcie następnej strefy, blokował jej filmy kartą jak awaria
+    (nadzorca filmy.c — dla_vmm.zabity). Przebieg 430: wszystko zielone.
+  - NIE SPRAWDZONE na sprzęcie przed wydaniem: właściciel kazał wydać od razu (2026-11-28) — test na IdeaPadzie
+    (YouTube 1080p, about:support, Zasoby) w liście DO_ZROBIENIA, punkt 4; w razie błędu: przełącznik „Szybka grafika
+    i filmy” wyłączony = filmy procesorem jak w 0.13.1.
+Krok 5 (2026-11-28, PR #267):
+  - Porządki: w kodzie żadnego rozwiązania tymczasowego; najdłuższe pliki zmienione w wersji: gpu_lacze.c 551,
+    ustawienia/przegladarka.c 474, gosc/przegladarka.c 405 — pod limitem, bez podziału. Do „Później”: robot dla FFmpeg
+    strefy (R114), szerszy typ komunikatu (krok 3), filmy bez kopii (kafelki Y — L5), HEVC/VP8, VP9/AV1 kartą.
+  - L13: Zasoby bez zmian — pamięć dekodera liczy się do sesji w rozdzielaczu (T8, filmy.md „Pamięć”); procesor dekodera
+    doliczony do sesji w Zasobach — „Później” (DO_ZROBIENIA).
