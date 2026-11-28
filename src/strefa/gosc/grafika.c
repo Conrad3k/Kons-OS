@@ -33,6 +33,7 @@
 #define DUZY (400u << 20)       /* a big buffer: two are more than K1_POSR_PAMIEC (768 MiB) */
 #define KOLOR_KARTY 0x0060a0c0u /* the display from a buffer of the card: alpha 0 on purpose — K1 shows it opaque */
 #define WYSWIETLACZ_MS 15000    /* how long it stays (the test takes its screenshot meanwhile) */
+#define WLASNY_MS 5000          /* … and our own picture after it */
 
 struct capset { /* Mesa's virgl_renderer_capset_drm (its first 48 bytes; the VMM gives 160) */
     uint32_t wire, major, minor, patch, typ, pad, bus, dev, func, rewizja, domena, pci;
@@ -229,6 +230,10 @@ static void wyswietlacz(void)
     close(e.fd);
     munmap(p, dl);
     zamknij_uchwyt(u);
+    /* our own picture stays a while before the guest ends: the test takes its screenshot of it (CI run 426 — the window
+     * was closed before the screenshot) */
+    for (int i = 0; i < WLASNY_MS / 100; i++)
+        poll(NULL, 0, 100);
 }
 
 /* The honest way, step by step — every step in the log; "grafika: ok" at the end. */
