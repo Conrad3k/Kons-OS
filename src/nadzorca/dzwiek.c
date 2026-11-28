@@ -2,7 +2,9 @@
  *  - The card: the first one with a playback device (sysfs class sound: pcmC<k>D<u>p, the lowest numbers), found at start
  *    and on a kernel event of the subsystem "sound" (the HDA driver finds its codecs a moment after start). We open its
  *    playback node and its controls and hand both to the service (DZWIEK_KARTA) — nobody else gets a node of /dev/snd
- *    (one owner of a resource, niezmiennik 7; t_sprzet). No card 5 s after the start: DZWIEK_BEZ_KARTY (the popover says
+ *    (one owner of a resource, niezmiennik 7; t_sprzet). 0.13.5 (ADR 0065): with them the card's first recording node
+ *    (pcmC<k>D<u>c, the microphone) — the service records only while someone hears it. No card 5 s after the start:
+ *    DZWIEK_BEZ_KARTY (the popover says
  *    so); a card found later still goes to the service. A card that comes later than the first (USB) is ignored (plan 0.12.0,
  *    punkt 6).
  *  - The clients (k1_dzwiek.h, K1_DZW_KLIENCI): a new socketpair for each, the service's end with the client's row and UID
@@ -60,7 +62,8 @@ static int liczba(const char **s, int *v)
     return n > 0 && *v <= K1_DZW_KARTA_NR_MAKS ? 0 : -1;
 }
 
-static int wezel_odtwarzania(const char *nazwa, int *karta, int *urz)
+/* "pcmC<k>D<u><rodzaj>" (rodzaj 'p': playback, 'c': capture — 0.13.5) */
+static int wezel(const char *nazwa, char rodzaj, int *karta, int *urz)
 {
     const char *s = nazwa;
     if (strncmp(s, "pcmC", 4) != 0)
@@ -68,20 +71,23 @@ static int wezel_odtwarzania(const char *nazwa, int *karta, int *urz)
     s += 4;
     if (liczba(&s, karta) != 0 || *s++ != 'D' || liczba(&s, urz) != 0)
         return -1;
-    return s[0] == 'p' && s[1] == '\0' ? 0 : -1;
+    return s[0] == rodzaj && s[1] == '\0' ? 0 : -1;
 }
 
-/* The first card with a playback device and its first such device: 0, or -1 when there is none. */
-static int znajdz(int *karta, int *urz)
+/* The first card with a playback device and its first such device (`rodzaj` 'p'), or — 0.13.5 — the first recording
+ * device of card *karta (`rodzaj` 'c'): 0, or -1 when there is none. */
+static int znajdz(char rodzaj, int *karta, int *urz)
 {
     DIR *d = opendir(SYS "/class/sound");
     struct dirent *e;
-    int jest = -1;
+    int jest = -1, ta = *karta;
     if (d == NULL)
         return -1;
     while ((e = readdir(d)) != NULL) {
         int k, u;
-        if (wezel_odtwarzania(e->d_name, &k, &u) == 0 && (jest != 0 || k < *karta || (k == *karta && u < *urz))) {
+        if (wezel(e->d_name, rodzaj, &k, &u) != 0 || (rodzaj == 'c' && k != ta))
+            continue;
+        if (jest != 0 || k < *karta || (k == *karta && u < *urz)) {
             *karta = k, *urz = u;
             jest = 0;
         }
@@ -107,7 +113,7 @@ static int wyslij_karte(void)
 {
     char sciezka[64];
     int karta = 0, urz = 0;
-    if (znajdz(&karta, &urz) != 0)
+    if (znajdz('p', &karta, &urz) != 0)
         return -1;
     snprintf(sciezka, sizeof sciezka, DEV "/snd/pcmC%dD%dp", karta, urz);
     if (wyslij_wezel(K1_DZW_WEZEL_ODTWARZANIE, karta, urz, sciezka, O_RDWR | O_NONBLOCK) != 0)
@@ -115,6 +121,13 @@ static int wyslij_karte(void)
     snprintf(sciezka, sizeof sciezka, DEV "/snd/controlC%d", karta);
     wyslij_wezel(K1_DZW_WEZEL_KONTROLKI, karta, 0, sciezka, O_RDWR); /* without it the card plays at its own volume */
     k1_log(TAG, "dźwięk: karta %d, urządzenie %d dla usługi dźwięku", karta, urz);
+    if (znajdz('c', &karta, &urz) == 0) { /* 0.13.5: the microphone of the same card — the service records only on request */
+        snprintf(sciezka, sizeof sciezka, DEV "/snd/pcmC%dD%dc", karta, urz);
+        if (wyslij_wezel(K1_DZW_WEZEL_NAGRYWANIE, karta, urz, sciezka, O_RDONLY | O_NONBLOCK) == 0)
+            k1_log(TAG, "dźwięk: mikrofon — karta %d, urządzenie %d", karta, urz);
+    } else {
+        k1_log(TAG, "dźwięk: karta %d nie ma mikrofonu", karta);
+    }
     return 0;
 }
 

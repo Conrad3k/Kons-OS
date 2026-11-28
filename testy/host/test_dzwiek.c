@@ -97,7 +97,7 @@ static void proba(void)
     free(t);
 }
 
-/* 0.12.3 step 2: DZWIEK_KOREKTOR (a steering client → dzwiek) and its STAN; POKAZ_USTAWIENIA, USTAWIENIA_MIEJSCE */
+/* 0.12.3 step 2: DZWIEK_KOREKTOR (a steering client ↔ dzwiek: the setting and, since 0.13.5, its state); POKAZ_USTAWIENIA, USTAWIENIA_MIEJSCE */
 static void korektor_komunikaty(void)
 {
     int8_t p[K1_KOR_PASMA_N];
@@ -106,9 +106,10 @@ static void korektor_komunikaty(void)
     k1_kor_do_pol(p, f);
     EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_DO_DZWIEKU));
     EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_SLUCHAWKI, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
-    EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR_STAN, K1_DZW_WYJSCIE_SLUCHAWKI, f[0], f[1], f[2], 0), K1_KIER_OD_DZWIEKU));
-    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_OD_DZWIEKU));
-    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR_STAN, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_SLUCHAWKI, f[0], f[1], f[2], 0), K1_KIER_OD_DZWIEKU));
+    /* 0.13.5 step 1: one type both ways of the client's channel (the state is the setting), no other channel */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_STEROWANIE));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), K1_KIER_OD_NADZORCY));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_BRAK, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* which output? */
     EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KOREKTOR, K1_DZW_WYJSCIE_GLOSNIKI, 25, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* +12.5 dB */
@@ -126,7 +127,7 @@ static void korektor_komunikaty(void)
     EXPECT(!ok(K(K1_KOM_USTAWIENIA_MIEJSCE, K1_UST_MIEJSCA_MAKS + 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
 }
 
-/* 0.12.3 step 3: DZWIEK_SCENA (a steering client → dzwiek) and its STAN */
+/* 0.12.3 step 3: DZWIEK_SCENA (a steering client ↔ dzwiek: the setting and, since 0.13.5, its state) */
 static void scena_komunikaty(void)
 {
     struct k1_prz_scena sc;
@@ -135,9 +136,9 @@ static void scena_komunikaty(void)
     k1_prz_do_pol(&sc, f);
     EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_SLUCHAWKI, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
     EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* off, all in front */
-    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA_STAN, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_OD_DZWIEKU));
-    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_OD_DZWIEKU));
-    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA_STAN, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_STEROWANIE));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_DO_EKRANU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_BRAK, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_MAKS + 1, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 2, f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
@@ -151,7 +152,7 @@ static void scena_komunikaty(void)
     /* step 4: an output's "Własna" — a = the output + K1_DZW_SCENA_WLASNA, nothing else */
     EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_SLUCHAWKI, f[0], f[1], f[2], f[3]),
               K1_KIER_DO_DZWIEKU));
-    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA_STAN, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), K1_KIER_OD_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_SCENA_WLASNA, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS + 1, f[0], f[1], f[2], f[3]),
                K1_KIER_DO_DZWIEKU));
@@ -166,7 +167,7 @@ static void komunikaty(void)
     EXPECT(ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_ODTWARZANIE, 0, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_KONTROLKI, 31, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_KONTROLKI, 0, 1, 0, 0), K1_KIER_STEROWANIE)); /* controls: no device */
-    EXPECT(!ok(K(K1_KOM_DZWIEK_KARTA, 3, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_MAKS + 1, 0, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_ODTWARZANIE, 32, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_ODTWARZANIE, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* not from a client */
     EXPECT(ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_GUI, 102, 0, 0, 0), K1_KIER_STEROWANIE));
@@ -178,7 +179,7 @@ static void komunikaty(void)
     EXPECT(ok(K(K1_KOM_DZWIEK_OTWORZ, K1_DZW_FORMAT_F32, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* 0.12.3: the ring's format */
     EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, K1_DZW_FORMAT_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, -1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
-    EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, 0, 1, 0, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, 0, 0, 1, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(ok(K(K1_KOM_DZWIEK_ZAPISANO, (int32_t)K1_DZW_PIERSCIEN, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_ZAPISANO, 0, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_ZAPISANO, (int32_t)K1_DZW_PIERSCIEN + 1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
@@ -261,7 +262,8 @@ static void zapamietane(void)
     b[7] = 1;
     b[0] = 'X';
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
-    /* 0.12.3 step 2: the equalizer; step 3: the scenes; step 4: K1G4 with "Własna"; K1G3, K1G2 and K1G1 still read */
+    /* 0.12.3 step 2: the equalizer; step 3: the scenes; step 4: "Własna"; 0.13.5: K1G5 with the microphone; K1G4 … K1G1
+     * still read */
     k1_kor_gotowe_pasma(K1_KOR_WIECEJ_BASU, z.korektor[K1_DZW_WYJSCIE_GLOSNIKI]);
     k1_kor_gotowe_pasma(K1_KOR_LAPTOP, z.korektor[K1_DZW_WYJSCIE_SLUCHAWKI]);
     k1_prz_scena_gotowa(K1_PRZ_KINO, &z.scena[K1_DZW_WYJSCIE_SLUCHAWKI]);
@@ -270,13 +272,22 @@ static void zapamietane(void)
     k1_prz_scena_gotowa(K1_PRZ_POKOJ, &z.wlasna[K1_DZW_WYJSCIE_SLUCHAWKI]); /* step 4: the headphones' "Własna" */
     z.wlasna[K1_DZW_WYJSCIE_SLUCHAWKI].pasma[3].kierunek = -40;
     EXPECT(!z.wlasna[K1_DZW_WYJSCIE_GLOSNIKI].wlaczona); /* none yet */
-    EXPECT(k1_dzw_zapamietane_zapisz(&z, b) == 80 && sizeof b == 80 && memcmp(b, "K1G4", 4) == 0);
+    z.mik_poziom = 70; /* 0.13.5: K1G5 with the microphone */
+    z.mik_wyciszony = 1;
+    EXPECT(k1_dzw_zapamietane_zapisz(&z, b) == 82 && sizeof b == 82 && memcmp(b, "K1G5", 4) == 0);
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0 && c.glosnosc[1] == 35 && c.wyciszone[2] == 1 &&
            memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0 &&
            k1_prz_rowne(&c.scena[2], &z.scena[2]) && k1_prz_rozpoznaj(&c.scena[2]) == K1_PRZ_KINO &&
            !c.scena[1].wlaczona && k1_prz_rozpoznaj(&c.scena[1]) == K1_PRZ_GLOS);
     EXPECT(c.wlasna[2].wlaczona && c.wlasna[2].pasma[3].kierunek == -40 && k1_prz_rozpoznaj(&c.wlasna[2]) < 0 &&
-           !c.wlasna[1].wlaczona);
+           !c.wlasna[1].wlaczona && c.mik_poziom == 70 && c.mik_wyciszony == 1);
+    b[80] = 101; /* the microphone over 100 % */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[80] = 70;
+    b[81] = 2; /* its mute neither 0 nor 1 */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[81] = 1;
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G4_BAJTY, &c) != 0); /* "K1G5" of 80 bytes */
     b[54 + 13 + 1] = 91; /* the headphones' "Własna": its first band at 182° */
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
     b[54 + 13 + 1] = 0;
@@ -289,15 +300,16 @@ static void zapamietane(void)
            !c.wlasna[2].wlaczona && !c.wlasna[1].wlaczona);
     memcpy(b, "K1G4", 4);
     b[28] = 2; /* the speakers' scene neither on nor off */
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G4_BAJTY, &c) != 0);
     b[28] = 0;
     b[28 + 1] = 91; /* the speakers' first band at 182° */
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G4_BAJTY, &c) != 0);
     b[28 + 1] = 0;
     b[28 + 13 + 9] = 101; /* the headphones' first band 101 % away */
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G4_BAJTY, &c) != 0);
     b[28 + 13 + 9] = 20;
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G4_BAJTY, &c) == 0 && c.mik_poziom == K1_DZW_MIK_START &&
+           !c.mik_wyciszony); /* step 4's record: the microphone as at the start */
     memcpy(b, "K1G2", 4); /* step 2's record: 28 bytes, the scenes as at the start (0.13.0: Koncert, switched on) */
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) == 0 && c.glosnosc[1] == 35 &&

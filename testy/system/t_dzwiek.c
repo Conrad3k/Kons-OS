@@ -96,7 +96,7 @@ static int zamkniety(int fd, int s)
     return 0;
 }
 
-/* 0.12.3 step 2: the next KOREKTOR_STAN of `wyjscie` within `ms`: 1 and its bands; 0 none. */
+/* 0.12.3 step 2: the next KOREKTOR from the service of `wyjscie` within `ms`: 1 and its bands; 0 none. */
 static int korektor_stan(int fd, int wyjscie, int8_t *p, int ms)
 {
     struct k1_komunikat k;
@@ -105,7 +105,7 @@ static int korektor_stan(int fd, int wyjscie, int8_t *p, int ms)
         int32_t f[3] = { k.b, k.c, k.d };
         if (r <= 0)
             return 0;
-        if (k.typ == K1_KOM_DZWIEK_KOREKTOR_STAN && k.a == wyjscie)
+        if (k.typ == K1_KOM_DZWIEK_KOREKTOR && k.a == wyjscie)
             return k1_kor_z_pol(f, p) == 0;
     }
     return 0;
@@ -132,7 +132,7 @@ static void korektor(int fd)
           "dźwięk: korektor z powrotem płaski, kanał po złych komunikatach działa", "");
 }
 
-/* 0.12.3 step 3: the next SCENA_STAN of `wyjscie` within `ms`: 1 and its scene; 0 none. */
+/* 0.12.3 step 3: the next SCENA from the service of `wyjscie` within `ms`: 1 and its scene; 0 none. */
 static int scena_stan(int fd, int wyjscie, struct k1_prz_scena *s, int ms)
 {
     struct k1_komunikat k;
@@ -141,7 +141,7 @@ static int scena_stan(int fd, int wyjscie, struct k1_prz_scena *s, int ms)
         int32_t f[4] = { k.b, k.c, k.d, k.e };
         if (r <= 0)
             return 0;
-        if (k.typ == K1_KOM_DZWIEK_SCENA_STAN && k.a == wyjscie)
+        if (k.typ == K1_KOM_DZWIEK_SCENA && k.a == wyjscie)
             return k1_prz_z_pol(f, s) == 0;
     }
     return 0;

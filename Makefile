@@ -188,9 +188,10 @@ $(BIN)/posrednik: $(POSREDNIK) $(wildcard src/posrednik/*.h) $(WSPOLNE) $(USLUGI
 # in src/wspolne/k1_dzwiek.c, the path (mixing, the volume, the limiter, the dither; 0.12.3, ADR 0055) in k1_dzw_tor.c
 # (host tests: test_dzwiek, test_dzw_tor; fuzzing: fuzz_dzwiek); the system equalizer (0.12.3 step 2) in k1_korektor.c
 # (test_korektor, fuzz_korektor); Kons Spatial Audio (step 3) in k1_przestrzen.c, k1_prz_licz.c (test_przestrzen,
-# fuzz_przestrzen); its sample "Posłuchaj" (step 4) in k1_prz_proba.c — made by the clients (przybornik), not the service
+# fuzz_przestrzen); its sample "Posłuchaj" (step 4) in k1_prz_proba.c — made by the clients (przybornik), not the service;
+# the microphone (0.13.5 step 1, ADR 0065) in k1_mikrofon.c (test_mikrofon, fuzz_mikrofon)
 DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c \
-          src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c
+          src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_mikrofon.c
 $(BIN)/dzwiek: $(DZWIEK) $(wildcard src/dzwiek/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(DZWIEK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -306,6 +307,10 @@ $(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_st
 # 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder's requests and messages
 $(OBJ)/test_dzwiek: testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c $(KOMUNIKAT) $(DOK_C) -lm
+
+# 0.13.5 step 1 (ADR 0065): the microphone — who may hear it, its state, its messages, its path and a listener's ring
+$(OBJ)/test_mikrofon: testy/host/test_mikrofon.c src/wspolne/k1_mikrofon.c src/wspolne/k1_mikrofon.h src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_mikrofon.c src/wspolne/k1_mikrofon.c src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c $(KOMUNIKAT) $(DOK_C) -lm
 
 # 0.12.3 step 1 (ADR 0055): the sound path — the measurements of the plan (noise, harmonics, the quietest tone), the
 # limiter, the dither, "przezroczystość", the card's formats
@@ -588,7 +593,7 @@ TESTY_HOST := test_gpu_most test_va_strefy test_ogloszenie test_paczka test_odci
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka test_tpm test_urz_wejscia
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_mikrofon test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka test_tpm test_urz_wejscia
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_raport test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -649,7 +654,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka tpm raport \
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek mikrofon virtio_dzwiek korektor przestrzen stopka tpm raport \
         va_strefy
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
@@ -720,6 +725,8 @@ FUZZ_ZR_schowek   := src/wspolne/k1_schowek.c
 FUZZ_DL_schowek   := 4096
 FUZZ_ZR_dzwiek    := src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c
 FUZZ_DL_dzwiek    := 4096
+FUZZ_ZR_mikrofon  := src/wspolne/k1_mikrofon.c src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c
+FUZZ_DL_mikrofon  := 16384
 FUZZ_ZR_korektor  := src/wspolne/k1_korektor.c
 FUZZ_DL_korektor  := 4096
 FUZZ_ZR_przestrzen := src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c

@@ -31,8 +31,10 @@ void k1_dzwk_kanal(struct k1_dzw_polaczenie *k, int fd)
     k->fd = nowy;
     k->gra = 0;
     for (int nr = 0; nr <= K1_STREFY_MAKS; nr++)
-        k->sesje[nr] = (struct k1_dzw_sesja){ 0, K1_DZW_SESJA_START, 0 };
+        k->sesje[nr] = (struct k1_dzw_sesja){ 0, K1_DZW_SESJA_START, 0, 0 };
     k1_log(k->tag, "dźwięk: kanał do usługi dźwięku");
+    if (k->mik_slucha) /* 0.13.5: a new service — we watch the level again */
+        wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_POZIOM, 1, 0, 0, 0));
 }
 
 void k1_dzwk_glosnosc(struct k1_dzw_polaczenie *k, int glosnosc, int wyciszone, int wyjscie)
@@ -163,16 +165,63 @@ int k1_dzwk_proba_pasmo(const struct k1_dzw_polaczenie *k)
     return k1_prz_proba_pasmo(k->poz > w_pierscieniu ? k->poz - w_pierscieniu : 0);
 }
 
+void k1_dzwk_mikrofon(struct k1_dzw_polaczenie *k, int poziom, int wyciszony)
+{
+    poziom = poziom < 0 ? 0 : poziom > K1_DZW_GLOSNOSC_MAKS ? K1_DZW_GLOSNOSC_MAKS : poziom;
+    k->mik.poziom = poziom;
+    k->mik.wyciszony = wyciszony != 0;
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_USTAW, poziom, wyciszony != 0, 0, 0));
+}
+
+void k1_dzwk_mik_sluchaj(struct k1_dzw_polaczenie *k, int tak)
+{
+    if ((k->mik_slucha != 0) == (tak != 0))
+        return;
+    k->mik_slucha = tak != 0;
+    k->mik_poziom = 0;
+    k1_log(k->tag, "mikrofon: %s", tak ? "słucham poziomu" : "nie słucham");
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_POZIOM, tak != 0, 0, 0, 0));
+}
+
+void k1_dzwk_mik_wstrzymaj(struct k1_dzw_polaczenie *k, int tak)
+{
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_WSTRZYMAJ, tak != 0, 0, 0, 0));
+}
+
+int k1_dzwk_mik_slucha(const struct k1_dzw_polaczenie *k)
+{
+    if (k->mik.slucha_k1)
+        return 1;
+    for (int nr = 1; nr <= K1_STREFY_MAKS; nr++)
+        if (k->sesje[nr].mik & K1_DZW_SES_SLUCHA)
+            return 1;
+    return 0;
+}
+
+/* DZWIEK_STAN e (0.13.5): the microphone — K1_DZWK_MIKROFON when it changed */
+static int stan_mikrofonu(struct k1_dzw_polaczenie *k, int32_t e)
+{
+    struct k1_dzw_mik m;
+    if (k1_dzw_mik_z_pola(e, &m) != 0 || memcmp(&m, &k->mik, sizeof m) == 0)
+        return 0;
+    if (m.zrodlo != k->mik.zrodlo || m.slucha_k1 != k->mik.slucha_k1 || m.wstrzymany != k->mik.wstrzymany)
+        k1_log(k->tag, "mikrofon: %s%s%s", m.zrodlo ? k1_dzw_zrodlo_nazwa(m.zrodlo) : "brak",
+               m.slucha_k1 ? ", K1 słucha" : "", m.wstrzymany ? ", wstrzymany" : "");
+    k->mik = m;
+    return K1_DZWK_MIKROFON;
+}
+
 static int stan(struct k1_dzw_polaczenie *k, const struct k1_komunikat *m)
 {
+    int r = stan_mikrofonu(k, m->e);
     if (m->a == k->karta && m->b == k->glosnosc && m->c == k->wyciszone && m->d == k->wyjscie)
-        return 0;
+        return r;
     k1_log(k->tag, "dźwięk: karta %d, głośność %d%%%s, wyjście %d", m->a, m->b, m->c ? ", wyciszone" : "", m->d);
     k->karta = m->a;
     k->glosnosc = m->b;
     k->wyciszone = m->c;
     k->wyjscie = m->d;
-    return K1_DZWK_STAN;
+    return r | K1_DZWK_STAN;
 }
 
 int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
@@ -194,16 +243,16 @@ int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
         if (m.typ == K1_KOM_DZWIEK_STAN) {
             r |= stan(k, &m);
         } else if (m.typ == K1_KOM_DZWIEK_SESJA) { /* step 3 (numbers only: no session's name in the log) */
-            k->sesje[m.a] = (struct k1_dzw_sesja){ m.b, m.c, m.d };
+            k->sesje[m.a] = (struct k1_dzw_sesja){ m.b, m.c, m.d, m.e };
             r |= K1_DZWK_SESJE;
-        } else if (m.typ == K1_KOM_DZWIEK_KOREKTOR_STAN) { /* 0.12.3 step 2 (checked: k1_kom_dzwiek.c) */
+        } else if (m.typ == K1_KOM_DZWIEK_KOREKTOR) { /* 0.12.3 step 2 (checked: k1_kom_dzwiek.c) */
             int32_t f[3] = { m.b, m.c, m.d };
             int8_t p[K1_KOR_PASMA_N];
             if (k1_kor_z_pol(f, p) == 0) { /* every one: gui learns that the service has its remembered bands */
                 memcpy(k->korektor[m.a], p, sizeof p);
                 r |= K1_DZWK_KOREKTOR;
             }
-        } else if (m.typ == K1_KOM_DZWIEK_SCENA_STAN) { /* 0.12.3 step 3 (checked: k1_kom_dzwiek.c) */
+        } else if (m.typ == K1_KOM_DZWIEK_SCENA) { /* 0.12.3 step 3 (checked: k1_kom_dzwiek.c) */
             int32_t f[4] = { m.b, m.c, m.d, m.e };
             struct k1_prz_scena s;
             if (k1_prz_z_pol(f, &s) == 0) {
@@ -213,6 +262,13 @@ int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
                     k->scena[m.a] = s;
                 r |= K1_DZWK_SCENA;
             }
+        } else if (m.typ == K1_KOM_DZWIEK_NAGRANO && k->mik_slucha) { /* 0.13.5: the level only (we have no ring) */
+            k->mik_poziom = m.b ? 0 : m.c;
+            if (m.b) {
+                k->mik_slucha = 0;
+                k1_log(k->tag, "mikrofon: usługa nie daje poziomu");
+            }
+            r |= K1_DZWK_POZIOM;
         } else if (m.typ == K1_KOM_DZWIEK_ODTWORZONO && k->gra) {
             k->wolne += (uint32_t)m.a;
             r |= K1_DZWK_GRA;

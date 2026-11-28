@@ -26,6 +26,7 @@
 
 struct klient {
     int fd, rodzaj, strefa;   /* strefa: the zone of a client STREFA (1..K1_STREFY_MAKS), else 0 */
+    int mik_wolno;            /* 0.13.5: it may hear the microphone — its row says so (a zone: nadzorca, DZWIEK_KLIENT d) */
     uid_t uid;
     const uint8_t *pierscien; /* mapped read only; NULL: no stream */
     int format;               /* K1_DZW_FORMAT_* of the ring (0.12.3) */
@@ -52,17 +53,26 @@ static void wyslij(struct klient *k, struct k1_komunikat m)
         k1_log(TAG, "klient %s: wysłanie nieudane: %s", k1_dzw_klient_nazwa(k->rodzaj), strerror(errno));
 }
 
-static struct k1_komunikat stan(void)
+/* e: the microphone (0.13.5) — to a steering client only */
+static struct k1_komunikat stan(const struct klient *k)
 {
     int jest = stan_karty == K1_DZW_KARTA_JEST, w = kontrolki_wyjscie();
-    return k1_komunikat_nowy(K1_KOM_DZWIEK_STAN, 0, stan_karty, glosnosc[w], wyciszone[w], jest ? w : K1_DZW_WYJSCIE_BRAK, 0);
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_STAN, 0, stan_karty, glosnosc[w], wyciszone[w], jest ? w : K1_DZW_WYJSCIE_BRAK,
+                             k1_dzw_klient_steruje(k->rodzaj) ? mikrofon_pole() : 0);
+}
+
+/* To the client in slot i (mikrofon.c). */
+void klient_wyslij(int i, struct k1_komunikat m)
+{
+    if (i >= 0 && i < KLIENCI_MAKS && klienci[i].fd >= 0)
+        wyslij(&klienci[i], m);
 }
 
 void klienci_stan_wszystkim(void)
 {
     for (int i = 0; i < KLIENCI_MAKS; i++)
         if (klienci[i].fd >= 0)
-            wyslij(&klienci[i], stan());
+            wyslij(&klienci[i], stan(&klienci[i]));
 }
 
 /* 0.12.3 steps 2–3: what an output plays (its equalizer: korektor_stan, its scene: przestrzen_stan) of `wyjscie` to every
@@ -126,6 +136,7 @@ static void usun_klienta(struct klient *k, const char *powod)
 {
     k1_log(TAG, "klient %s: koniec (%s)", k1_dzw_klient_nazwa(k->rodzaj), powod);
     zamknij_strumien(k, 0);
+    mikrofon_zamknij((int)(k - klienci), 0);
     close(k->fd);
     k->fd = -1;
 }
@@ -169,6 +180,8 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
 {
     switch (m->typ) {
     case K1_KOM_DZWIEK_OTWORZ:
+        if (m->b == K1_DZW_KIER_SLUCHA) /* 0.13.5: the microphone into its ring */
+            return mikrofon_otworz((int)(k - klienci), k->rodzaj, k->mik_wolno, fd, m->a);
         if (k->pierscien != NULL)
             return -1; /* one stream per client */
         k->zerwany = 0;
@@ -181,6 +194,10 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
             return -1; /* more than the ring holds, or no stream: the rules broken */
         break;
     case K1_KOM_DZWIEK_ZAMKNIJ:
+        if (m->b == K1_DZW_KIER_SLUCHA) {
+            mikrofon_zamknij((int)(k - klienci), 1);
+            break;
+        }
         if (k->pierscien == NULL)
             break;
         if (m->a == K1_DZW_OD_RAZU || k1_dzw_czeka(&k->p) == 0)
@@ -225,6 +242,8 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
             wyjscie_zglos(NULL, m->a - K1_DZW_SCENA_WLASNA, przestrzen_wlasna_stan);
         break;
     }
+    case K1_KOM_DZWIEK_MIKROFON: /* 0.13.5: who may ask what — mikrofon.c */
+        return mikrofon_prosba((int)(k - klienci), k->rodzaj, m);
     default:
         return -1;
     }
@@ -263,8 +282,10 @@ void klienci_nowy(const struct k1_komunikat *m, int fd)
             klienci[i].rodzaj = m->a;
             klienci[i].uid = (uid_t)m->b;
             klienci[i].strefa = m->c;
+            klienci[i].mik_wolno = k1_dzw_klient_slucha(m->a) != K1_DZW_SLUCHA_NIE &&
+                                   (m->a != K1_DZW_KLIENT_STREFA || m->d == 1); /* a zone: only with the switch */
             k1_log(TAG, "klient %s: kanał", k1_dzw_klient_nazwa(m->a));
-            wyslij(&klienci[i], stan());
+            wyslij(&klienci[i], stan(&klienci[i]));
             if (k1_dzw_klient_steruje(m->a)) {
                 sesje_zglos(&klienci[i]);
                 wyjscie_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK, korektor_stan);

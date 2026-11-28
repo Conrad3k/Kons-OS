@@ -50,7 +50,7 @@ int k1_kor_rozpoznaj(const int8_t pasma[K1_KOR_PASMA_N]);
 const char *k1_kor_nazwa(const int8_t pasma[K1_KOR_PASMA_N]); /* the ready setting's name, or "Własne" */
 int k1_kor_plaski(const int8_t pasma[K1_KOR_PASMA_N]);       /* 1: every band 0 */
 
-/* In a message (DZWIEK_KOREKTOR, DZWIEK_KOREKTOR_STAN: b, c, d): four bands a field, a byte each (two's complement), band
+/* In a message (DZWIEK_KOREKTOR, both ways: b, c, d): four bands a field, a byte each (two's complement), band
  * i in byte i % 4 of field i / 4, the last field's two top bytes 0. Inline: the check of the messages (k1_kom_dzwiek.c,
  * in every program) needs it without the filters. */
 static inline void k1_kor_do_pol(const int8_t pasma[K1_KOR_PASMA_N], int32_t pola[3])

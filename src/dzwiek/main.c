@@ -14,8 +14,9 @@
  * 0.12.3 step 1 (ADR 0055): the path in floats (k1_dzw_tor.c) — a ring of S16 or F32 (DZWIEK_OTWORZ a), the sum, the
  * volume, the limiter instead of clipping, the card's best format (karta.c: 24 bits when it takes them) with a dither.
  * Step 2: the system equalizer of each output on the sum, before the volume (korektor.c; DZWIEK_KOREKTOR from a steering
- * client, DZWIEK_KOREKTOR_STAN to them all). Step 3: Kons Spatial Audio — the scene of each output after the equalizer
- * (przestrzen.c; DZWIEK_SCENA, DZWIEK_SCENA_STAN in the same way).
+ * client, the same message back to them all as its state). Step 3: Kons Spatial Audio — the scene of each output after the equalizer
+ * (przestrzen.c; DZWIEK_SCENA in the same way). 0.13.5 (ADR 0065): the microphone — the card's recording node
+ * (nagrywanie.c) while someone hears it, its listeners (mikrofon.c: a ring of samples, or the level only).
  * Trust boundary: the clients are hostile (from step 3 a zone's VMM speaks for the guest): every message checked field by
  * field (k1_komunikat_sprawdz, sender UID), the frames counted by the service (k1_dzw_zapisano), the ring copied before
  * use. Sandbox: UID 111, no paths, seccomp: the base + the ALSA ioctls it uses (KLATKA_DZWIEK). The log: numbers and the
@@ -48,6 +49,10 @@ static void karta_od_nadzorcy(const struct k1_komunikat *m, int fd)
 {
     if (m->a == K1_DZW_WEZEL_KONTROLKI) {
         kontrolki_przyjmij(fd);
+        return;
+    }
+    if (m->a == K1_DZW_WEZEL_NAGRYWANIE) { /* 0.13.5: the microphone */
+        mikrofon_przyjmij(fd, m->b, m->c);
         return;
     }
     if (karta_przyjmij(fd, m->b, m->c) == 0) {
@@ -162,13 +167,14 @@ int main(void)
     k1_log(TAG, "gotowa (48 kHz, stereo, liczy w liczbach zmiennoprzecinkowych; głośność %d%%)",
            K1_DZW_GLOSNOSC_START);
     for (;;) {
-        struct pollfd pfd[3 + KLIENCI_MAKS];
+        struct pollfd pfd[4 + KLIENCI_MAKS];
         int n = 0, kfd = karta_fd(), czas = -1;
         pfd[n++] = (struct pollfd){ FD_NADZORCA, POLLIN, 0 };
         pfd[n++] = (struct pollfd){ kfd, POLLOUT, 0 };
         pfd[n++] = (struct pollfd){ kontrolki_fd(), POLLIN, 0 };
         klienci_poll(&pfd[n]);
         n += KLIENCI_MAKS;
+        pfd[n++] = (struct pollfd){ mikrofon_fd(), POLLIN, 0 }; /* 0.13.5: a period of the microphone */
         if (kfd >= 0 && klienci_strumienie() == 0)
             czas = 250; /* the silence after the last stream: look whether it is time to sleep */
         czas = klienci_czas(czas);
@@ -182,10 +188,13 @@ int main(void)
         if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR))
             od_nadzorcy();
         if ((pfd[2].revents & (POLLIN | POLLERR)) && kontrolki_zdarzenia()) {
-            k1_log(TAG, "wyjście: %s", k1_dzw_wyjscie_nazwa(kontrolki_wyjscie()));
+            k1_log(TAG, "wyjście: %s, mikrofon: %s", k1_dzw_wyjscie_nazwa(kontrolki_wyjscie()),
+                   k1_dzw_zrodlo_nazwa(kontrolki_zrodlo()));
             klienci_stan_wszystkim();
         }
         klienci_obsluz(&pfd[3]);
+        if (pfd[3 + KLIENCI_MAKS].revents & (POLLIN | POLLERR))
+            mikrofon_okres();
         if (kfd >= 0)
             graj((pfd[1].revents & (POLLOUT | POLLERR)) != 0);
         klienci_sesje();

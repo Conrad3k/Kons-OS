@@ -30,8 +30,8 @@
 static struct k1_dzw_polaczenie dz = K1_DZW_POLACZENIE_START(TAG);
 static struct k1_dzw_zapamietane zap;
 static int zgodne;          /* the service has what we remember (its STAN after a new channel said so) */
-static int kor_zgodne;      /* bit w: the service has our bands of output w (its KOREKTOR_STAN said so) */
-static int sc_zgodne;       /* bit w: the service has our scene of output w (its SCENA_STAN said so; 0.12.3 step 3) */
+static int kor_zgodne;      /* bit w: the service has our bands of output w (its KOREKTOR back said so) */
+static int sc_zgodne;       /* bit w: the service has our scene of output w (its SCENA back said so; 0.12.3 step 3) */
 static double zmiana_t;     /* when the remembered volume changed (0: nothing to write) */
 static int hover = -1, wcisniete = -1; /* the control under the pointer / pressed (C_*) */
 
@@ -183,7 +183,7 @@ static void zapamietaj_sceny(void)
 }
 
 /* 0.12.3 step 2: the bands of the outputs as the service says them (Ustawienia changed them) remembered — once the
- * service has ours (its first KOREKTOR_STAN on a new channel still says flat). */
+ * service has ours (its first KOREKTOR on a new channel still says flat). */
 static void zapamietaj_korektor(void)
 {
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
