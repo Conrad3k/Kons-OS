@@ -90,7 +90,9 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   „Mikrofon” (300 px, rośnie z listą): źródło, „Słucha teraz” (Ustawienia → Dźwięk, sesje — kropka i nazwa; nazwy sesji
   nigdy w logu), okrągły przycisk „Wycisz mikrofon”. Klawisz laptopa KEY_MICMUTE wycisza i włącza mikrofon zawsze. Gdy
   otwiera się ekran zabezpieczeń (Ctrl+Alt+Del), pulpit mówi usłudze `WSTRZYMAJ` b = 1 (cisza dla słuchaczy), przy
-  zamknięciu b = 0; nowej usłudze — od razu, gdy ekran jest otwarty. Log: „dźwięk: zapamiętana głośność —
+  zamknięciu b = 0; nowej usłudze — od razu, gdy ekran jest otwarty. Krok 2: sesja, która słucha (`DZWIEK_SESJA` e), idzie do
+  ekranu w `STREFA_DZWIEK` d, e (znak na pasku okna sesji); jego kliknięcie wraca jako `STREFA_WYCISZ` b = 1 i pulpit
+  wycisza mikrofon tej sesji (`DZWIEK_MIKROFON` SESJA; log „mikrofon: sesja N wyciszona (znak na pasku okna)”). Log: „dźwięk: zapamiętana głośność —
   głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”. **Krok 3** (D2: B, D6: A): lista **„Grają teraz”** pod
   kreską okienka — wiersz dla każdej sesji, która gra (`DZWIEK_SESJA` od usługi): kropka w kolorze sesji, jej nazwa,
   okrągły przycisk wyciszenia 24 px, suwak głośności sesji, procenty; okienko rośnie o wiersze (powierzchnia okienka paska

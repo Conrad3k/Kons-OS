@@ -94,8 +94,8 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `AKTYWUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: pokaż, na wierzch, fokus |
 | `MINIMALIZUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: schowaj |
 | `ZAMKNIJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: ekran prosi aplikację o zamknięcie (0.7.5, „Zamknij okno” na dolnym pasku) |
-| `STREFA_DZWIEK` (0.12.0 krok 3, D6: A) | powłoka → ekran | tylko powłoka | `obiekt` = 0, `a` = strefa 1…`K1_STREFY_MAKS`, `b` = 1 jej sesja gra, `c` = 1 wyciszona; ekran rysuje głośnik na pasku okna tej strefy, póki `b` = 1 (`strefy_dzwiek.c`) |
-| `STREFA_WYCISZ` (0.12.0 krok 3) | ekran → powłoka | ekran | `obiekt` = 0, `a` = strefa — użytkownik kliknął głośnik na pasku okna sesji: powłoka wycisza sesję albo pozwala jej znów grać (usługa dźwięku, `DZWIEK_GLOSNOSC` d = strefa) |
+| `STREFA_DZWIEK` (0.12.0 krok 3, D6: A) | powłoka → ekran | tylko powłoka | `obiekt` = 0, `a` = strefa 1…`K1_STREFY_MAKS`, `b` = 1 jej sesja gra, `c` = 1 wyciszona, `d` = 1 słucha mikrofonu, `e` = 1 jej mikrofon wyciszony (0.13.5 krok 2); ekran rysuje głośnik na pasku okna tej strefy, póki `b` = 1, i znak mikrofonu, póki `d` = 1 (`strefy_dzwiek.c`) |
+| `STREFA_WYCISZ` (0.12.0 krok 3) | ekran → powłoka | ekran | `obiekt` = 0, `a` = strefa, `b` = 0 — użytkownik kliknął głośnik na pasku okna sesji: powłoka wycisza sesję albo pozwala jej znów grać (usługa dźwięku, `DZWIEK_GLOSNOSC` d = strefa); `b` = 1 (0.13.5 krok 2) — znak mikrofonu: powłoka wycisza mikrofon tej sesji albo go przywraca (`DZWIEK_MIKROFON` SESJA) |
 | `GLOSNOSC_POKAZ` (0.12.0 krok 2, D4: A) | powłoka → ekran | tylko powłoka | po klawiszu głośności: `obiekt` = 0, `a` = głośność 0…100, `b` = 1 wyciszone, `c` = wyjście `K1_DZW_WYJSCIE_*` (BRAK: komputer bez karty — wtedy `a` = `b` = 0). Ekran pokazuje na 1,5 s **pigułkę głośności** (`glosnosc.c`) |
 | `USTAW` | Ustawienia → ekran | Ustawienia; klucze `K1_UST_OTWIERANIE` + typ także Pliki i powłoka (0.8.2, „Zawsze otwieraj tą aplikacją”; `ustawia()` w `okna.c`) | klucz `K1_UST_*` i wartość (sprawdzana); nie `K1_UST_ZDJECIE` |
 | `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | tabela nadawców (`zdjecie.c`) | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
@@ -233,6 +233,13 @@ zaraz po nazwie sesji (i znaku szybkiej grafiki) stoi mały głośnik 30 × 24; 
 ekran poza obrazem strefy — strona go nie zasłoni ani nie podrobi (RYZYKA R26, R108). Opis ekranu: przycisk „Wycisz
 sesję” okna strefy (wybrany = wyciszona). Log: „strefa N: gra / gra, wyciszona / nie gra”, „strefa N: głośnik na pasku —
 wycisz / znów gra”.
+
+**Znak mikrofonu na pasku sesji** (0.13.5 krok 2, ADR 0065, D2: A): póki sesja słucha mikrofonu (`STREFA_DZWIEK` d — powłoka
+wie od usługi dźwięku), za głośnikiem stoi terakotowa pigułka 30 × 24 z mikrofonem (biały); jej mikrofon wyciszony —
+pigułka w kolorze pola okna, mikrofon przekreślony. Kliknięcie → `STREFA_WYCISZ` b = 1: mikrofon tej sesji wycisza usługa
+dźwięku (gość dostaje ciszę). Strona go nie ukryje ani nie podrobi (pasek K1). Opis ekranu: „Wycisz mikrofon sesji”
+(wybrany = wyciszony). Log: „strefa N: mikrofon słucha / słucha, wyciszony / nie słucha”, „strefa N: mikrofon na pasku —
+wycisz / znów słychać”.
 
 ## Ekran wyłączania (0.10.7 krok 6, T7; decyzja właściciela D7: szkic B „Kropki”)
 Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; zablokowanie nie), wysyła ekranowi `WYLACZANIE`
