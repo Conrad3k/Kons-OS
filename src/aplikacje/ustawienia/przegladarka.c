@@ -217,16 +217,14 @@ static void linia_grafiki(char *t, size_t n)
 static void linia_filmow(char *t, size_t n)
 {
     char k[48];
-    if (filmy.typ == 0 || filmy.b == K1_FILMY_KARTA_SPRAWDZA) {
+    if (filmy.typ == 0 || filmy.b == K1_FILMY_KARTA_SPRAWDZA)
         snprintf(t, n, "Sprawdzam, czy karta graficzna rozpakowuje filmy…");
-    } else if (filmy.b == K1_FILMY_KARTA_UMIE && k1_filmy_nazwy(filmy.a, k, sizeof k) > 0) {
-        if (grafika.typ != 0 && grafika.a == K1_POSR_KARTA_UMIE)
-            snprintf(t, n, "Karta graficzna tego komputera rozpakowuje filmy: %s.", k);
-        else
-            snprintf(t, n, "Karta rozpakowuje filmy (%s), ale bez szybkiej grafiki filmy rozpakowuje procesor.", k);
-    } else {
-        snprintf(t, n, "Karta graficzna tego komputera nie rozpakowuje filmów. Rozpakowuje je procesor.");
-    }
+    else if (filmy.b != K1_FILMY_KARTA_UMIE || k1_filmy_nazwy(filmy.a, k, sizeof k) == 0)
+        snprintf(t, n, "Ten komputer nie rozpakowuje filmów kartą graficzną.");
+    else if (grafika.typ != 0 && grafika.a == K1_POSR_KARTA_UMIE)
+        snprintf(t, n, "Karta graficzna rozpakowuje filmy: %s.", k);
+    else /* X230: the card decodes, but Firefox uses it only when it draws with the card (ADR 0063 pkt 5) */
+        snprintf(t, n, "Bez szybkiej grafiki filmy rozpakowuje procesor.");
 }
 
 /* "Wyczyść dane…": the question in a window of przybornik (the one of dragging files), in the middle of the list. */

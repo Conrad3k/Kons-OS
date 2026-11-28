@@ -115,9 +115,8 @@ siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
 jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2; od 0.10.9 krok 2 do kroku 5 pod listą sesji cicha linia
 o filmach kartą (`FILMY_KARTA` — od kroku 6 tylko w logu: filmy kartą nie w 0.10.9, `filmy.md`; od 0.13.2 krok 4 znowu, pod linią
-o szybkiej grafice: „Karta graficzna tego komputera rozpakowuje filmy: H.264.” / „Karta rozpakowuje filmy (H.264), ale bez
-szybkiej grafiki filmy rozpakowuje procesor.” / „Karta graficzna tego komputera nie rozpakowuje filmów. Rozpakowuje je
-procesor.” / „Sprawdzam…”); od kroku 5
+o szybkiej grafice: „Karta graficzna rozpakowuje filmy: H.264.” / na komputerze bez szybkiej grafiki „Bez szybkiej grafiki
+filmy rozpakowuje procesor.” / „Ten komputer nie rozpakowuje filmów kartą graficzną.” / „Sprawdzam…”); od kroku 5
 pod listą linia — `POSR_KARTA`: „Karta graficzna tego komputera obsługuje szybką grafikę.” / „Ten komputer nie obsługuje
 szybkiej grafiki: karta nie oddziela pracy stref.” / „Ten komputer nie obsługuje szybkiej grafiki.” / „Pośrednik grafiki
 nie uruchomił się (kod N)…”, `posrednik.md`;
