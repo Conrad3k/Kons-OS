@@ -125,10 +125,11 @@ przełącznikiem szybkiej grafiki — Bank i Prywatna domyślnie bez (Twoje D5 z
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Próba ze źródeł i na stanowisku; ADR                  L1–L6            0.13.0      D3, D4, T1–T3    M        0063
         PR #262 (ustalenia ze źródeł, ADR 0063; D3: A, D4: B ze źródeł)
-[ ]  2  FFmpeg i libva w strefie: H.264 gra (procesorem)      L6, L7, L15      1           T4               M        —
-        [w toku: Claude, gałąź claude/dazzling-gates-9d355u]
+[x]  2  FFmpeg i libva w strefie: H.264 gra (procesorem)      L6, L7, L15      1           T4               M        —
+        PR #263 (FFmpeg 7.1.5 z Debiana 13, libva2 i libva-drm2; H.264 gra na stanowisku)
 [ ]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
         na prośbę, złośliwy gość
+        [w toku: Claude, gałąź claude/dazzling-gates-9d355u]
 [ ]  4  Sterownik VA strefy, prefy, prośba o H.264,           L1–L3, L5,       2, 3        D1, D2, T2, T3,  L        —
         Ustawienia; test na IdeaPadzie                         L10, L11, L14               T6, T8
 [ ]  5  Porządki; wydanie 0.13.2                               L13, L16         1–4         —                S        —
@@ -419,3 +420,23 @@ Krok 2 (2026-11-27):
     MediaSource.isTypeSupported(avc1) true, ≥ 60 klatek; kontrola bez libavcodec.so.61 w obrazie: canPlayType „”,
     MSE false, 0 klatek. Obraz strefy 138 184 KiB z drzewem dm-verity (zapas miejsca A/B bez zmian w praktyce).
   - Do kroku 5: „robot dla FFmpeg strefy” do „Później” w DO_ZROBIENIA (R114).
+Krok 3 (2026-11-28):
+  - WAŻNE: wszystkie 255 numerów typów k1_komunikat (uint8) są zajęte — nowych typów nie ma. Prośba o dekoder:
+    STREFA_POLACZ c = K1_STREFA_FILMY (obiekt 0) → STREFA_GNIAZDO a = K1_STREFA_FILMY + kanał / STREFA_ODMOWA obiekt 0;
+    klatka do bufora strefy: FILMY_OKNO z numerem filmu i klatki + dma-buf (typ zawsze z deskryptorem); co umie karta —
+    VMM czyta FILMY_UMIE przy starcie i zamyka kanał (bez STREFA_FILMY_KARTA). ADR 0063 pkt 4 — uzupełnienie. Szerszy
+    typ komunikatu (np. 16 bitów) — do „Później” w kroku 5 (DO_ZROBIENIA), przed następnym tematem z nowymi komunikatami.
+  - VMM: gpu_filmy.c (czyste: zbiór możliwości, kontekst filmów obok DRM, jedna pamięć wspólna, polecenie = jedna
+    struct k1_kf_polecenie, cel klatki tylko bufor karty strefy), filmy_lacze.c (kanał, okno, numery filmów strefy,
+    odpowiedź w pamięci wspólnej przed płotem; prośba z wątku mostu, odpowiedź nadzorcy z głównego wątku — skrzynka
+    z mutexem; przy starcie VMM sam odbiera fd 7 — pol_od_nadzorcy). gpu_lacze.c 551 wierszy (pod limitem; podział nie
+    był potrzebny — doszły tylko wywołania).
+  - Nadzorca: filmy_strefa_start (przy starcie strefy: wolno, gdy jest pośrednik i karta umie albo tryby 23/24),
+    filmy_dla_vmm (jeden naraz, po awarii odmowa do końca sesji); VMM z pośrednikiem + K1_KF_PAMIEC_VMM.
+  - Dekoder: FILMY_OKNO z filmem — lseek, mmap tylko do zapisu na czas klatki, DMA_BUF_IOCTL_SYNC (KLATKA_FILMY:
+    wa_ekranu); układ: jasność od 0, kolory od pełnej strony (k1_filmy_bufor_uv).
+  - Strefa próbna: tryby 23 (uczciwy: zbiór, otwarcie, klatka, pobranie do bufora z kontekstu DRM — szara w pamięci
+    gościa, nowy dekoder po zamknięciu ostatniego kontekstu) i 24 (złośliwy: krótkie i nieznane polecenia, zły kodek,
+    prośba poza pamięcią, odniesienie do pustej klatki, cel spoza kart, piąty film strefy, zalew 300) — gosc/filmy.c.
+  - Nie pokryte testem: zabicie dekodera w trakcie filmu (strefa próbna nie umie go zabić) — ścieżka
+    K1_KF_BLAD_DEKODER sprawdzona tylko czytaniem kodu; do sprawdzenia przy sterowniku VA (krok 4) albo w 0.15.
