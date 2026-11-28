@@ -36,6 +36,7 @@ static struct sluchacz {
 static struct k1_dzw_mik mik = { K1_DZW_ZRODLO_BRAK, K1_DZW_MIK_START, 0, 0, 0 };
 static int ton;           /* the test program's tone in the microphone */
 static uint32_t ton_faza;
+static int byl_okres;     /* a period came since the card started recording (the log says the first: never a level) */
 static int wstrzymal = -1; /* the slot of gui that holds it (its security screen on top), -1: nobody */
 
 int32_t mikrofon_pole(void)
@@ -74,8 +75,10 @@ static void koniec(int i, int powiedz)
         klient_wyslij(i, k1_komunikat_nowy(K1_KOM_DZWIEK_NAGRANO, 0, 0, 1, 0, 0, 0));
     k1_log(TAG, "mikrofon: %s nie słucha", k1_dzw_klient_nazwa(s->rodzaj));
     memset(s, 0, sizeof *s);
-    if (!slucha_ktos())
+    if (!slucha_ktos()) {
         nagr_zamknij();
+        byl_okres = 0;
+    }
     zglos();
 }
 
@@ -215,6 +218,10 @@ void mikrofon_okres(void)
     }
     if (n == 0)
         return;
+    if (!byl_okres)
+        k1_log(TAG, "mikrofon: pierwszy okres z karty (ton testowy: %s, wyciszony: %s, wstrzymany: %s)", ton ? "tak" : "nie",
+               mik.wyciszony ? "tak" : "nie", mik.wstrzymany ? "tak" : "nie");
+    byl_okres = 1;
     k1_mik_z_karty(s, z_karty, K1_DZW_OKRES, nagr_bajty(), nagr_kanaly());
     if (ton)
         k1_mik_ton(s, K1_DZW_OKRES, &ton_faza);

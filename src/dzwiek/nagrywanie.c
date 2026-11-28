@@ -17,7 +17,7 @@
 #include "k1_log.h"
 
 static int pcm = -1, otwarte, bajty = 2, kanaly = 2;
-static unsigned long przepelnienia;
+static unsigned long przepelnienia, puste; /* puste: poll said a period waits, the read had none */
 
 /* What K1 asks the card for, the best first (rule 5: a row each): the format and its bytes, the channels. */
 static const struct {
@@ -121,9 +121,11 @@ int nagr_czytaj(uint8_t *ramki)
     if (!otwarte)
         return -1;
     if (ioctl(pcm, (int)SNDRV_PCM_IOCTL_READI_FRAMES, &x) == 0)
-        return x.result == (snd_pcm_sframes_t)K1_DZW_OKRES ? (int)K1_DZW_OKRES : 0;
-    if (errno == EAGAIN)
+        return x.result == (snd_pcm_sframes_t)K1_DZW_OKRES ? (int)K1_DZW_OKRES : (puste++, 0);
+    if (errno == EAGAIN) {
+        puste++;
         return 0;
+    }
     if (errno == EPIPE) { /* an overrun: prepare, and the next read starts it again */
         przepelnienia++;
         return ioctl(pcm, (int)SNDRV_PCM_IOCTL_PREPARE) == 0 ? 0 : -1;
@@ -161,6 +163,7 @@ int nagr_otworz(void)
         return -1;
     }
     otwarte = 1;
+    przepelnienia = puste = 0;
     if (nagr_czytaj(pierwszy) < 0) {
         nagr_zamknij();
         return -1;
@@ -176,5 +179,5 @@ void nagr_zamknij(void)
     ioctl(pcm, (int)SNDRV_PCM_IOCTL_DROP);
     ioctl(pcm, (int)SNDRV_PCM_IOCTL_HW_FREE);
     otwarte = 0;
-    k1_log(TAG, "mikrofon nie nagrywa (przepełnienia: %lu)", przepelnienia);
+    k1_log(TAG, "mikrofon nie nagrywa (przepełnienia: %lu, odczyty bez okresu: %lu)", przepelnienia, puste);
 }
