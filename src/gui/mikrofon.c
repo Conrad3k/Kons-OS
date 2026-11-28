@@ -73,6 +73,16 @@ void mikrofon_wycisz(void)
     gora.brudna = okienko_paska.brudna = 1;
 }
 
+/* Step 2: the sign on a session's bar was clicked (ekran's STREFA_WYCISZ b = 1): mute / unmute that session's
+ * microphone (the service gives it silence). */
+void mikrofon_sesja_wycisz(int nr)
+{
+    struct k1_dzw_polaczenie *dz = dzwiek_pol();
+    int wyc = !(dz->sesje[nr].mik & K1_DZW_SES_MIK_WYCISZONY);
+    k1_dzwk_mik_sesja(dz, nr, wyc);
+    k1_log(TAG, "mikrofon: sesja %d %s (znak na pasku okna)", nr, wyc ? "wyciszona" : "słychać");
+}
+
 void mikrofon_zabezpieczenia(int otwarty)
 {
     k1_dzwk_mik_wstrzymaj(dzwiek_pol(), otwarty);

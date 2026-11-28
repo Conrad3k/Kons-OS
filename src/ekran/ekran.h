@@ -213,7 +213,8 @@ int wylaczanie_czas_ms(void);               /* ms until the dots move again (dam
 void strefy_sesje(const struct k1_komunikat *k);              /* STREFY_STAN, STREFA_NAZWA on the control channel */
 int strefa_pamieta(int nr);                                   /* zone nr remembers (as nadzorca said last) */
 enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ, STREFA_MAKSYMALIZUJ,
-       STREFA_GLOSNIK }; /* where on the frame (0.12.0 step 3: the speaker of a session that plays) */
+       STREFA_GLOSNIK, STREFA_MIKROFON }; /* where on the frame (0.12.0 step 3: the speaker of a session that plays; 0.13.5
+                                          * step 2: the sign of its microphone) */
 #define STREFA_BRZEG 16 /* | K_* edges: a grip of the frame (0.10.5 step 4, rozmiar.c) */
 int okno_strefy(const struct pow *p);
 struct prost strefa_obszar(const struct pow *p);              /* the window with K1's frame around it */
@@ -260,9 +261,9 @@ void strefa_dzwiek(const struct k1_komunikat *m); /* STREFA_DZWIEK from the shel
 int strefa_gra(const struct pow *p);              /* the session of zone window p plays */
 int32_t strefa_glosnik_rysuj(struct k1_obraz *o, const struct pow *p, const struct prost *r, int32_t tx, int32_t ty,
                              int32_t kon, const struct k1_motyw *m, int fokus); /* into the bar; the text's next x */
-int strefa_glosnik_pod(int i, int32_t x, int32_t y); /* 1: on the speaker of window i */
-void strefa_glosnik_klik(int i);                   /* STREFA_WYCISZ to the shell */
-int strefa_glosnik_opis(struct k1_opis_el *el, int n, int i); /* its record for the screen's description (0, 1) */
+int strefa_glosnik_pod(int i, int32_t x, int32_t y); /* STREFA_GLOSNIK / STREFA_MIKROFON of window i under (x, y), or 0 */
+void strefa_glosnik_klik(int i, int co);           /* STREFA_WYCISZ to the shell (co: which of the two) */
+int strefa_glosnik_opis(struct k1_opis_el *el, int n, int i); /* their records for the screen's description (0..2) */
 
 /* glosnosc.c — the pill of the volume keys (0.12.0 step 2, D4: A) */
 void glosnosc_pokaz(const struct k1_komunikat *m); /* GLOSNOSC_POKAZ from the shell */

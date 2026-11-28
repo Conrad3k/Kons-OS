@@ -68,8 +68,7 @@ odrzuconych, te zmienia człowiek): nigdy równolegle z otwartym PR-em robota ze
 ---------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Mikrofon w K1: nagrywanie, Ustawienia → Dźwięk, znak   L1–L5            0.13.2      D2, D3, T1–T4    M        0065
-[ ]  2  Mikrofon w przeglądarce                               L6–L8            1           D1, T5, T6       M        —
-        [w toku: Claude, gałąź claude/dreamy-cray-0fpp2n]
+[x]  2  Mikrofon w przeglądarce                               L6–L8            1           D1, T5, T6       M        0065
 [ ]  3  Gładziki Apple, ładowanie baterii; test na laptopach;  L9–L12           2           T7, T8           M        —
         wydanie
 
@@ -249,3 +248,20 @@ Krok 1 (2026-11-28, Claude, gałąź claude/dreamy-cray-0fpp2n; ADR 0065):
     strefa bez przełącznika, WSTRZYMAJ i TESTOWY nie od swoich); test-m1 12/12 (w systemie 299/299); test-dzwiek.sh 86/86
     (10 nowych: węzeł nagrywania, „Powiedz coś” — pasek ponad połowę, znak i okienko, wyciszenie, Ctrl+Alt+Del — cisza,
     „Zatrzymaj” — karta nie nagrywa); test-wzorce — zmiana tylko Ustawienia → Dźwięk, przyjęta przez właściciela.
+Krok 2 (2026-11-28, Claude, gałąź claude/dreamy-cray-0fpp2n; ADR 0065):
+  - Przełącznik „Mikrofon” przy każdej sesji (Ustawienia → Przeglądarka, pod „Szybka grafika i filmy”; domyślnie
+    wyłączony, działa od następnego otwarcia sesji) — bit SESJA_MIKROFON zapamiętanych przełączników. Tylko z nim
+    nadzorca daje VMM-owi kartę z wejściem, a usłudze dźwięku — prawo strefy do próbek (DZWIEK_KLIENT d = 1).
+  - T5: karta virtio-snd VMM-a ma drugi strumień (nagrywanie) tylko z przełącznikiem; bez niego jeden strumień — gość nie
+    wie o mikrofonie (test NEGATYWNY: tryb 26 strefy próbnej). VMM słucha w swój pierścień F32 i wypełnia bufory gościa
+    w jego formacie; bez usługi albo mikrofonu — cisza w tempie własnego zegara (src/strefa/dzwiek_mikrofon.c).
+  - Znak mikrofonu na pasku okna sesji (rysuje ekran ze stanu od pulpitu, DZWIEK_SESJA e); kliknięcie wycisza mikrofon tej
+    jednej sesji (DZWIEK_MIKROFON SESJA) — inne słuchają dalej.
+  - L7 (NIEPEWNE): Firefox w strefie ma WebRTC wyłączone (media.peerconnection) — strona może nagrywać (np. dyktowanie,
+    test mikrofonu), ale rozmowy Meet / Teams / Discord dopiero z UDP w Raptor Bridge (plan 0.14.0, krok 4). Zgoda strony
+    — okienko Firefoksa w strefie; zgoda K1 jest wyżej (przełącznik i znak). Prawdziwy mikrofon — test właściciela.
+  - Testy: test_virtio_dzwiek, fuzz_virtio_dzwiek (z wejściem i bez), test_mikrofon, test_sesje; test-m1 12/12;
+    test-dzwiek.sh 92/92 (strefa z przełącznikiem — 29 s tonu w gościu; bez — brak wejścia); test-wzorce — zmiana tylko
+    Ustawienia → Przeglądarka (przełącznik), przyjęta przez właściciela.
+  - CI kroku 1 (KVM): „Powiedz coś” nie dało poziomu, choć w kontenerze (TCG) działa — usługa loguje teraz pierwszy okres
+    z karty (ton testowy, wyciszenie — bez poziomu) i odczyty bez okresu; przyczyna — w PR-ze kroku 1.

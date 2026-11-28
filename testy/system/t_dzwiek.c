@@ -341,8 +341,28 @@ static void strefy(const struct k1_opis_el *el, int n, int pulpit_zabity)
         for (int i = 0; i < 100 && find_process("strefa") > 0; i++)
             msleep(100);
         etap = 2;
+        dzialala = 0;
         k1_log(TAG, "dźwięk: strefa złośliwa dla karty — %s",
                zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK_ZLY, 0, 0, 0),
+                       NULL, 10) == 0 ? "uruchomiona" : "NIE uruchomiona");
+        /* 0.13.5 step 2: the hostile machine is short — awaited here (it may come and go between two descriptions), then
+         * the test zone that hears the microphone */
+        for (int i = 0; i < 600 && find_process("strefa") <= 0; i++)
+            msleep(100);
+        for (int i = 0; i < 2400 && find_process("strefa") > 0; i++)
+            msleep(100);
+        etap = 3;
+        k1_log(TAG, "mikrofon: strefa próbna słucha — %s",
+               zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_MIKROFON, 0, 0, 0), NULL,
+                       10) == 0 ? "uruchomiona" : "NIE uruchomiona");
+    } else if (etap == 3 && (okno_strefy || (!dzialala && find_process("strefa") > 0))) {
+        dzialala = 1;
+    } else if (etap == 3 && dzialala) { /* its window gone: NEGATIVE — the test zone without the switch "Mikrofon" */
+        for (int i = 0; i < 100 && find_process("strefa") > 0; i++)
+            msleep(100);
+        etap = 4;
+        k1_log(TAG, "mikrofon: strefa próbna bez przełącznika — %s",
+               zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_MIKROFON_BEZ, 0, 0, 0),
                        NULL, 10) == 0 ? "uruchomiona" : "NIE uruchomiona");
     }
     ustawienia |= jest;

@@ -84,7 +84,10 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
                                u->argument[0] != '\0' && u->argument2[0] != '\0' ? u->argument2 : NULL,
                                u->argument[0] != '\0' && u->argument2[0] != '\0' && u->argument3[0] != '\0'
                                    ? u->argument3 : NULL,
-                               u->argument3[0] != '\0' && u->argument4[0] != '\0' ? u->argument4 : NULL, NULL };
+                               /* 0.13.5: a fifth argument needs the fourth there, even "" (a zone without a session) */
+                               u->argument3[0] != '\0' && (u->argument4[0] != '\0' || u->argument5[0] != '\0') ? u->argument4
+                                                                                                         : NULL,
+                               u->argument3[0] != '\0' && u->argument5[0] != '\0' ? u->argument5 : NULL, NULL };
     char *const argv_proba[] = { (char *)u->program, (char *)"--proba", (char *)p->nazwa, NULL };
 
     if (k1_klatka_grupa(p) != 0) {

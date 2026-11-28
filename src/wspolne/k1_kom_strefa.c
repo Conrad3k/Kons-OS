@@ -85,9 +85,10 @@ static int sesje(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
         return kier == K1_KIER_DO_NADZORCY && strefa(k->obiekt) && w(k->a, K1_JEDNORAZOWA, K1_STALA) && zera(k, 1);
     case K1_KOM_STREFY_GRAFIKA: /* 0.10.9 step 6 */
         return (kier == K1_KIER_OD_NADZORCY || kier == K1_KIER_STEROWANIE) && k->obiekt == 0 &&
-               (k->a & ~STREFY_BITY) == 0 && (k->b & ~STREFY_BITY) == 0 && zera(k, 2);
-    case K1_KOM_STREFA_GRAFIKA:
-        return kier == K1_KIER_DO_NADZORCY && strefa(k->obiekt) && w(k->a, 0, 1) && zera(k, 1);
+               (k->a & ~STREFY_BITY) == 0 && (k->b & ~STREFY_BITY) == 0 && (k->c & ~STREFY_BITY) == 0 && zera(k, 3);
+    case K1_KOM_STREFA_GRAFIKA: /* b: which switch (0.13.5 step 2: the microphone) */
+        return kier == K1_KIER_DO_NADZORCY && strefa(k->obiekt) && w(k->a, 0, 1) &&
+               w(k->b, K1_PRZEL_GRAFIKA, K1_PRZEL_MIKROFON) && zera(k, 2);
     case K1_KOM_STREFA_WYCZYSC:
         return kier == K1_KIER_DO_NADZORCY && strefa(k->obiekt) && zera(k, 0);
     case K1_KOM_STREFA_WYCZYSZCZONO:

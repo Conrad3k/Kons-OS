@@ -92,7 +92,7 @@ static void wyjscie_zglos(struct klient *jeden, int wyjscie, struct k1_komunikat
 static struct k1_komunikat sesja(int nr)
 {
     const struct sesja *z = &sesje[nr];
-    return k1_komunikat_nowy(K1_KOM_DZWIEK_SESJA, 0, nr, z->gra, z->glosnosc, z->wyciszona, 0);
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_SESJA, 0, nr, z->gra, z->glosnosc, z->wyciszona, mikrofon_sesja(nr));
 }
 
 /* Which session plays (K1_DZW_GRA_S after its last frames), its volume, its mute — to the steering clients when it
@@ -104,7 +104,7 @@ static void sesje_zglos(struct klient *nowy)
         struct sesja *z = &sesje[nr];
         int stan;
         z->gra = z->gral > 0 && t - z->gral < K1_DZW_GRA_S;
-        stan = z->gra | z->wyciszona << 1 | z->glosnosc << 2;
+        stan = z->gra | z->wyciszona << 1 | z->glosnosc << 2 | mikrofon_sesja(nr) << 10; /* 0.13.5 step 2: its microphone */
         if (nowy != NULL) {
             if (stan != (K1_DZW_SESJA_START << 2))
                 wyslij(nowy, sesja(nr));
@@ -181,7 +181,7 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
     switch (m->typ) {
     case K1_KOM_DZWIEK_OTWORZ:
         if (m->b == K1_DZW_KIER_SLUCHA) /* 0.13.5: the microphone into its ring */
-            return mikrofon_otworz((int)(k - klienci), k->rodzaj, k->mik_wolno, fd, m->a);
+            return mikrofon_otworz((int)(k - klienci), k->rodzaj, k->strefa, k->mik_wolno, fd, m->a);
         if (k->pierscien != NULL)
             return -1; /* one stream per client */
         k->zerwany = 0;

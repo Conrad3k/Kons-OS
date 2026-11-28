@@ -79,6 +79,7 @@ struct maszyna {
     int irqfd[URZ_LICZBA];
     int budzik;                          /* eventfd: wakes the main thread (the end, a picture, a message) */
     uint64_t obraz_sektory;              /* the zone image (FD_OBRAZ) in 512-byte sectors */
+    int mikrofon;                        /* 0.13.5 step 2 (argv[5]): the guest may hear the microphone — its card has an input */
     int tryb;                            /* the guest's test mode (argv[2], gosc/gosc.h): 0 none; 1..4 a hostile guest
                                           * drives slot LOSOWOSC itself (3, 4: virtio-blk there); 5: an honest one that
                                           * counts its start on the disk (0.10.0 step 5) */
@@ -170,7 +171,7 @@ void wejscie_klawisz(int kod, int wartosc);          /* wejscie.c: a Linux key c
 void wejscie_wskaznik(int32_t x, int32_t y, uint32_t w, uint32_t h, int rodzaj, int przycisk); /* K1_WSK_* in a w×h window */
 /* the wheel or two fingers at x, y (K1_KOM_PRZEWIN: c, d in 1/120 of a notch, d > 0 further down; e = source) */
 void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, int32_t dy, int zrodlo);
-void wejscie_podsumowanie(void);                     /* at the end: whether input reached the guest, in the log */
+void wejscie_podsumowanie(void);                      /* at the end: whether input reached the guest, in the log */
 void wejscie_pusc(void);                             /* focus lost: every held key and button up */
 void vsock_zamknij(void);                            /* vsock.c: "close" to the guest */
 void vsock_linia(const char *l);                     /* vsock.c: a line to the guest's control channel ("…\n") */
@@ -198,5 +199,18 @@ void dzwiek_odbierz(void);   /* what the service said */
 int dzwiek_czas_ms(void);    /* without the service the device keeps its own clock: how soon to come back (-1: no need) */
 void dzwiek_zegar(void);     /* every loop: the transfers the own clock allows */
 void dzwiek_podsumowanie(void);
+void dzwiek_wyslij(struct k1_komunikat m, int fd); /* to the sound service (if there is a channel) */
+/* dzwiek_mikrofon.c (0.13.5 step 2, ADR 0065 T5): the card's input — the microphone — only with mz.mikrofon (mz.zamek held) */
+struct dzw_strumien;
+struct mmio_urz;
+void mikrofon_start(int kanal, int karta); /* the guest's START: our ring to the service, else our own clock's silence */
+void mikrofon_stop(int powiedz);           /* STOP, RELEASE, a reset, a new service (powiedz: ZAMKNIJ to it) */
+void mikrofon_nagrano(const struct k1_komunikat *m); /* DZWIEK_NAGRANO */
+int mikrofon_kolejka(struct mmio_urz *u, const struct dzw_strumien *s, const char **powod); /* 0, or -1: the guest broke
+                                                                                          * the rules */
+void mikrofon_zwolnij(struct mmio_urz *u, const struct dzw_strumien *s, int przy_resecie);
+int mikrofon_czas_ms(const struct dzw_strumien *s);
+void mikrofon_zegar(struct mmio_urz *u, const struct dzw_strumien *s, const char **powod);
+void mikrofon_podsumowanie(void);
 
 #endif

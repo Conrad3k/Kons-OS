@@ -132,7 +132,10 @@ jest otwarta; wynik `STREFA_WYCZYSZCZONO` jako napis pod listą), po prawej prze
 D1 „A”: „Szybka grafika i filmy” — obejmuje też filmy kartą)
 (`STREFY_GRAFIKA` od nadzorcy, `STREFA_GRAFIKA` do niego; od następnego otwarcia sesji; domyślnie włączony tylko w Ogólnej;
 wyciszony, gdy karta komputera nie obsługuje szybkiej grafiki — dlaczego, mówi linia pod listą; w opisie ekranu przycisk
-„Szybka grafika N”, N = numer strefy; w logu przy każdej karcie „grafika 0|1”). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
+„Szybka grafika N”, N = numer strefy; w logu przy każdej karcie „grafika 0|1”). Od 0.13.5 krok 2 (ADR 0065, D1: A) pod
+nim przełącznik **„Mikrofon”** — strony tej sesji mogą słyszeć mikrofon (Firefox i tak pyta); domyślnie wyłączony w każdej
+sesji, od następnego otwarcia (`STREFA_GRAFIKA` b = `K1_PRZEL_MIKROFON` do nadzorcy, `STREFY_GRAFIKA` c od niego; opis
+ekranu „Mikrofon N”, w logu „mikrofon 0|1”); karta sesji ma przez niego 108 px (było 88). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
 każda sesja zapomni po zamknięciu.” (przełącznik wyciszony na „Zapomina”, bez „Wyczyść dane…”), bez wirtualizacji
 „Wirtualizacja wyłączona — sesje nie ruszą. Włącz ją w BIOS-ie.”. Jeden układ (`uklad()`) dla rysowania, kliknięć i logu.
 Log „przeglądarka: sesje 3 (dane na dysku 1, wirtualizacja 1): 2 pamięta, karta x,y wxh, grafika 1; …”

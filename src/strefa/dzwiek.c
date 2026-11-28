@@ -1,5 +1,5 @@
 /* K1 strefa — the guest's sound card (0.12.0 step 3, ADR 0054 T5): virtio-snd with one output stream (dzwiek.h), queues:
- * control 0, events 1 (never used: no jacks), transfers 2, input 3 (none: D1 = A). The guest's Firefox plays through ALSA
+ * control 0, events 1 (never used: no jacks), transfers 2, input 3 (0.13.5 step 2: only with the microphone). The guest's Firefox plays through ALSA
  * to its kernel's virtio-snd driver; its transfers come here and their samples go — copied, in floats without loss
  * (0.12.3, ADR 0055: the guest's S16, S32 or FLOAT; dzw_na_f32) — into this VMM's F32 ring at K1's sound service (a
  * client STREFA: the channel from nadzorca on fd 7, DZWIEK_KANAL). A transfer goes back to the guest only when its last frame was PLAYED (the service's DZWIEK_ODTWORZONO
@@ -7,6 +7,7 @@
  * make its whole buffer "played" at once (an underrun every time — the first version did that). At most ZAPAS frames are
  * in the ring and not played yet. Without the service (no channel, no card: the stream refused) the device keeps its own
  * clock and drops the samples — the browser's films run on time, silent.
+ * 0.13.5 step 2 (ADR 0065): in a session with the switch "Mikrofon" a second stream — the input (dzwiek_mikrofon.c).
  * Trust boundary: the guest is hostile. Requests copied out of its memory and checked field by field
  * (dzwiek_prosby.c); a transfer with no room for its status, or a request with no room for its answer, ends the machine;
  * anything else wrong is answered BAD_MSG. In the log: numbers only, never a sample. */
@@ -29,10 +30,11 @@
 
 #define Q_STEROWANIE 0
 #define Q_WYJSCIE 2
+#define Q_WEJSCIE 3 /* 0.13.5 step 2: the input (dzwiek_mikrofon.c) */
 #define ZAPAS 8192u /* frames copied and not played yet at most (~170 ms) */
 
 static struct {
-    struct dzw_strumien s;
+    struct dzw_strumien s[DZW_STRUMIENIE]; /* 0 the output; 1 the input — 0.13.5 step 2, only with mz.mikrofon */
     int kanal;                  /* to the sound service, -1 */
     float *pierscien;           /* our ring of F32 (a sealed memfd the service maps) */
     int pfd;
@@ -58,7 +60,7 @@ _Static_assert(K1_DZW_KANALY * sizeof(float) == 8, "ramka F32");
 
 static void konfig_czytaj(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
 {
-    struct virtio_snd_config c = { 0, 1, 0, 0 }; /* no jacks, one stream, no channel maps, no controls */
+    struct virtio_snd_config c = { 0, mz.mikrofon ? 2 : 1, 0, 0 }; /* no jacks, the streams, no channel maps, no controls */
     (void)u;
     memset(dst, 0, n);
     if (od < sizeof c)
@@ -80,6 +82,13 @@ static void wyslij(struct k1_komunikat m, int fd)
 {
     if (d.kanal >= 0 && k1_kanal_wyslij(d.kanal, &m, sizeof m, fd) != 0)
         wlasny_zegar(); /* the service is gone or full: our own clock until it says more */
+}
+
+/* 0.13.5 step 2: the input's messages to the service (dzwiek_mikrofon.c) */
+void dzwiek_wyslij(struct k1_komunikat m, int fd)
+{
+    if (d.kanal >= 0)
+        k1_kanal_wyslij(d.kanal, &m, sizeof m, fd);
 }
 
 /* START: our ring to the service (once per channel, while it has a card); else our own clock. */
@@ -110,7 +119,7 @@ static void otworz(void)
 /* A transfer back to the guest with its status (8 bytes into its writable part, checked when it was taken). */
 static void oddaj(struct mmio_urz *u, const struct vq_lancuch *l, uint32_t status)
 {
-    struct virtio_snd_pcm_status st = { status, czeka() * d.s.ramka };
+    struct virtio_snd_pcm_status st = { status, czeka() * d.s[DZW_WYJSCIE].ramka };
     vq_zapisz(l, 0, &st, sizeof st);
     vq_oddaj(&u->q[Q_WYJSCIE], u->pamiec, l->glowa, sizeof st);
 }
@@ -140,8 +149,8 @@ static void przepisz(uint32_t ile)
                 n = K1_DZW_PIERSCIEN - poz;
             if (n > K1_DZW_OKRES)
                 n = K1_DZW_OKRES;
-            vq_czytaj(&d.l, d.od + (uint64_t)zrobione * d.s.ramka, kawalek, (uint64_t)n * d.s.ramka);
-            dzw_na_f32(d.pierscien + (size_t)poz * K1_DZW_KANALY, kawalek, n, d.s.format);
+            vq_czytaj(&d.l, d.od + (uint64_t)zrobione * d.s[DZW_WYJSCIE].ramka, kawalek, (uint64_t)n * d.s[DZW_WYJSCIE].ramka);
+            dzw_na_f32(d.pierscien + (size_t)poz * K1_DZW_KANALY, kawalek, n, d.s[DZW_WYJSCIE].format);
             d.w_pierscieniu += n;
             zrobione += n;
         }
@@ -150,7 +159,7 @@ static void przepisz(uint32_t ile)
         d.bez_uslugi += ile;
     }
     d.wpisane += ile;
-    d.od += (uint64_t)ile * d.s.ramka;
+    d.od += (uint64_t)ile * d.s[DZW_WYJSCIE].ramka;
     d.ramki += ile;
 }
 
@@ -166,8 +175,8 @@ static int wez(struct mmio_urz *u, const char **powod)
         return -1;
     }
     if (d.l.dl_odczyt < sizeof nagl ||
-        dzw_transfer(nagl, (uint32_t)vq_czytaj(&d.l, 0, nagl, sizeof nagl), d.l.dl_odczyt - sizeof nagl, d.s.ramka) !=
-            VIRTIO_SND_S_OK) {
+        dzw_transfer(nagl, (uint32_t)vq_czytaj(&d.l, 0, nagl, sizeof nagl), d.l.dl_odczyt - sizeof nagl,
+                     d.s[DZW_WYJSCIE].ramka, DZW_WYJSCIE) != VIRTIO_SND_S_OK) {
         d.odrzucone++;
         oddaj(u, &d.l, VIRTIO_SND_S_BAD_MSG);
         return 2;
@@ -181,7 +190,7 @@ static int wez(struct mmio_urz *u, const char **powod)
 static int wyjscie(struct mmio_urz *u, const char **powod)
 {
     int bylo = zagrane(u);
-    while (d.s.stan == DZW_GRA && d.cz_n < VQ_MAKS) {
+    while (d.s[DZW_WYJSCIE].stan == DZW_GRA && d.cz_n < VQ_MAKS) {
         uint32_t ile;
         if (!d.trzymany) {
             int w = wez(u, powod);
@@ -193,7 +202,7 @@ static int wyjscie(struct mmio_urz *u, const char **powod)
             if (w == 2)
                 continue;
         }
-        ile = (uint32_t)((d.l.dl_odczyt - d.od) / d.s.ramka);
+        ile = (uint32_t)((d.l.dl_odczyt - d.od) / d.s[DZW_WYJSCIE].ramka);
         if (ile > ZAPAS - czeka())
             ile = ZAPAS - czeka();
         if (ile > 0)
@@ -236,9 +245,10 @@ static int sterowanie(struct mmio_urz *u, const char **powod)
     while ((w = vq_wez(&u->q[Q_STEROWANIE], u->pamiec, &l, powod)) > 0) {
         uint8_t req[DZW_PROSBA_MAKS + 1], odp[DZW_ODPOWIEDZ_MAKS];
         uint32_t n = (uint32_t)(l.dl_odczyt > DZW_PROSBA_MAKS ? DZW_PROSBA_MAKS + 1 : l.dl_odczyt), m;
-        int zrob;
+        int zrob, ktory;
         vq_czytaj(&l, 0, req, n < DZW_PROSBA_MAKS ? n : DZW_PROSBA_MAKS);
-        m = dzw_prosba(&d.s, req, n, odp, (uint32_t)(l.dl_zapis < sizeof odp ? l.dl_zapis : sizeof odp), &zrob);
+        m = dzw_prosba(d.s, mz.mikrofon ? 2 : 1, req, n, odp, (uint32_t)(l.dl_zapis < sizeof odp ? l.dl_zapis : sizeof odp),
+                       &zrob, &ktory);
         if (m == 0) {
             *powod = "dźwięk: prośba bez miejsca na odpowiedź";
             return -1;
@@ -246,9 +256,20 @@ static int sterowanie(struct mmio_urz *u, const char **powod)
         vq_zapisz(&l, 0, odp, m);
         vq_oddaj(&u->q[Q_STEROWANIE], u->pamiec, l.glowa, m);
         bylo = 1;
-        if (d.s.stan == DZW_USTAWIONY && d.s.ramka != 0 && !(d.formaty & (1u << (d.s.format & 31)))) {
-            d.formaty |= 1u << (d.s.format & 31); /* only formats of DZW_FORMATY get here: three at most */
-            k1_log(TAG, "dźwięk: gość gra w formacie %s", dzw_format_nazwa(d.s.format));
+        if (ktory == DZW_WEJSCIE) { /* 0.13.5 step 2: the microphone (dzwiek_mikrofon.c) */
+            if (zrob == DZW_ZROB_START)
+                mikrofon_start(d.kanal, d.karta);
+            if (zrob == DZW_ZROB_STOP || zrob == DZW_ZROB_ZWOLNIJ)
+                mikrofon_stop(1);
+            if (zrob == DZW_ZROB_ZWOLNIJ)
+                mikrofon_zwolnij(u, &d.s[DZW_WEJSCIE], 0);
+            if (zrob == DZW_ZROB_START && mikrofon_kolejka(u, &d.s[DZW_WEJSCIE], powod) != 0)
+                return -1;
+            continue;
+        }
+        if (d.s[DZW_WYJSCIE].stan == DZW_USTAWIONY && d.s[DZW_WYJSCIE].ramka != 0 && !(d.formaty & (1u << (d.s[DZW_WYJSCIE].format & 31)))) {
+            d.formaty |= 1u << (d.s[DZW_WYJSCIE].format & 31); /* only formats of DZW_FORMATY get here: three at most */
+            k1_log(TAG, "dźwięk: gość gra w formacie %s", dzw_format_nazwa(d.s[DZW_WYJSCIE].format));
         }
         d.starty += zrob == DZW_ZROB_START;
         d.stopy += zrob == DZW_ZROB_STOP;
@@ -268,13 +289,16 @@ static int powiadom(struct mmio_urz *u, int k, const char **powod)
         return sterowanie(u, powod);
     if (k == Q_WYJSCIE)
         return wyjscie(u, powod);
-    return 0; /* events: buffers wait unused (no jacks); input: none */
+    if (k == Q_WEJSCIE && mz.mikrofon) /* 0.13.5 step 2: the input (without the microphone the queue stays unused) */
+        return mikrofon_kolejka(u, &d.s[DZW_WEJSCIE], powod);
+    return 0; /* events: buffers wait unused (no jacks) */
 }
 
 static void reset(struct mmio_urz *u)
 {
-    (void)u;
-    d.s = (struct dzw_strumien){ .stan = DZW_NIC };
+    mikrofon_stop(1);
+    mikrofon_zwolnij(u, &d.s[DZW_WEJSCIE], 1);
+    d.s[DZW_WYJSCIE] = d.s[DZW_WEJSCIE] = (struct dzw_strumien){ .stan = DZW_NIC };
     d.trzymany = 0;
     d.cz_n = 0;
     d.zagrane = d.wpisane;
@@ -301,6 +325,7 @@ void dzwiek_kanal(int fd)
         close(d.kanal);
     d.kanal = nowy;
     wlasny_zegar();
+    mikrofon_stop(0); /* a new service: the input asks again (its STAN) */
     d.karta = K1_DZW_KARTA_SZUKA; /* its first DZWIEK_STAN says */
     k1_log(TAG, "dźwięk: kanał do usługi dźwięku");
 }
@@ -313,7 +338,8 @@ int dzwiek_fd(void)
 static void dalej(void)
 {
     const char *powod = NULL;
-    if (wyjscie(&mz.urz[URZ_DZWIEK], &powod) != 0)
+    if (wyjscie(&mz.urz[URZ_DZWIEK], &powod) != 0 ||
+        (mz.mikrofon && mikrofon_kolejka(&mz.urz[URZ_DZWIEK], &d.s[DZW_WEJSCIE], &powod) != 0))
         koniec(powod);
 }
 
@@ -329,13 +355,18 @@ void dzwiek_odbierz(void)
             close(d.kanal);
             d.kanal = -1;
             wlasny_zegar();
+            mikrofon_stop(0);
             break;
         }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_DZWIEK_STAN) {
             d.karta = m.a;
-            if (d.s.stan == DZW_GRA)
+            if (d.s[DZW_WYJSCIE].stan == DZW_GRA)
                 otworz(); /* the card came while the guest plays */
+            if (d.s[DZW_WEJSCIE].stan == DZW_GRA)
+                mikrofon_start(d.kanal, d.karta); /* 0.13.5 step 2: … or records (nothing when it hears already) */
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_DZWIEK_NAGRANO)
+            mikrofon_nagrano(&m);
         if (w != K1_ODB_JEST || m.typ != K1_KOM_DZWIEK_ODTWORZONO || !d.otwarty)
             continue;
         d.zagrane += (uint32_t)m.a < czeka() ? (uint32_t)m.a : czeka();
@@ -348,7 +379,8 @@ void dzwiek_odbierz(void)
 
 int dzwiek_czas_ms(void)
 {
-    return !d.otwarty && (d.s.stan == DZW_GRA || d.cz_n > 0) ? 10 : -1;
+    int t = !d.otwarty && (d.s[DZW_WYJSCIE].stan == DZW_GRA || d.cz_n > 0) ? 10 : -1;
+    return t < 0 ? mikrofon_czas_ms(&d.s[DZW_WEJSCIE]) : t;
 }
 
 /* Our own clock (no service): the frames copied "play" at 48 kHz. */
@@ -356,7 +388,13 @@ void dzwiek_zegar(void)
 {
     double t;
     uint32_t n;
-    if (d.otwarty || (d.s.stan != DZW_GRA && d.cz_n == 0))
+    if (mz.mikrofon && mikrofon_czas_ms(&d.s[DZW_WEJSCIE]) >= 0) { /* 0.13.5 step 2: the input's silence */
+        const char *powod = NULL;
+        zamek_wez("mikrofon: zegar");
+        mikrofon_zegar(&mz.urz[URZ_DZWIEK], &d.s[DZW_WEJSCIE], &powod);
+        zamek_oddaj();
+    }
+    if (d.otwarty || (d.s[DZW_WYJSCIE].stan != DZW_GRA && d.cz_n == 0))
         return;
     zamek_wez("dźwięk: zegar");
     t = k1_teraz();
@@ -373,6 +411,7 @@ void dzwiek_zegar(void)
 
 void dzwiek_podsumowanie(void)
 {
+    mikrofon_podsumowanie();
     if (d.ramki > 0 || d.odrzucone > 0)
         k1_log(TAG, "dźwięk: zagrane %.1f s (bez usługi %.1f s), odrzucone transfery %lu, start %lu, stop %lu",
                (double)d.ramki / K1_DZW_CZESTOTLIWOSC, (double)d.bez_uslugi / K1_DZW_CZESTOTLIWOSC, d.odrzucone,

@@ -3,6 +3,7 @@
  *   argv[1] = the zone number (its row of K1_STREFY), argv[2] = the guest's test mode (test image only; 0: none),
  *   argv[3] = the guest's memory in MiB — its upper limit (0.10.1 step 2, ADR 0044: the balloon gives back what it does
  *   not use; nadzorca's pamiec_stref.c),
+ *   argv[5] = "1": the guest may hear the microphone (0.13.5 step 2, ADR 0065; "0" or none: its card has no input),
  *   argv[4] = the session's name as the user set it (0.10.2 step 1: the start screen says it; none: the row's); the
  *   download zone (0.10.5 step 2, ADR 0046: a row without a window) — what it downloads, e.g. "latest/download/
  *   k1-ogloszenie2.bin" (lacznik_cel_dobry; 0.13.0), and fd 3 is not a channel to ekran,
@@ -229,6 +230,9 @@ int main(int argc, char **argv)
     if (mz.opis == NULL || tryb < 0 || tryb > 99)
         k1_koniec(TAG, "zły numer strefy");
     mz.tryb = tryb;
+    /* 0.13.5 step 2 (ADR 0065, T5): argv[5] = "1" — the guest may hear the microphone (its session's switch "Mikrofon"):
+     * only then its sound card has an input */
+    mz.mikrofon = argc > 5 && strcmp(argv[5], "1") == 0;
     /* 0.10.1 step 2 (ADR 0044): the guest's memory — its upper limit from nadzorca (argv[3]), never below its row's */
     mz.pamiec_mib = argc > 3 ? (uint32_t)strtoul(argv[3], NULL, 10) : 0;
     if (mz.pamiec_mib < mz.opis->pamiec_mib || mz.pamiec_mib > K1_STREFA_PAMIEC_MAKS)

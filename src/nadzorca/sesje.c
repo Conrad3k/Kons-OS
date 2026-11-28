@@ -32,8 +32,10 @@ int sesje_czytaj(const uint8_t *buf, size_t n, struct sesja s[K1_STREFY_MAKS + 1
             continue;
         if (t == K1_STALA || t == K1_JEDNORAZOWA)
             s[nr].trwalosc = (int)t;
-        if (z2 && (cechy & ~SESJA_ZNANE) == 0)
+        if (z2 && (cechy & ~SESJA_ZNANE) == 0) {
             s[nr].grafika = (cechy & SESJA_GRAFIKA) != 0;
+            s[nr].mikrofon = (cechy & SESJA_MIKROFON) != 0; /* 0.13.5 step 2 */
+        }
         if (k1_strefa_nazwa_dobra(nazwa))
             memcpy(s[nr].nazwa, nazwa, sizeof nazwa);
         wziete++;
@@ -53,7 +55,7 @@ size_t sesje_zapisz(const struct sesja s[K1_STREFY_MAKS + 1], uint8_t *buf, size
             continue;
         k1_z32(w, (uint32_t)nr);
         k1_z32(w + 4, (uint32_t)s[nr].trwalosc);
-        k1_z32(w + 8, s[nr].grafika ? SESJA_GRAFIKA : 0);
+        k1_z32(w + 8, (s[nr].grafika ? SESJA_GRAFIKA : 0) | (s[nr].mikrofon ? SESJA_MIKROFON : 0));
         memcpy(w + 12, s[nr].nazwa, K1_STREFA_NAZWA_MAKS);
         ile++;
     }

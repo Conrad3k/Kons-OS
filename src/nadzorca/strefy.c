@@ -123,6 +123,8 @@ static void zdarzenia_start(int nr)
                                                   d.oom_kill > 0 ? d.oom_kill : 0 };
 }
 
+int strefa_mikrofon[K1_STREFY_MAKS + 1];
+
 void strefa_uruchom(int nr, int tryb, int z_testu)
 {
     const struct k1_strefa_opis *z = k1_strefa(nr);
@@ -149,6 +151,10 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         snprintf(u->argument2, sizeof u->argument2, "%d", tryb);
         snprintf(u->argument3, sizeof u->argument3, "%u", granica);
         snprintf(u->argument4, sizeof u->argument4, "%s", z->okno ? sesja_nazwa(nr) : cel_pobierania); /* D1; ADR 0046 */
+        /* 0.13.5 step 2 (ADR 0065, T5): may its pages hear the microphone — the session's switch (the test zone: its mode);
+         * the VMM shows its guest an input only then, the sound service lets it hear only then (DZWIEK_KLIENT d) */
+        strefa_mikrofon[nr] = z_testu ? tryb == K1_STREFA_TRYB_MIKROFON : z->okno && sesja_mikrofon(nr);
+        snprintf(u->argument5, sizeof u->argument5, "%d", strefa_mikrofon[nr]);
         d = dysk(z, fd);
         test_filmow = z_testu && (tryb == K1_STREFA_TRYB_FILMY || tryb == K1_STREFA_TRYB_FILMY_ZLE); /* 0.13.2 step 3 */
         test_grafiki = test_filmow || (z_testu && (tryb == K1_STREFA_TRYB_GRAFIKA || tryb == K1_STREFA_TRYB_GRAFIKA_ZLA));
@@ -163,10 +169,10 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         zdarzenia_start(nr);
         if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, fd[7] >= 0 ? 8 : 5 + d) > 0 &&
             (strefa_pamiec_start(nr, granica, z->pamiec_mib, !z_testu || tryb == K1_STREFA_TRYB_ROZDZIELACZ), 1))
-            k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB na start, granica %u MiB, procesory %u, %s%s%s", nr,
+            k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB na start, granica %u MiB, procesory %u, %s%s%s%s", nr,
                    z->tytul, (int)u->pid, z->uid, z->pamiec_mib, granica, z->procesory,
                    d > 0 ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu", fd[7] >= 0 ? ", szybka grafika" : "",
-                   tryb ? ", gość testowy" : "");
+                   strefa_mikrofon[nr] ? ", mikrofon" : "", tryb ? ", gość testowy" : "");
         else
             k1_log(TAG, "strefa %d: uruchomienie nieudane", nr), strefa_kanal_koniec(nr), posrednik_strefa_koniec(nr);
     } else {

@@ -5,7 +5,8 @@
  * (testy/host/test_sesje.c).
  * The saved object (0.10.9 step 6): "K1Z2", the number of entries u32, then per entry: zone u32, K1_STALA/K1_JEDNORAZOWA
  * u32, the switches u32 (SESJA_* bits; bits K1 does not know: the switches keep their defaults), the name
- * K1_STREFA_NAZWA_MAKS bytes (k1_strefa_nazwa_dobra); little endian. "K1Z1" (until 0.10.7: no switches) is still read
+ * K1_STREFA_NAZWA_MAKS bytes (k1_strefa_nazwa_dobra); little endian. 0.13.5 step 2: the switch "Mikrofon" is the bit
+ * SESJA_MIKROFON of the same field (a K1 before it sees an unknown bit and keeps its defaults). "K1Z1" (until 0.10.7: no switches) is still read
  * — the switches keep the row's defaults. A zone of a later version (an unknown number) is skipped; a zone missing from
  * it keeps its row's defaults. */
 #ifndef K1_NADZORCA_SESJE_H
@@ -22,11 +23,13 @@
 #define SESJE_WPIS (12 + K1_STREFA_NAZWA_MAKS)
 #define SESJE_MAKS_BAJTOW (8 + 64 * SESJE_WPIS)
 #define SESJA_GRAFIKA 1u /* fast graphics and films with the card (D9 „A”: one switch) */
-#define SESJA_ZNANE SESJA_GRAFIKA
+#define SESJA_MIKROFON 2u /* 0.13.5 step 2 (ADR 0065, D1: A): the session may hear the microphone — off by default */
+#define SESJA_ZNANE (SESJA_GRAFIKA | SESJA_MIKROFON)
 
 struct sesja {
     int trwalosc;                     /* K1_STALA / K1_JEDNORAZOWA */
     int grafika;                      /* 1: fast graphics and films with the card (where the card can) */
+    int mikrofon;                     /* 0.13.5 step 2: 1 its pages may hear the microphone (the browser asks too) */
     char nazwa[K1_STREFA_NAZWA_MAKS]; /* zero padded; "" for a zone without a session (the test zone) */
 };
 

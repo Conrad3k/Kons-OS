@@ -35,7 +35,10 @@
 # 0.13.5 krok 1 (mikrofon, ADR 0065; D2: A, D3: A): drugi kodek QEMU z wejściem (hda-micro, nagrywa ciszę), program testowy
 # daje do mikrofonu ton (−12 dB); Ustawienia → Dźwięk → „Powiedz coś”: usługa nagrywa, pasek poziomu rośnie, znak
 # „mikrofon włączony” na górnym pasku i jego okienko („Wycisz mikrofon”), Ctrl+Alt+Del — cisza dla słuchaczy (T4),
-# „Zatrzymaj” — karta nie nagrywa, znak znika.
+# „Zatrzymaj” — karta nie nagrywa, znak znika. Krok 2 (mikrofon w przeglądarce, D1: A): strefa próbna jak sesja
+# z przełącznikiem „Mikrofon” — karta virtio-snd gościa ma wejście, gość słyszy ton testowy, znak na pasku okna sesji
+# (kliknięcie: mikrofon sesji wyciszony — gość słyszy ciszę, drugie — znów ton); NEGATYWNY: strefa bez przełącznika —
+# karta gościa bez wejścia.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -359,6 +362,35 @@ q.sprawdz("NEGATYWNY: gość złośliwy dla karty — format, którego K1 nie gr
           q.czekaj(r"K1-TEST: dźwięk: strefa złośliwa dla karty — uruchomiona", czas=240) and
           q.czekaj(r"K1-GOSC: tryb 22: dźwięk — format, którego K1 nie gra: odpowiedź 0x8002", czas=240) and
           q.czekaj(r"K1-STREFA: strefa 1: koniec — dźwięk: prośba bez miejsca na odpowiedź", czas=120))
+
+# ---- 0.13.5 step 2 (ADR 0065; D1: A): the microphone in a zone — the test zone as a session with the switch "Mikrofon" ----
+q.sprawdz("strefa próbna z mikrofonem: VMM dostaje zgodę, karta gościa ma wejście, usługa daje mu mikrofon (ton testowy)",
+          q.czekaj(r"K1-TEST: mikrofon: strefa próbna słucha — uruchomiona", czas=240) and
+          q.czekaj(r"K1-NADZORCA: strefa 1 \(.*\): .*, mikrofon, gość testowy", czas=60) and
+          q.czekaj(r"K1-DZWIEK: mikrofon: słucha strefa \(próbki\)", czas=240) and
+          q.czekaj(r"K1-GOSC: mikrofon: ton", czas=240))
+q.sprawdz("znak mikrofonu na pasku okna sesji (ekran od pulpitu) i na górnym pasku",
+          q.czekaj(r"K1-EKRAN: strefa 1: mikrofon słucha(?!,)", czas=60) and
+          q.czekaj_na_element(SZ, "Wycisz mikrofon sesji", czas=60) and q.element("Pasek górny", "Mikrofon") is not None)
+q.zrzut("strefa-mikrofon", gdy=lambda w, h, px: True)
+n_ton = q.ile(r"K1-GOSC: mikrofon: ton")
+q.klik_w(SZ, "Wycisz mikrofon sesji")
+q.sprawdz("znak na pasku okna: mikrofon tej sesji wyciszony w usłudze dźwięku — gość słyszy ciszę",
+          q.czekaj(r"K1-DZWIEK: mikrofon: sesja 1 wyciszona", czas=60) and
+          q.czekaj(r"K1-GOSC: mikrofon: cisza", czas=120) and
+          q.czekaj_na(lambda: (q.element(SZ, "Wycisz mikrofon sesji") or {}).get("stan", 0) & 1, czas=30))
+q.klik_w(SZ, "Wycisz mikrofon sesji")
+q.sprawdz("drugie kliknięcie: gość znów słyszy ton",
+          q.czekaj(r"K1-DZWIEK: mikrofon: sesja 1 słychać", czas=60) and
+          q.czekaj(r"K1-GOSC: mikrofon: ton", od=n_ton, czas=120))
+q.sprawdz("strefa kończy nagrywanie i maszynę; nikt nie słucha — znak znika",
+          q.czekaj(r"K1-GOSC: mikrofon: koniec", czas=240) and q.czekaj(r"K1-DZWIEK: mikrofon: strefa nie słucha", czas=120) and
+          q.czekaj(r"K1-GUI: mikrofon: znak zniknął", czas=120))
+n_sl = q.ile(r"K1-DZWIEK: mikrofon: słucha strefa")
+q.sprawdz("NEGATYWNY: strefa bez przełącznika „Mikrofon” — karta gościa bez wejścia, nikt nie słucha",
+          q.czekaj(r"K1-TEST: mikrofon: strefa próbna bez przełącznika — uruchomiona", czas=240) and
+          q.czekaj(r"K1-GOSC: mikrofon: karta bez wejścia \(dobrze\)", czas=240) and
+          q.ile(r"K1-DZWIEK: mikrofon: słucha strefa") == n_sl)
 q.czysty_log()
 q.koniec()
 PY

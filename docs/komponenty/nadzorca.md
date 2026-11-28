@@ -158,7 +158,7 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   i czarnym ekranem zostałaby zatwierdzona). Do 0.9.1 nadzorca mówił wtedy
   skarbcowi `START_POTWIERDZONY` (stary magazyn formatu 1 mógł przejść na format 2, ADR 0036) — usunięte w 0.10.0 razem z
   formatem 1; gdy na którymś dysku czeka próba A/B innej wersji, log „A/B: próba innej wersji czeka”.
-- Sesje stref (0.10.0 krok 5, `strefy_ust.c`, format `sesje.c`): która sesja przeglądarki pamięta i jak się nazywa —
+- Sesje stref (0.10.0 krok 5, `strefy_ust.c` (0.13.5 krok 2: też przełącznik „Mikrofon” sesji — bit `SESJA_MIKROFON`; VMM dostaje go jako argv[5], usługa dźwięku jako `DZWIEK_KLIENT` d), format `sesje.c`): która sesja przeglądarki pamięta i jak się nazywa —
   w skarbcu (właściciel `K1_WL_SYSTEM`, obiekt 4); do gui, ekranu i Ustawień `STREFA_NAZWA` i `STREFY_STAN`, od Ustawień
   `STREFA_TRWALOSC`, `STREFA_NAZWA`, `STREFA_WYCZYSC` (do skarbca `SKARB_WYCZYSC`). Strefa, która pamięta, dostaje od
   `strefy.c` fd 8 (kanał do skarbca, właściciel = jej profil) i fd 9 (pusty dysk strefy) — `komponenty/strefa.md`.

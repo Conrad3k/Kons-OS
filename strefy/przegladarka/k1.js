@@ -17,7 +17,9 @@ pref("network.trr.mode", 5, locked);
 pref("network.dns.disableIPv6", true, locked);
 pref("media.peerconnection.enabled", false, locked);
 // Dźwięk (0.12.0 krok 3, ADR 0054 T6 = A): Firefox gra przez ALSA (libasound z obrazu) do karty virtio-snd strefy, którą
-// udaje VMM K1 — bez serwera PulseAudio (najpierw próbowałby go szukać). Mikrofonu nie ma (D1 = A).
+// udaje VMM K1 — bez serwera PulseAudio (najpierw próbowałby go szukać). Mikrofon (0.13.5 krok 2, ADR 0065): ta sama
+// droga w drugą stronę — karta strefy ma wejście tylko w sesji z przełącznikiem „Mikrofon”; strona i tak pyta (okienko
+// Firefoksa). Rozmowy przez WebRTC (wyżej: wyłączony) — dopiero z UDP w Raptor Bridge (plan 0.14.0, krok 4).
 pref("media.cubeb.backend", "alsa", locked);
 // Nic nie wysyła sama: bez aktualizacji (przychodzą z wydaniem K1), telemetrii, badań, raportów awarii.
 pref("app.update.enabled", false, locked);

@@ -10,7 +10,7 @@
  *  - The clients (k1_dzwiek.h, K1_DZW_KLIENCI): a new socketpair for each, the service's end with the client's row and UID
  *    (DZWIEK_KLIENT), the client's end: gui on its fd 5 (DZWIEK_KANAL), Ustawienia on its fd 4 (step 2: the section Dźwięk),
  *    the test program in TEST_GNIAZDO, and (step 3) the VMM of each zone with a window on its fd 7 (for its guest's
- *    virtio-snd; the zone's number with it). Both ends check the sender. A new service, a new gui, new Ustawienia or a
+ *    virtio-snd; the zone's number with it; 0.13.5 step 2 — whether it may hear the microphone: its session's switch). Both ends check the sender. A new service, a new gui, new Ustawienia or a
  *    new zone: the channel again. The download zone gets none (no window, nothing to play). */
 #include "nadzorca.h"
 
@@ -158,14 +158,15 @@ int dzwiek_dla_testu(int rodzaj, int mikrofon)
     return kanal_klienta(rodzaj ? rodzaj : K1_DZW_KLIENT_TEST, 0, strefa, strefa ? mikrofon : 0);
 }
 
-/* A client's channel in DZWIEK_KANAL on `kanal` (ours to it): 1 when sent (or the client is not there to get one). */
+/* A client's channel in DZWIEK_KANAL on `kanal` (ours to it): 1 when sent (or the client is not there to get one). A
+ * zone's (0.13.5 step 2): may it hear the microphone — as its VMM started (strefa_mikrofon, strefy.c). */
 static int dla_klienta(int kanal, int rodzaj, int uid, int strefa)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KANAL, 0, 0, 0, 0, 0, 0);
     int fd;
     if (kanal < 0)
         return 0;
-    fd = kanal_klienta(rodzaj, uid, strefa, 0);
+    fd = kanal_klienta(rodzaj, uid, strefa, strefa >= 1 && strefa <= K1_STREFY_MAKS ? strefa_mikrofon[strefa] : 0);
     if (fd < 0)
         return 0;
     if (k1_kanal_wyslij(kanal, &k, sizeof k, fd) != 0)
