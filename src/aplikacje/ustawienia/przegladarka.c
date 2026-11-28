@@ -15,6 +15,9 @@
  * 0.13.2 step 4 (ADR 0063, plan D1 „A” — as the owner's D9 „A” of 0.10.9): films by the card go with that switch, so it is
  * „Szybka grafika i filmy” again, and the line about films is back under the one about fast graphics (FILMY_KARTA): what
  * the card decodes — used only where fast graphics works (ADR 0063 pkt 5: without it Firefox never asks the card).
+ * 0.13.5 step 2 (ADR 0065, the owner's D1: A): under it the switch "Mikrofon" — the session's pages may hear the microphone
+ * (off by default in every session; STREFA_GRAFIKA b = K1_PRZEL_MIKROFON out, STREFY_GRAFIKA c in; from its next start);
+ * the browser asks the page too. The card is 20 px taller for it.
  * The names are the user's text: never in the log. Part of Ustawienia (ustawienia.h). */
 #include <linux/input-event-codes.h>
 #include <stdio.h>
@@ -28,8 +31,8 @@
 #include "k1_uslugi.h"
 #include "ustawienia.h"
 
-#define KARTA_H 88
-#define KARTA_KROK 96
+#define KARTA_H 108   /* 0.13.5 step 2: two switches on the right (fast graphics, the microphone); until then 88 */
+#define KARTA_KROK 114
 #define UWAGA_H 20 /* a quiet line above the list: no K1-DANE, no virtualization */
 #define SEG_PW 184 /* "Pamięta | Zapomina" */
 #define SEG_PH 28
@@ -38,10 +41,11 @@
 #define PRZEL_W 36 /* the switch of fast graphics (k1_przelacznik) */
 #define PRZEL_H 20
 #define GRAFIKA_NAPIS "Szybka grafika i filmy"
+#define MIKROFON_NAPIS "Mikrofon"
 
 static struct {
     int znane;
-    int32_t pamietaja, wirtualizacja, dysk, dzialaja, grafika; /* grafika: STREFY_GRAFIKA a */
+    int32_t pamietaja, wirtualizacja, dysk, dzialaja, grafika, mikrofon; /* STREFY_GRAFIKA a, c (0.13.5 step 2) */
     char nazwy[K1_STREFY_MAKS + 1][K1_STREFA_NAZWA_MAKS + 1];
 } pr;
 static int edytowana, pytana; /* the session being renamed; the one "Wyczyść dane…" asks about */
@@ -70,6 +74,7 @@ void przegladarka_odbierz(const struct k1_komunikat *k)
         pr.nazwy[k->obiekt][K1_STREFA_NAZWA_MAKS] = '\0';
     } else if (k->typ == K1_KOM_STREFY_GRAFIKA) {
         pr.grafika = k->a;
+        pr.mikrofon = k->c;
     } else if (k->typ == K1_KOM_FILMY_KARTA) {
         filmy = *k;
     } else if (k->typ == K1_KOM_POSR_KARTA) {
@@ -108,6 +113,11 @@ static int z_grafika(int nr)
     return (pr.grafika >> (nr - 1)) & 1;
 }
 
+static int z_mikrofonem(int nr)
+{
+    return (pr.mikrofon >> (nr - 1)) & 1;
+}
+
 static int karta_umie(void) /* the switch works only where the card serves fast graphics (POSR_KARTA) */
 {
     return grafika.typ != 0 && grafika.a == K1_POSR_KARTA_UMIE;
@@ -125,11 +135,11 @@ static int uwagi(const char **t)
 }
 
 /* Where everything of card i is (P_*): the only layout of the section. */
-enum { P_KARTA, P_SEGMENT, P_NAZWA, P_WYCZYSC, P_POLE, P_ZAPISZ, P_ANULUJ, P_GRAFIKA, P_LICZBA };
+enum { P_KARTA, P_SEGMENT, P_NAZWA, P_WYCZYSC, P_POLE, P_ZAPISZ, P_ANULUJ, P_GRAFIKA, P_MIKROFON, P_LICZBA };
 static void uklad(int i, struct k1_przycisk p[P_LICZBA])
 {
     const char *t[2];
-    int32_t w = apl.szer - TRESC_X - 24, y = seg_y() - 12 + uwagi(t) * UWAGA_H + i * KARTA_KROK, d = y + 54;
+    int32_t w = apl.szer - TRESC_X - 24, y = seg_y() - 12 + uwagi(t) * UWAGA_H + i * KARTA_KROK, d = y + 74;
     p[P_KARTA] = (struct k1_przycisk){ TRESC_X, y, w, KARTA_H, NULL, K1_PRZ_ZWYKLY };
     p[P_SEGMENT] = (struct k1_przycisk){ TRESC_X + w - 16 - SEG_PW, d - 2, SEG_PW, SEG_PH, NULL, K1_PRZ_ZWYKLY };
     p[P_NAZWA] = (struct k1_przycisk){ TRESC_X + 28, d, 96, PRZ_H, "Zmień nazwę", K1_PRZ_NA_KARCIE };
@@ -138,7 +148,9 @@ static void uklad(int i, struct k1_przycisk p[P_LICZBA])
     p[P_ZAPISZ] = (struct k1_przycisk){ TRESC_X + 32, d, 90, PRZ_H, "Zapisz", K1_PRZ_GLOWNY };
     p[P_ANULUJ] = (struct k1_przycisk){ TRESC_X + 128, d, 90, PRZ_H, "Anuluj", K1_PRZ_ZWYKLY };
     /* 0.10.9 step 6: the switch in the card's upper right corner, its label to the left (the click takes both) */
-    p[P_GRAFIKA] = (struct k1_przycisk){ TRESC_X + w - 16 - PRZEL_W, y + 14, PRZEL_W, PRZEL_H, NULL, K1_PRZ_ZWYKLY };
+    p[P_GRAFIKA] = (struct k1_przycisk){ TRESC_X + w - 16 - PRZEL_W, y + 12, PRZEL_W, PRZEL_H, NULL, K1_PRZ_ZWYKLY };
+    /* 0.13.5 step 2 (D1: A): the switch "Mikrofon" under it */
+    p[P_MIKROFON] = (struct k1_przycisk){ TRESC_X + w - 16 - PRZEL_W, y + 40, PRZEL_W, PRZEL_H, NULL, K1_PRZ_ZWYKLY };
 }
 
 /* The y of the line under the list (the result of "Wyczyść dane"). */
@@ -176,7 +188,7 @@ static void karta(struct k1_obraz *o, const struct k1_motyw *m, int i, int nr)
         k1_przycisk(o, m, &p[P_ANULUJ], K1_CZ_MALA, 0, 1);
     } else {
         k1_tekst(o, K1_CZ_TEKST_MOCNA, k->x + 38, k->y + 28, pr.nazwy[nr], k1_kolor(m->tekst, 255), k->w - 260);
-        k1_tekst(o, K1_CZ_MALA, k->x + 38, k->y + 47, stan(nr), k1_kolor(m->tekst2, 255), k->w - 60);
+        k1_tekst(o, K1_CZ_MALA, k->x + 38, k->y + 50, stan(nr), k1_kolor(m->tekst2, 255), k->w - 170);
         k1_przycisk(o, m, &p[P_NAZWA], K1_CZ_MALA, najechany_p == i * P_LICZBA + P_NAZWA, 1);
         if (pr.dysk) /* without K1-DANE a session keeps nothing to clear */
             k1_przycisk(o, m, &p[P_WYCZYSC], K1_CZ_MALA, najechany_p == i * P_LICZBA + P_WYCZYSC, !dziala(nr));
@@ -191,6 +203,15 @@ static void karta(struct k1_obraz *o, const struct k1_motyw *m, int i, int nr)
         snprintf(el, sizeof el, "Szybka grafika %d", nr); /* the zone's number: never the session's name */
         k1_el(K1_EL_PRZYCISK, el, g->x - 10 - tw, g->y, tw + 10 + g->w, g->h,
               (karta_umie() && z_grafika(nr) ? K1_EL_WYBRANY : 0) | (karta_umie() ? 0 : K1_EL_NIEDOSTEPNY));
+    }
+    { /* 0.13.5 step 2: the microphone — always there to choose (the card's input: Dźwięk) */
+        const struct k1_przycisk *g = &p[P_MIKROFON];
+        int32_t tw = k1_tekst_szer(K1_CZ_MALA, MIKROFON_NAPIS);
+        char el[40];
+        k1_tekst(o, K1_CZ_MALA, g->x - 10 - tw, g->y + 15, MIKROFON_NAPIS, k1_kolor(m->tekst2, 255), 0);
+        k1_przelacznik(o, m, g->x, g->y, z_mikrofonem(nr), 0);
+        snprintf(el, sizeof el, "Mikrofon %d", nr); /* the zone's number: never the session's name */
+        k1_el(K1_EL_PRZYCISK, el, g->x - 10 - tw, g->y, tw + 10 + g->w, g->h, z_mikrofonem(nr) ? K1_EL_WYBRANY : 0);
     }
     k1_segment(o, m, s->x, s->y, s->w, s->h, etykiety, 2, pr.dysk && pamieta(nr) ? 0 : 1, -1);
     if (!pr.dysk) /* muted: nothing to choose */
@@ -361,6 +382,14 @@ static int klik_karty(int i, int z, int32_t x, int32_t y)
         pr.grafika = g ? pr.grafika | 1 << (z - 1) : pr.grafika & ~(1 << (z - 1)); /* at once; nadzorca sends it back */
         return 1;
     }
+    if (x >= p[P_MIKROFON].x - 10 - k1_tekst_szer(K1_CZ_MALA, MIKROFON_NAPIS) && x < p[P_MIKROFON].x + p[P_MIKROFON].w &&
+        y >= p[P_MIKROFON].y && y < p[P_MIKROFON].y + p[P_MIKROFON].h) { /* 0.13.5 step 2 */
+        int g = !z_mikrofonem(z);
+        k1_log(TAG, "przeglądarka: sesja %d — mikrofon %s", z, g ? "włączony" : "wyłączony");
+        do_nadzorcy(k1_komunikat_nowy(K1_KOM_STREFA_GRAFIKA, (uint32_t)z, g, K1_PRZEL_MIKROFON, 0, 0, 0));
+        pr.mikrofon = g ? pr.mikrofon | 1 << (z - 1) : pr.mikrofon & ~(1 << (z - 1));
+        return 1;
+    }
     if ((s = k1_segment_trafienie(p[P_SEGMENT].x, p[P_SEGMENT].y, SEG_PW, SEG_PH, 2, x, y)) >= 0 && pr.dysk) {
         int t = s == 0 ? K1_STALA : K1_JEDNORAZOWA;
         k1_log(TAG, "przeglądarka: sesja %d %s", z, t == K1_STALA ? "pamięta" : "zapomina");
@@ -451,9 +480,9 @@ void przegladarka_loguj(void)
         struct k1_przycisk p[P_LICZBA];
         uklad(i, p);
         d += (size_t)snprintf(buf + d, sizeof buf - d,
-                              "%s%d %s, karta %d,%d %dx%d, grafika %d", i ? "; " : "", nr[i],
+                              "%s%d %s, karta %d,%d %dx%d, grafika %d, mikrofon %d", i ? "; " : "", nr[i],
                               pamieta(nr[i]) ? "pamięta" : "zapomina", p[P_KARTA].x, p[P_KARTA].y, p[P_KARTA].w,
-                              p[P_KARTA].h, z_grafika(nr[i])); /* the buttons: the screen's description (0.10.2) */
+                              p[P_KARTA].h, z_grafika(nr[i]), z_mikrofonem(nr[i])); /* the buttons: the description */
     }
     k1_log(TAG,
            "przeglądarka: sesje %d (dane na dysku %d, wirtualizacja %d, karta a filmy: stan %d, kodeki 0x%x, kod %d, "

@@ -2,7 +2,8 @@
  * driver's way (Linux sound/virtio): PCM_INFO, SET_PARAMS, PREPARE, START, STOP, RELEASE — answered OK in the states
  * virtio allows, BAD_MSG in others; only 48 kHz, stereo and (0.12.3) the formats of DZW_FORMATY — S16, S32, FLOAT —
  * any other "not supported"; every length and field checked; a transfer's head: stream 0, whole frames of the stream's
- * format, not too long; the samples into floats without loss. */
+ * format, not too long; the samples into floats without loss. 0.13.5 step 2: with the microphone the second stream —
+ * the input — and its buffers; without it no stream 1 (NEGATIVE); the microphone's floats into the guest's formats. */
 #include <math.h>
 #include <string.h>
 
@@ -22,8 +23,9 @@ static uint32_t kod(const uint8_t *odp)
 static uint32_t prosba(struct dzw_strumien *s, const void *req, uint32_t n, int *zrob)
 {
     uint8_t odp[DZW_ODPOWIEDZ_MAKS];
+    int ktory;
     memset(odp, 0, sizeof odp);
-    return dzw_prosba(s, req, n, odp, sizeof odp, zrob) >= 4 ? kod(odp) : 0;
+    return dzw_prosba(s, 1, req, n, odp, sizeof odp, zrob, &ktory) >= 4 ? kod(odp) : 0; /* one stream: no microphone */
 }
 
 static uint32_t pcm(struct dzw_strumien *s, uint32_t k, uint32_t strumien, int *zrob)
@@ -45,15 +47,15 @@ static void informacje(void)
     struct virtio_snd_query_info q = { { VIRTIO_SND_R_PCM_INFO }, 0, 1, sizeof(struct virtio_snd_pcm_info) };
     struct virtio_snd_pcm_info in;
     uint8_t odp[DZW_ODPOWIEDZ_MAKS];
-    int zrob;
-    uint32_t n = dzw_prosba(&s, (const uint8_t *)&q, sizeof q, odp, sizeof odp, &zrob);
+    int zrob, ktory;
+    uint32_t n = dzw_prosba(&s, 1, (const uint8_t *)&q, sizeof q, odp, sizeof odp, &zrob, &ktory);
     memcpy(&in, odp + 4, sizeof in);
     EXPECT(n == 4 + sizeof in && kod(odp) == VIRTIO_SND_S_OK && zrob == DZW_ZROB_NIC);
     EXPECT(in.formats == (1ull << VIRTIO_SND_PCM_FMT_S16 | 1ull << VIRTIO_SND_PCM_FMT_S32 | 1ull << VIRTIO_SND_PCM_FMT_FLOAT) &&
            in.rates == 1ull << VIRTIO_SND_PCM_RATE_48000 &&
            in.direction == VIRTIO_SND_D_OUTPUT && in.channels_min == 2 && in.channels_max == 2);
-    EXPECT(dzw_prosba(&s, (const uint8_t *)&q, sizeof q, odp, 8, &zrob) == 4 && kod(odp) == VIRTIO_SND_S_BAD_MSG);
-    EXPECT(dzw_prosba(&s, (const uint8_t *)&q, sizeof q, odp, 3, &zrob) == 0); /* no room for the header */
+    EXPECT(dzw_prosba(&s, 1, (const uint8_t *)&q, sizeof q, odp, 8, &zrob, &ktory) == 4 && kod(odp) == VIRTIO_SND_S_BAD_MSG);
+    EXPECT(dzw_prosba(&s, 1, (const uint8_t *)&q, sizeof q, odp, 3, &zrob, &ktory) == 0); /* no room for the header */
     q.count = 2; /* one stream only */
     EXPECT(prosba(&s, &q, sizeof q, &zrob) == VIRTIO_SND_S_BAD_MSG);
     q.count = 1;
@@ -163,19 +165,78 @@ static void probki(void)
 static void transfery(void)
 {
     uint8_t h[4] = { 0, 0, 0, 0 }, zly[4] = { 1, 0, 0, 0 };
-    EXPECT(dzw_transfer(h, 4, 4096, 4) == VIRTIO_SND_S_OK && dzw_transfer(h, 4, 0, 4) == VIRTIO_SND_S_OK);
-    EXPECT(dzw_transfer(h, 4, DZW_DANE_MAKS, 4) == VIRTIO_SND_S_OK);
-    EXPECT(dzw_transfer(h, 4, DZW_DANE_MAKS + 4, 4) == VIRTIO_SND_S_BAD_MSG);
-    EXPECT(dzw_transfer(h, 4, 4098, 4) == VIRTIO_SND_S_BAD_MSG); /* half a frame */
-    EXPECT(dzw_transfer(h, 3, 4096, 4) == VIRTIO_SND_S_BAD_MSG);
-    EXPECT(dzw_transfer(zly, 4, 4096, 4) == VIRTIO_SND_S_BAD_MSG);
-    EXPECT(dzw_transfer(h, 4, ~0ull, 4) == VIRTIO_SND_S_BAD_MSG);
-    EXPECT(dzw_transfer(h, 4, 4100, 8) == VIRTIO_SND_S_BAD_MSG && dzw_transfer(h, 4, 4096, 8) == VIRTIO_SND_S_OK);
-    EXPECT(dzw_transfer(h, 4, 4096, 0) == VIRTIO_SND_S_BAD_MSG); /* no SET_PARAMS yet */
+    EXPECT(dzw_transfer(h, 4, 4096, 4, DZW_WYJSCIE) == VIRTIO_SND_S_OK && dzw_transfer(h, 4, 0, 4, DZW_WYJSCIE) == VIRTIO_SND_S_OK);
+    EXPECT(dzw_transfer(h, 4, DZW_DANE_MAKS, 4, DZW_WYJSCIE) == VIRTIO_SND_S_OK);
+    EXPECT(dzw_transfer(h, 4, DZW_DANE_MAKS + 4, 4, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG);
+    EXPECT(dzw_transfer(h, 4, 4098, 4, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG); /* half a frame */
+    EXPECT(dzw_transfer(h, 3, 4096, 4, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG);
+    EXPECT(dzw_transfer(zly, 4, 4096, 4, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG);
+    EXPECT(dzw_transfer(h, 4, ~0ull, 4, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG);
+    EXPECT(dzw_transfer(h, 4, 4100, 8, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG && dzw_transfer(h, 4, 4096, 8, DZW_WYJSCIE) == VIRTIO_SND_S_OK);
+    EXPECT(dzw_transfer(h, 4, 4096, 0, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG); /* no SET_PARAMS yet */
+}
+
+/* 0.13.5 step 2 (ADR 0065, T5): with the microphone the card has two streams — 1 the input — and its buffers; the
+ * microphone's floats into the guest's formats */
+static void mikrofon(void)
+{
+    struct dzw_strumien s[DZW_STRUMIENIE] = { { 0 }, { 0 } };
+    struct virtio_snd_query_info q = { { VIRTIO_SND_R_PCM_INFO }, 0, 2, sizeof(struct virtio_snd_pcm_info) };
+    struct virtio_snd_pcm_info in[2];
+    struct virtio_snd_pcm_set_params p = param(VIRTIO_SND_PCM_FMT_S16, VIRTIO_SND_PCM_RATE_48000, 2, 16384, 4096);
+    struct virtio_snd_pcm_hdr h = { { VIRTIO_SND_R_PCM_PREPARE }, DZW_WEJSCIE };
+    uint8_t odp[DZW_ODPOWIEDZ_MAKS], nagl1[4] = { 1, 0, 0, 0 }, nagl0[4] = { 0 }, g[16];
+    const float f[6] = { 0.5f, -1.5f, NAN, 1.0f, -1.0f, 0.25f };
+    int16_t v16[6];
+    int32_t v32[2];
+    float vf[2];
+    int zrob, ktory;
+    uint32_t n = dzw_prosba(s, 2, (const uint8_t *)&q, sizeof q, odp, sizeof odp, &zrob, &ktory);
+    memcpy(in, odp + 4, sizeof in);
+    EXPECT(n == 4 + sizeof in && kod(odp) == VIRTIO_SND_S_OK && in[0].direction == VIRTIO_SND_D_OUTPUT &&
+           in[1].direction == VIRTIO_SND_D_INPUT && in[1].formats == in[0].formats && in[1].channels_max == 2);
+    q.start_id = 1, q.count = 1;
+    n = dzw_prosba(s, 2, (const uint8_t *)&q, sizeof q, odp, sizeof odp, &zrob, &ktory);
+    memcpy(in, odp + 4, sizeof in[0]);
+    EXPECT(n == 4 + sizeof in[0] && in[0].direction == VIRTIO_SND_D_INPUT);
+    q.start_id = 1, q.count = 2; /* past the last stream */
+    EXPECT(dzw_prosba(s, 2, (const uint8_t *)&q, sizeof q, odp, sizeof odp, &zrob, &ktory) == 4 &&
+           kod(odp) == VIRTIO_SND_S_BAD_MSG);
+    q.start_id = 1, q.count = 1; /* NEGATIVE: without the microphone there is no stream 1 */
+    EXPECT(dzw_prosba(s, 1, (const uint8_t *)&q, sizeof q, odp, sizeof odp, &zrob, &ktory) == 4 &&
+           kod(odp) == VIRTIO_SND_S_BAD_MSG);
+    p.hdr.stream_id = DZW_WEJSCIE;
+    EXPECT(dzw_prosba(s, 1, (const uint8_t *)&p, sizeof p, odp, sizeof odp, &zrob, &ktory) == 4 &&
+           kod(odp) == VIRTIO_SND_S_BAD_MSG && s[1].stan == DZW_NIC);
+    EXPECT(dzw_prosba(s, 2, (const uint8_t *)&p, sizeof p, odp, sizeof odp, &zrob, &ktory) == 4 && kod(odp) == VIRTIO_SND_S_OK &&
+           ktory == DZW_WEJSCIE && s[1].stan == DZW_USTAWIONY && s[0].stan == DZW_NIC && s[1].ramka == 4);
+    EXPECT(dzw_prosba(s, 2, (const uint8_t *)&h, sizeof h, odp, sizeof odp, &zrob, &ktory) == 4 && kod(odp) == VIRTIO_SND_S_OK);
+    h.hdr.code = VIRTIO_SND_R_PCM_START;
+    EXPECT(dzw_prosba(s, 2, (const uint8_t *)&h, sizeof h, odp, sizeof odp, &zrob, &ktory) == 4 && zrob == DZW_ZROB_START &&
+           ktory == DZW_WEJSCIE && s[1].stan == DZW_GRA);
+    h.stream_id = 2; /* a stream that does not exist */
+    EXPECT(dzw_prosba(s, 2, (const uint8_t *)&h, sizeof h, odp, sizeof odp, &zrob, &ktory) == 4 &&
+           kod(odp) == VIRTIO_SND_S_BAD_MSG && zrob == DZW_ZROB_NIC);
+    /* the input's buffers: stream 1 only, whole frames */
+    EXPECT(dzw_transfer(nagl1, 4, 4096, 4, DZW_WEJSCIE) == VIRTIO_SND_S_OK);
+    EXPECT(dzw_transfer(nagl0, 4, 4096, 4, DZW_WEJSCIE) == VIRTIO_SND_S_BAD_MSG); /* the output's head on the input */
+    EXPECT(dzw_transfer(nagl1, 4, 4096, 4, DZW_WYJSCIE) == VIRTIO_SND_S_BAD_MSG);
+    EXPECT(dzw_transfer(nagl1, 4, 4098, 4, DZW_WEJSCIE) == VIRTIO_SND_S_BAD_MSG);
+    /* the microphone's floats into the guest's format: rounded, within the range, NaN → 0 */
+    dzw_z_f32((uint8_t *)v16, f, 3, VIRTIO_SND_PCM_FMT_S16);
+    EXPECT(v16[0] == 16384 && v16[1] == -32767 && v16[2] == 0 && v16[3] == 32767 && v16[4] == -32767 && v16[5] == 8192);
+    dzw_z_f32((uint8_t *)v32, f, 1, VIRTIO_SND_PCM_FMT_S32);
+    EXPECT(v32[0] == 1073741824 && v32[1] == -2147483647);
+    dzw_z_f32((uint8_t *)vf, f + 2, 1, VIRTIO_SND_PCM_FMT_FLOAT);
+    EXPECT(vf[0] == 0.0f && vf[1] == 1.0f);
+    memset(g, 0xab, sizeof g);
+    dzw_z_f32(g, f, 2, 99); /* a format that does not exist: nothing written */
+    EXPECT(g[0] == 0xab && g[15] == 0xab);
 }
 
 int main(void)
 {
+    mikrofon();
     informacje();
     przebieg();
     formaty();

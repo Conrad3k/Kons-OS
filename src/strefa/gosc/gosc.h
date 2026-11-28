@@ -65,7 +65,8 @@ enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TR
        TRYB_POBRANIE = 18, TRYB_POBRANIE_ZLE = 19 /* 0.11.0 step 2: files into Pliki, honest / hostile (pobrane.c) */,
        TRYB_ODBIOR = 20 /* 0.11.0 step 3: files from K1 and their changed versions back (odbior.c) */,
        TRYB_DZWIEK = 21, TRYB_DZWIEK_ZLY = 22 /* 0.12.0 step 3: a tone (dzwiek.c) / hostile to the sound card (zlosliwy.c) */,
-       TRYB_FILMY = 23, TRYB_FILMY_ZLE = 24 /* 0.13.2 step 3: the film context, honest / hostile (filmy.c) */ };
+       TRYB_FILMY = 23, TRYB_FILMY_ZLE = 24 /* 0.13.2 step 3: the film context, honest / hostile (filmy.c) */,
+       TRYB_MIKROFON = 25, TRYB_MIKROFON_BEZ = 26 /* 0.13.5 step 2: the microphone / NEGATIVE: none (mikrofon.c) */ };
 #define OKNO_PO_S 8
 #define ZAMYKANIE_S 6
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
@@ -75,6 +76,7 @@ int grafika_zacznij(void);              /* grafika.c: a DRM context with its sha
 uint32_t grafika_bufor(uint32_t blob, uint64_t dl, uint32_t *res); /* a buffer of the card: its handle, *res; 0: none */
 void *grafika_mapuj(uint32_t uchwyt, uint64_t dl);                 /* mapped into our memory, NULL: not */
 void filmy(int zle);                    /* TRYB_FILMY*: the film context (filmy.c, 0.13.2 step 3), then the end */
+void mikrofon(int bez);                 /* TRYB_MIKROFON*: record / no input (mikrofon.c, 0.13.5 step 2) */
 void pobrane(int zle);                  /* TRYB_POBRANIE*: the files port (pobrane.c), then the end */
 uint8_t pobrane_wzor(uint64_t i);       /* byte i of the honest file's pattern */
 void odbior(void);                      /* TRYB_ODBIOR (odbior.c), then the end */

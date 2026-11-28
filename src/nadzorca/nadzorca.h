@@ -97,6 +97,7 @@ struct usluga {
     char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
     char argument2[4];    /* a second one (0.10.0: the VMM of a zone — the guest's test mode) */
     char argument3[8];    /* a third one (0.10.1 step 2: the VMM — the guest's memory, its upper limit in MiB) */
+    char argument5[2];    /* a fifth (0.13.5 step 2: the VMM — "1" its guest may hear the microphone) */
     char argument4[K1_STREFA_CEL_MAKS + 1]; /* a fourth (0.10.2 step 1: the VMM — its session's name; "" none; 0.10.5:
                                              * the download zone — what it downloads) */
 };
@@ -239,6 +240,8 @@ void strefy_zamykanie(void);      /* every loop: a zone that waited opens; the p
 int sesja_pamieta(int nr);        /* 1: zone nr gets its disk (it remembers, the vault is on a disk, they were read) */
 const char *sesja_nazwa(int nr);  /* its session's name ("" for a zone without a session) */
 int sesja_grafika(int nr);        /* 0.10.9 step 6: 1 — fast graphics and films with the card on in its session */
+int sesja_mikrofon(int nr);       /* 0.13.5 step 2: 1 — the switch "Mikrofon" on in its session */
+extern int strefa_mikrofon[K1_STREFY_MAKS + 1]; /* strefy.c: zone nr's VMM may hear (as it started) — dzwiek.c */
 void sesje_okresowe(void);        /* every loop: read them, send what changed */
 void sesje_nowy_kanal(int kto); /* a new channel of gui (0), Ustawienia (1) or Zasoby (2): send everything again */
 void sesje_prosba(const struct k1_komunikat *k, int z_testu); /* STREFA_TRWALOSC / _NAZWA / _WYCZYSC / _GRAFIKA */

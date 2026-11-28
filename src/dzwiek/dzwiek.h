@@ -46,7 +46,9 @@ unsigned long nagr_przepelnienia(void);            /* overruns since the start (
 
 /* mikrofon.c — who hears the microphone and what they get (0.13.5 step 1): the clients' requests, each period. */
 int32_t mikrofon_pole(void);                       /* DZWIEK_STAN e (k1_dzw_mik_pole) */
-int mikrofon_otworz(int i, int rodzaj, int wolno, int fd, int format); /* DZWIEK_OTWORZ SLUCHA: 0, or -1 (rules broken) */
+int mikrofon_otworz(int i, int rodzaj, int strefa, int wolno, int fd, int format); /* DZWIEK_OTWORZ SLUCHA: 0, or -1
+                                                                                     * (rules broken) */
+int mikrofon_sesja(int nr);                        /* step 2: DZWIEK_SESJA e of zone nr (K1_DZW_SES_*) */
 void mikrofon_zamknij(int i, int powiedz);         /* ZAMKNIJ SLUCHA (powiedz 1), or the client's channel ended */
 int mikrofon_prosba(int i, int rodzaj, const struct k1_komunikat *m); /* DZWIEK_MIKROFON: 0, or -1 (may not ask it) */
 void mikrofon_przyjmij(int fd, int nr, int urzadzenie); /* DZWIEK_KARTA NAGRYWANIE */

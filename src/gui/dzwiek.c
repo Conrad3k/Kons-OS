@@ -55,7 +55,8 @@ enum { C_WYCISZ = 0, C_SUWAK, C_PROBA, C_KOREKTOR, C_PRZ_WL, C_PRZESTRZEN, C_SES
 #define SES_SUW_X (MARG + P + 126)
 #define SES_SUW_W (DZWIEK_OKIENKO_SZER - 2 * P - 126 - 44)
 static int lista[K1_STREFY_MAKS], n_listy;  /* the zones whose sessions play, in order */
-static int ekran_wie[K1_STREFY_MAKS + 1];  /* what ekran was told (STREFA_DZWIEK: bit 0 plays, bit 1 muted) */
+static int ekran_wie[K1_STREFY_MAKS + 1];  /* what ekran was told (STREFA_DZWIEK: bit 0 plays, bit 1 muted; 0.13.5 step 2:
+                                            * bits 2–3 its microphone — K1_DZW_SES_* << 2) */
 
 int dzwiek_fd(void)
 {
@@ -91,13 +92,14 @@ static void sesje(int wszystkie)
     n_listy = 0;
     for (int nr = 1; nr <= K1_STREFY_MAKS; nr++) {
         const struct k1_dzw_sesja *z = &dz.sesje[nr];
-        int stan = z->gra | z->wyciszona << 1;
+        int stan = z->gra | z->wyciszona << 1 | z->mik << 2;
         if (z->gra)
             lista[n_listy++] = nr;
         if (stan == ekran_wie[nr] && !wszystkie)
             continue;
         ekran_wie[nr] = stan;
-        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_STREFA_DZWIEK, 0, nr, z->gra, z->wyciszona, 0, 0));
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_STREFA_DZWIEK, 0, nr, z->gra, z->wyciszona, (z->mik & K1_DZW_SES_SLUCHA) != 0,
+                                        (z->mik & K1_DZW_SES_MIK_WYCISZONY) != 0));
     }
     if (n != n_listy) {
         k1_log(TAG, "dźwięk: grają sesje: %d", n_listy);

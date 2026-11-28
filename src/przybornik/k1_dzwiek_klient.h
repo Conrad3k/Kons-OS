@@ -71,6 +71,8 @@ int k1_dzwk_proba(struct k1_dzw_polaczenie *k, int ktora);
 int k1_dzwk_proba_pasmo(const struct k1_dzw_polaczenie *k);
 /* 0.13.5 (ADR 0065): the microphone's level 0..100 and mute (a steering client); in our state at once. */
 void k1_dzwk_mikrofon(struct k1_dzw_polaczenie *k, int poziom, int wyciszony);
+/* 0.13.5 step 2: zone nr's session's microphone muted / not (DZWIEK_MIKROFON SESJA); in our state at once. */
+void k1_dzwk_mik_sesja(struct k1_dzw_polaczenie *k, int nr, int wyciszony);
 /* 0.13.5: watch the microphone's level (Ustawienia's "Powiedz coś": the card records while we do) / stop. */
 void k1_dzwk_mik_sluchaj(struct k1_dzw_polaczenie *k, int tak);
 /* 0.13.5 (gui only): its security screen is on top — silence to every listener / it is gone. */

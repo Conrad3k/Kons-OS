@@ -233,10 +233,12 @@ enum k1_komunikat_typ {
     K1_KOM_USTAWIENIA_MIEJSCE = 254, /* nadzorca → Ustawienia: obiekt=0, a=a place K1_UST_MIEJSCA, b..e=0 — show it (on
                                       * its fd 4; Aktualizacje: on its fd 7, the channel of the updates) */
     K1_KOM_STREFA_DZWIEK = 47,    /* 0.12.0 step 3 (D6: A): the shell → ekran: obiekt=0, a=the zone 1..K1_STREFY_MAKS,
-                                   * b=1 its session plays, c=1 it is muted, d,e=0 — ekran shows the speaker on the
-                                   * bar of the zone's window while b = 1 */
-    K1_KOM_STREFA_WYCISZ = 48,    /* ekran → the shell (K1_KIER_OD_EKRANU): obiekt=0, a=the zone — the user clicked the
-                                   * speaker on its window's bar: mute / unmute its session */
+                                   * b=1 its session plays, c=1 it is muted, d=1 it hears the microphone, e=1 its microphone
+                                   * is muted (0.13.5 step 2, ADR 0065) — ekran shows the speaker on the bar of the zone's
+                                   * window while b = 1, the sign of the microphone while d = 1 */
+    K1_KOM_STREFA_WYCISZ = 48,    /* ekran → the shell (K1_KIER_OD_EKRANU): obiekt=0, a=the zone, b=0 the user clicked the
+                                   * speaker on its window's bar: mute / unmute its session; b=1 (0.13.5 step 2) its sign of
+                                   * the microphone: mute / unmute its microphone; c..e=0 */
     K1_KOM_GLOSNOSC_POKAZ = 252,  /* 0.12.0 step 2 (D4: A): the shell → ekran (K1_KIER_DO_EKRANU), after a volume key:
                                    * obiekt=0, a=the volume 0..K1_DZW_GLOSNOSC_MAKS, b=1 muted, c=the output
                                    * K1_DZW_WYJSCIE_* (BRAK: no card — then a=b=0), d,e=0 — ekran shows its pill */
@@ -709,9 +711,11 @@ enum k1_komunikat_typ {
     /* 0.10.9 step 6 (D5, D7, D9 „A”): fast graphics and films with the card, a switch of each session (strefy_ust.c) —
      * nadzorca → gui, Ustawienia, Zasoby (K1_KIER_OD_NADZORCY) and ekran (K1_KIER_STEROWANIE), after STREFY_STAN */
     K1_KOM_STREFY_GRAFIKA = 220,   /* obiekt=0, a=bit nr-1: the switch of zone nr's session is on, b=bit nr-1: zone nr runs
-                                    * with its graphics broker now (the mark on its frame — D7), c..e=0 */
+                                    * with its graphics broker now (the mark on its frame — D7), c=bit nr-1: its switch
+                                    * "Mikrofon" is on (0.13.5 step 2, ADR 0065), d,e=0 */
     /* Ustawienia → nadzorca (fd 4) */
-    K1_KOM_STREFA_GRAFIKA = 221,   /* obiekt=zone, a=1 on / 0 off (from its next start), b..e=0 */
+    K1_KOM_STREFA_GRAFIKA = 221,   /* obiekt=zone, a=1 on / 0 off (from its next start), b=which switch K1_PRZEL_* (0.13.5
+                                    * step 2: 0 fast graphics and films, 1 the microphone), c..e=0 */
 };
 
 /* What happened to the connection (SIEC_WIFI_ZDARZENIE a). */
@@ -806,7 +810,11 @@ enum { K1_STREFA_TRYB_DZWIEK = 21, K1_STREFA_TRYB_DZWIEK_ZLY = 22 }; /* 0.12.0 s
 /* 0.13.2 step 3 (ADR 0063): the film context from inside the test zone — nadzorca gives its VMM the graphics broker's
  * test engine and, on request, the test film decoder (grey frames): 23 an honest guest (gosc/filmy.c), 24 a hostile one */
 enum { K1_STREFA_TRYB_FILMY = 23, K1_STREFA_TRYB_FILMY_ZLE = 24 };
-#define K1_STREFA_TRYB_MAKS 24
+/* 0.13.5 step 2 (ADR 0065): the microphone in the test zone — 25: its VMM may hear (as a session with the switch
+ * "Mikrofon"): the guest records and logs the level of the test tone; 26: it may not — the guest's card has no input
+ * at all (NEGATIVE) */
+enum { K1_STREFA_TRYB_MIKROFON = 25, K1_STREFA_TRYB_MIKROFON_BEZ = 26 };
+#define K1_STREFA_TRYB_MAKS 26
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480
@@ -1015,6 +1023,8 @@ enum { K1_BOK_ZAMKNIETE = 0, K1_BOK_OTWARTE = 1, K1_BOK_USTAWIENIA = 2 }; /* K1_
 enum { K1_UST_MIEJSCA(K1_X_UST_MIEJSCE) };
 #define K1_X_UST_LICZ(...) +1
 enum { K1_UST_MIEJSCA_MAKS = 0 K1_UST_MIEJSCA(K1_X_UST_LICZ) };
+/* STREFA_GRAFIKA b (0.13.5 step 2): a switch of a session */
+enum { K1_PRZEL_GRAFIKA = 0, K1_PRZEL_MIKROFON = 1 };
 #define K1_MOC_MAKS_MW 1000000  /* 1 kW: anything above is a firmware error */
 #define K1_KARTA_MHZ_MAKS 5000  /* 0.10.10 step 2: a card's clock above it is a driver's error (ZASOBY_KARTA) */
 #define K1_BAT_MINUT_MAKS (99 * 60)

@@ -1,5 +1,7 @@
 /* K1 strefa — the guest's sound card (0.12.0 step 3, ADR 0054 T5): virtio-snd (virtio 1.2, section 5.14) with ONE output
- * stream, 48 kHz, two channels; no input (D1 = A: no microphone), no jacks, no channel maps, no controls. Since 0.12.3
+ * stream, 48 kHz, two channels; no jacks, no channel maps, no controls. 0.13.5 step 2 (ADR 0065, T5): in a session with the
+ * switch "Mikrofon" (argv[5] of the VMM) a second stream — the input, stream 1 — the same formats; without the switch the
+ * card has one stream and the guest never learns there could be a microphone. Since 0.12.3
  * (ADR 0055) the stream takes the guest's own format of DZW_FORMATY — the browser (or alsa-lib's dmix under it) no
  * longer converts to 16 bits in the guest — and the VMM turns each into K1's F32 ring without loss. The pure part: the
  * guest's control requests, the head of its transfers, checked field by field, and the samples' conversion
@@ -13,7 +15,9 @@
 enum { DZW_NIC = 0, DZW_USTAWIONY, DZW_GOTOWY, DZW_GRA, DZW_STOP, DZW_ZWOLNIONY };
 
 #define DZW_PROSBA_MAKS 64u          /* a control request is 4..24 bytes: longer — BAD_MSG */
-#define DZW_ODPOWIEDZ_MAKS 64u       /* the longest answer: the header and one stream's information (36 bytes) */
+#define DZW_ODPOWIEDZ_MAKS 72u       /* the longest answer: the header and two streams' information (68 bytes) */
+#define DZW_STRUMIENIE 2             /* 0: the output; 1: the input (0.13.5 step 2) — only with the microphone */
+enum { DZW_WYJSCIE = 0, DZW_WEJSCIE = 1 };
 #define DZW_BUFOR_MAKS (1u << 20)    /* the guest's buffer of the stream at most (bytes; Linux asks for ~30 KiB) */
 #define DZW_DANE_MAKS (64u << 10)    /* the samples of one transfer at most (bytes): a period */
 
@@ -35,17 +39,24 @@ uint32_t dzw_ramka(uint32_t format);    /* bytes of a frame of a format of DZW_F
 const char *dzw_format_nazwa(uint32_t format); /* "S16", "S32", "FLOAT"; "?" for any other */
 /* `ramki` frames of the guest's samples (`zrodlo`, the format of DZW_FORMATY, no alignment assumed) into floats. */
 void dzw_na_f32(float *cel, const uint8_t *zrodlo, uint32_t ramki, uint32_t format);
+/* 0.13.5 step 2: the other way — floats of the microphone (±1.0, from K1's sound service) into the guest's format: S16 and
+ * S32 rounded and within their range, FLOAT as they are. */
+void dzw_z_f32(uint8_t *cel, const float *zrodlo, uint32_t ramki, uint32_t format);
 
 /* What a request asks the device to do besides answering. */
 enum { DZW_ZROB_NIC = 0, DZW_ZROB_START, DZW_ZROB_STOP, DZW_ZROB_ZWOLNIJ };
 
 /* One control request: `req` (n bytes the guest gave) → the answer into `odp` (room for `max` bytes); returns its length
- * (0: no room even for the header — the guest broke the rules), *zrob: DZW_ZROB_*. Every field of the request checked:
- * a wrong one, a request in the wrong state, a format other than K1's — VIRTIO_SND_S_BAD_MSG / _NOT_SUPP, nothing done. */
-uint32_t dzw_prosba(struct dzw_strumien *s, const uint8_t *req, uint32_t n, uint8_t *odp, uint32_t max, int *zrob);
+ * (0: no room even for the header — the guest broke the rules), *zrob: DZW_ZROB_*, *ktory: the stream it was about.
+ * `strumienie`: the card's streams (1, or 2 with the microphone — `s` holds that many). Every field of the request
+ * checked: a stream the card does not have, a wrong field, a request in the wrong state, a format other than K1's —
+ * VIRTIO_SND_S_BAD_MSG / _NOT_SUPP, nothing done. */
+uint32_t dzw_prosba(struct dzw_strumien *s, int strumienie, const uint8_t *req, uint32_t n, uint8_t *odp, uint32_t max,
+                    int *zrob, int *ktory);
 
-/* The head of a transfer (struct virtio_snd_pcm_xfer) and the bytes of samples after it: VIRTIO_SND_S_OK when the device
- * takes them (stream 0, whole frames of `ramka` bytes — the stream's, at most DZW_DANE_MAKS), else VIRTIO_SND_S_BAD_MSG. */
-uint32_t dzw_transfer(const uint8_t *naglowek, uint32_t n_naglowka, uint64_t dane, uint32_t ramka);
+/* The head of a transfer (struct virtio_snd_pcm_xfer) and the bytes of samples with it: VIRTIO_SND_S_OK when the device
+ * takes them (stream `strumien` — 0 on the output's queue, 1 on the input's; whole frames of `ramka` bytes — the
+ * stream's, at most DZW_DANE_MAKS), else VIRTIO_SND_S_BAD_MSG. */
+uint32_t dzw_transfer(const uint8_t *naglowek, uint32_t n_naglowka, uint64_t dane, uint32_t ramka, uint32_t strumien);
 
 #endif

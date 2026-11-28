@@ -193,7 +193,7 @@ void strefa_ramka(const struct pow *p, const struct prost *r)
             k1_ikona(&o, K1_IK_KARTA, (float)tx + 5, (float)ty - 13, 16, k1_kolor(fokus ? m->tekst2 : m->tekst3, 255));
             tx += 22;
         }
-        tx = strefa_glosnik_rysuj(&o, p, r, tx, ty, kon, m, fokus); /* 0.12.0 step 3 (D6: A): the session plays */
+        tx = strefa_glosnik_rysuj(&o, p, r, tx, ty, kon, m, fokus); /* 0.12.0 step 3 (D6: A): it plays; 0.13.5: hears */
         if (tx < kon)
             k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx, ty, po, napis, kon - tx);
     }
@@ -213,8 +213,8 @@ int strefa_trafienie(const struct pow *p, int32_t x, int32_t y)
         return STREFA_BRZEG | kraw;
     if (!w(&f, x, y) || w(&tresc, x, y))
         return 0;
-    if (strefa_glosnik_pod((int)(p - s.p), x, y))
-        return STREFA_GLOSNIK;
+    if ((kraw = strefa_glosnik_pod((int)(p - s.p), x, y)) != 0) /* the speaker or (0.13.5) the microphone */
+        return kraw;
     for (size_t i = 0; i < sizeof przyciski / sizeof przyciski[0]; i++) {
         b = przycisk(p, przyciski[i]);
         if (w(&b, x, y))
@@ -236,7 +236,8 @@ static void uszkodz_pasek(int i)
  * first time the pointer comes to a window's bar, its buttons' places go to the log (the tests click by it). */
 void strefa_najechanie(int i, int co)
 {
-    int przyc = co == STREFA_MINIMALIZUJ || co == STREFA_ZAMKNIJ || co == STREFA_MAKSYMALIZUJ || co == STREFA_GLOSNIK
+    int przyc = co == STREFA_MINIMALIZUJ || co == STREFA_ZAMKNIJ || co == STREFA_MAKSYMALIZUJ || co == STREFA_GLOSNIK ||
+                        co == STREFA_MIKROFON
                     ? co : 0,
         stary = s.strefa_okno;
     s.ksztalt = (co & STREFA_BRZEG) ? rozmiar_ksztalt(co & ~STREFA_BRZEG) : K1_KURSOR_STRZALKA;
@@ -267,8 +268,8 @@ void strefa_wcisniecie(int i, int co)
         zamknij_okno(i);
     } else if (co == STREFA_MAKSYMALIZUJ) {
         rozmiar_przelacz(i);
-    } else if (co == STREFA_GLOSNIK) {
-        strefa_glosnik_klik(i); /* 0.12.0 step 3 */
+    } else if (co == STREFA_GLOSNIK || co == STREFA_MIKROFON) {
+        strefa_glosnik_klik(i, co); /* 0.12.0 step 3; 0.13.5 step 2: the microphone */
     } else if (co == STREFA_TYTUL && !rozmiar_tytul(i) && !p->maks) { /* a maximized window does not move */
         s.ciagniete = i;
         s.ciag_dx = s.x - p->x;

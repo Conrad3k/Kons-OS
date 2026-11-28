@@ -138,6 +138,7 @@ void mikrofon_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
 void mikrofon_zmiana(void);                 /* the service said something of the microphone (DZWIEK_STAN e, SESJA e) */
 void mikrofon_wycisz(void);                 /* the popover's button, the key KEY_MICMUTE: mute / unmute */
 void mikrofon_zabezpieczenia(int otwarty);  /* the security screen opened / closed: silence to every listener */
+void mikrofon_sesja_wycisz(int nr);         /* step 2: ekran's STREFA_WYCISZ b = 1 — the sign on a session's bar */
 #define MIKROFON_OKIENKO_SZER 300
 int32_t mikrofon_okienko_wys(void);
 void mikrofon_okienko(struct k1_obraz *o, const struct k1_motyw *m);

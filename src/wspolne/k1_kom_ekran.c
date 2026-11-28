@@ -59,12 +59,12 @@ static int dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     if (k->obiekt != 0)
         return 0;
-    if (k->typ == K1_KOM_STREFA_WYCISZ)
-        return kier == K1_KIER_OD_EKRANU && w(k->a, 1, K1_STREFY_MAKS) && zera(k, 1);
+    if (k->typ == K1_KOM_STREFA_WYCISZ) /* b: 0 its speaker, 1 its microphone (0.13.5 step 2) */
+        return kier == K1_KIER_OD_EKRANU && w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && zera(k, 2);
     if (kier != K1_KIER_DO_EKRANU)
         return 0;
-    if (k->typ == K1_KOM_STREFA_DZWIEK)
-        return w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && w(k->c, 0, 1) && zera(k, 3);
+    if (k->typ == K1_KOM_STREFA_DZWIEK) /* d, e: it hears the microphone, its microphone muted (0.13.5 step 2) */
+        return w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && w(k->c, 0, 1) && w(k->d, 0, 1) && w(k->e, 0, 1);
     return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) &&
            (k->c != K1_DZW_WYJSCIE_BRAK || (k->a == 0 && k->b == 0)) && zera(k, 3);
 }

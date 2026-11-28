@@ -10,7 +10,9 @@
  * floats (k1_mikrofon.c) → the test tone (the test program only: QEMU's card records silence) → × the level of the
  * microphone → silence while it is muted or gui's security screen is on top (WSTRZYMAJ, T4) → the bar's level → each
  * listener. The steering clients see the microphone in DZWIEK_STAN e (its source, level, mute, held, K1 hears it) — gui
- * draws the sign "mikrofon włączony" from it (D2: A), never from a listener. The log: who hears and how many periods were
+ * draws the sign "mikrofon włączony" from it (D2: A), never from a listener. Step 2: a zone's VMM hears for its guest
+ * (a session with the switch "Mikrofon"); which session hears and whether its own microphone is muted (DZWIEK_MIKROFON
+ * SESJA from a steering client — the sign on its window's bar) go in DZWIEK_SESJA e; a muted session gets silence. The log: who hears and how many periods were
  * lost — never a sample or a level in time (T4, niezmiennik 8). */
 #include <errno.h>
 #include <fcntl.h>
@@ -27,6 +29,7 @@
 
 static struct sluchacz {
     int rodzaj;           /* the client's row; 0: this slot does not hear */
+    int strefa;           /* step 2: a zone's VMM — its number (its session's microphone may be muted), else 0 */
     uint8_t *pierscien;   /* mapped for writing; NULL: the level only */
     int format;
     uint32_t zapisane;    /* frames we wrote into it in all (modulo 2^32) */
@@ -38,6 +41,7 @@ static int ton;           /* the test program's tone in the microphone */
 static uint32_t ton_faza;
 static int byl_okres;     /* a period came since the card started recording (the log says the first: never a level) */
 static int wstrzymal = -1; /* the slot of gui that holds it (its security screen on top), -1: nobody */
+static int ses_wyciszona[K1_STREFY_MAKS + 1]; /* step 2: each session's microphone muted (its sign on the window's bar) */
 
 int32_t mikrofon_pole(void)
 {
@@ -82,8 +86,17 @@ static void koniec(int i, int powiedz)
     zglos();
 }
 
+/* Step 2: zone nr's session hears now, its microphone muted — DZWIEK_SESJA e */
+int mikrofon_sesja(int nr)
+{
+    int slucha = 0;
+    for (int i = 0; i < KLIENCI_MAKS; i++)
+        slucha |= sluchacze[i].rodzaj == K1_DZW_KLIENT_STREFA && sluchacze[i].strefa == nr;
+    return (slucha ? K1_DZW_SES_SLUCHA : 0) | (nr >= 1 && nr <= K1_STREFY_MAKS && ses_wyciszona[nr] ? K1_DZW_SES_MIK_WYCISZONY : 0);
+}
+
 /* A new listener in slot i: the card records (if it did not yet). 0, or -1: no microphone (it heard so). */
-static int nowy(int i, int rodzaj, uint8_t *pierscien, int format)
+static int nowy(int i, int rodzaj, int strefa, uint8_t *pierscien, int format)
 {
     struct sluchacz *s = &sluchacze[i];
     if (!nagr_jest() || nagr_otworz() != 0) {
@@ -92,7 +105,7 @@ static int nowy(int i, int rodzaj, uint8_t *pierscien, int format)
         klient_wyslij(i, k1_komunikat_nowy(K1_KOM_DZWIEK_NAGRANO, 0, 0, 1, 0, 0, 0));
         return -1;
     }
-    *s = (struct sluchacz){ rodzaj, pierscien, format, 0, 0, 0 };
+    *s = (struct sluchacz){ rodzaj, strefa, pierscien, format, 0, 0, 0 };
     k1_log(TAG, "mikrofon: słucha %s (%s)", k1_dzw_klient_nazwa(rodzaj), pierscien != NULL ? "próbki" : "poziom");
     zglos();
     return 0;
@@ -100,7 +113,7 @@ static int nowy(int i, int rodzaj, uint8_t *pierscien, int format)
 
 /* DZWIEK_OTWORZ b = SLUCHA: exactly the ring's size in its format, sealed against shrinking and growing (a shrunk ring
  * would end us with SIGBUS), writable (no write seal). Returns 0, or -1 when the client broke the rules. */
-int mikrofon_otworz(int i, int rodzaj, int wolno, int fd, int format)
+int mikrofon_otworz(int i, int rodzaj, int strefa, int wolno, int fd, int format)
 {
     size_t bajty = k1_dzw_pierscien_bajty(format);
     struct stat st;
@@ -115,7 +128,7 @@ int mikrofon_otworz(int i, int rodzaj, int wolno, int fd, int format)
         klient_wyslij(i, k1_komunikat_nowy(K1_KOM_DZWIEK_NAGRANO, 0, 0, 1, 0, 0, 0));
         return 0; /* a ring we cannot use: refused, as a playing stream's */
     }
-    nowy(i, rodzaj, m, format);
+    nowy(i, rodzaj, strefa, m, format);
     return 0;
 }
 
@@ -146,7 +159,7 @@ int mikrofon_prosba(int i, int rodzaj, const struct k1_komunikat *m)
         if (k1_dzw_klient_slucha(rodzaj) < K1_DZW_SLUCHA_POZIOM || (sluchacze[i].pierscien != NULL))
             return -1;
         if (m->b && sluchacze[i].rodzaj == 0)
-            nowy(i, rodzaj, NULL, 0);
+            nowy(i, rodzaj, 0, NULL, 0);
         else if (!m->b)
             koniec(i, 0);
         return 0;
@@ -164,7 +177,13 @@ int mikrofon_prosba(int i, int rodzaj, const struct k1_komunikat *m)
         ton = m->b;
         k1_log(TAG, "mikrofon: ton testowy %s", ton ? "włączony" : "wyłączony");
         return 0;
-    default: /* SESJA: step 2 */
+    case K1_DZW_MIK_SESJA: /* step 2: a session's microphone (its number only in the log: never its name) */
+        if (!k1_dzw_klient_steruje(rodzaj))
+            return -1;
+        ses_wyciszona[m->b] = m->c;
+        k1_log(TAG, "mikrofon: sesja %d %s", m->b, m->c ? "wyciszona" : "słychać");
+        return 0;
+    default:
         return -1;
     }
     klienci_stan_wszystkim();
@@ -183,16 +202,19 @@ int mikrofon_fd(void)
     return nagr_fd();
 }
 
-/* One period to every listener (its ring and the level, or the level ten times a second). */
+/* One period to every listener (its ring and the level, or the level ten times a second); a zone whose session's
+ * microphone is muted (step 2) gets silence. */
 static void do_sluchaczy(const float *s, int poziom)
 {
+    static const float cisza[K1_DZW_OKRES * K1_DZW_KANALY];
     for (int i = 0; i < KLIENCI_MAKS; i++) {
         struct sluchacz *l = &sluchacze[i];
+        int wyc = l->strefa >= 1 && l->strefa <= K1_STREFY_MAKS && ses_wyciszona[l->strefa];
         if (l->rodzaj == 0)
             continue;
         if (l->pierscien != NULL) {
-            k1_mik_do_pierscienia(l->pierscien, l->format, &l->zapisane, s, K1_DZW_OKRES);
-            klient_wyslij(i, k1_komunikat_nowy(K1_KOM_DZWIEK_NAGRANO, 0, (int32_t)K1_DZW_OKRES, 0, poziom, 0, 0));
+            k1_mik_do_pierscienia(l->pierscien, l->format, &l->zapisane, wyc ? cisza : s, K1_DZW_OKRES);
+            klient_wyslij(i, k1_komunikat_nowy(K1_KOM_DZWIEK_NAGRANO, 0, (int32_t)K1_DZW_OKRES, 0, wyc ? 0 : poziom, 0, 0));
             continue;
         }
         l->poziom = poziom > l->poziom ? poziom : l->poziom;

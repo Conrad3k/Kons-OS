@@ -166,8 +166,30 @@ static void ton_i_pierscien(void)
     EXPECT(z32 == 3);
 }
 
+/* Step 2: the switch "Mikrofon" of a session (STREFA_GRAFIKA b, STREFY_GRAFIKA c), its sign on the window's bar (the
+ * shell → ekran: STREFA_DZWIEK d, e; its click back: STREFA_WYCISZ b) */
+static void komunikaty_kroku2(void)
+{
+    {
+        struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_STREFA_GRAFIKA, K1_STREFA_BANK, 1, K1_PRZEL_MIKROFON, 0, 0, 0), w;
+        EXPECT(k1_komunikat_sprawdz(&k, sizeof k, K1_KIER_DO_NADZORCY, &w) == 0);
+        k.b = K1_PRZEL_MIKROFON + 1;
+        EXPECT(k1_komunikat_sprawdz(&k, sizeof k, K1_KIER_DO_NADZORCY, &w) != 0);
+        k.b = K1_PRZEL_GRAFIKA, k.c = 1;
+        EXPECT(k1_komunikat_sprawdz(&k, sizeof k, K1_KIER_DO_NADZORCY, &w) != 0);
+    }
+    EXPECT(ok(K(K1_KOM_STREFY_GRAFIKA, 1, 0, 6, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!ok(K(K1_KOM_STREFY_GRAFIKA, 1, 0, 1 << 30, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(ok(K(K1_KOM_STREFA_DZWIEK, 1, 0, 0, 1, 1), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_STREFA_DZWIEK, 1, 0, 0, 2, 0), K1_KIER_DO_EKRANU));
+    EXPECT(ok(K(K1_KOM_STREFA_WYCISZ, 1, 1, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(!ok(K(K1_KOM_STREFA_WYCISZ, 1, 2, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_URUCHOM_STREFE, K1_STREFA_PROBNA, K1_STREFA_TRYB_MIKROFON_BEZ, 0, 0, 0), K1_KIER_DO_NADZORCY));
+}
+
 int main(void)
 {
+    komunikaty_kroku2();
     tabela_i_stan();
     komunikaty();
     tor();

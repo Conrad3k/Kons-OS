@@ -17,17 +17,20 @@ int main(void)
     EXPECT(strcmp(s[K1_STREFA_OGOLNA].nazwa, "Ogólna") == 0 && s[K1_STREFA_OGOLNA].trwalosc == K1_STALA);
     EXPECT(s[K1_STREFA_PRYWATNA].trwalosc == K1_JEDNORAZOWA && s[K1_STREFA_PROBNA].nazwa[0] == '\0');
     EXPECT(s[K1_STREFA_OGOLNA].grafika == 1 && s[K1_STREFA_BANK].grafika == 0 && s[K1_STREFA_PRYWATNA].grafika == 0);
+    EXPECT(!s[K1_STREFA_OGOLNA].mikrofon && !s[K1_STREFA_BANK].mikrofon && !s[K1_STREFA_PRYWATNA].mikrofon); /* 0.13.5: D1 A */
     /* saved and read back: only the zones with a session */
     s[K1_STREFA_BANK].trwalosc = K1_JEDNORAZOWA;
     s[K1_STREFA_BANK].grafika = 1, s[K1_STREFA_OGOLNA].grafika = 0;
+    s[K1_STREFA_OGOLNA].mikrofon = 1; /* 0.13.5 step 2: the switch "Mikrofon" — a bit of the same field */
     memcpy(s[K1_STREFA_BANK].nazwa, "Urz\xc4\x99" "dy", 7);
     n = sesje_zapisz(s, b, sizeof b);
     EXPECT(n == 8 + 3 * SESJE_WPIS && k1_c32(b + 4) == 3 && memcmp(b, "K1Z2", 4) == 0);
     sesje_domyslne(r);
-    EXPECT(sesje_czytaj(b, n, r) == 3 && memcmp(r, s, sizeof r) == 0);
+    EXPECT(sesje_czytaj(b, n, r) == 3 && memcmp(r, s, sizeof r) == 0 && r[K1_STREFA_OGOLNA].mikrofon &&
+           k1_c32(b + 8 + 8) == SESJA_MIKROFON);
     /* a bad field keeps its default; a zone of a later version and the test zone are skipped */
     k1_z32(b + 8 + SESJE_WPIS + 4, 7);            /* Bank: neither STALA nor JEDNORAZOWA */
-    k1_z32(b + 8 + SESJE_WPIS + 8, 3);            /* …and a switch K1 does not know: the switches keep the defaults */
+    k1_z32(b + 8 + SESJE_WPIS + 8, 5);            /* …and a switch K1 does not know (4): the switches keep the defaults */
     memcpy(b + 8 + 2 * SESJE_WPIS + 12, " x", 2); /* Prywatna: a name with a space in front */
     sesje_domyslne(r);
     EXPECT(sesje_czytaj(b, n, r) == 3 && r[K1_STREFA_BANK].trwalosc == K1_STALA && r[K1_STREFA_BANK].grafika == 0 &&

@@ -173,6 +173,14 @@ void k1_dzwk_mikrofon(struct k1_dzw_polaczenie *k, int poziom, int wyciszony)
     wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_USTAW, poziom, wyciszony != 0, 0, 0));
 }
 
+void k1_dzwk_mik_sesja(struct k1_dzw_polaczenie *k, int nr, int wyciszony)
+{
+    if (nr < 1 || nr > K1_STREFY_MAKS)
+        return;
+    k->sesje[nr].mik = (k->sesje[nr].mik & ~K1_DZW_SES_MIK_WYCISZONY) | (wyciszony ? K1_DZW_SES_MIK_WYCISZONY : 0);
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_SESJA, nr, wyciszony != 0, 0, 0));
+}
+
 void k1_dzwk_mik_sluchaj(struct k1_dzw_polaczenie *k, int tak)
 {
     if ((k->mik_slucha != 0) == (tak != 0))

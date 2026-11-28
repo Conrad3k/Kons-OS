@@ -1,5 +1,6 @@
 /* K1 nadzorca — the sessions of the zones as the user set them (0.10.0 step 5): whether each one remembers (STALA),
- * whether it draws and plays films with the card (0.10.9 step 6: STREFA_GRAFIKA, STREFY_GRAFIKA — D5, D9) and
+ * whether it draws and plays films with the card (0.10.9 step 6: STREFA_GRAFIKA, STREFY_GRAFIKA — D5, D9), whether its
+ * pages may hear the microphone (0.13.5 step 2, ADR 0065: the same messages, b = K1_PRZEL_MIKROFON, STREFY_GRAFIKA c) and
  * its name. nadzorca keeps them — it starts the zones, so it alone decides whether a zone's VMM gets its disk — in
  * skarbiec (owner K1_WL_SYSTEM, object K1_OB_STREFY, format: sesje.h) and tells gui (the names in its menus), ekran (the
  * title on the zone's bar, "zapomina") and Ustawienia (Przeglądarka) whenever they change, and each of
@@ -18,7 +19,7 @@ static int kanal = -1, wczytane, czyta; /* our channel to skarbiec (owner K1_WL_
 static unsigned wersja = 1;
 static struct {
     unsigned wersja;
-    int32_t a, b, c, d, e, ga, gb; /* ga, gb: STREFY_GRAFIKA */
+    int32_t a, b, c, d, e, ga, gb, gc; /* ga, gb, gc: STREFY_GRAFIKA */
     pid_t ekran;
 } wyslane[CELE];
 static int czyszczenie[K1_STREFY_MAKS + 1]; /* 1: Ustawienia asked, 2: the test program */
@@ -41,7 +42,7 @@ int sesja_pamieta(int nr)
     return nr >= 1 && nr <= K1_STREFY_MAKS && wczytane && dysk() && ses[nr].trwalosc == K1_STALA;
 }
 
-enum { BITY_PAMIETA, BITY_DZIALA, BITY_GRAFIKA, BITY_Z_KARTA };
+enum { BITY_PAMIETA, BITY_DZIALA, BITY_GRAFIKA, BITY_Z_KARTA, BITY_MIKROFON };
 static int32_t bity(int jakie)
 {
     int32_t b = 0;
@@ -50,7 +51,8 @@ static int32_t bity(int jakie)
         int jest = jakie == BITY_DZIALA    ? u != NULL && u->pid > 0
                    : jakie == BITY_PAMIETA ? sesja_pamieta(nr)
                    : jakie == BITY_GRAFIKA ? sesja_grafika(nr)
-                                           : posrednik_dziala(nr);
+                   : jakie == BITY_MIKROFON ? sesja_mikrofon(nr)
+                                            : posrednik_dziala(nr);
         if (jest)
             b |= 1 << (nr - 1);
     }
@@ -60,6 +62,12 @@ static int32_t bity(int jakie)
 int sesja_grafika(int nr)
 {
     return nr >= 1 && nr <= K1_STREFY_MAKS && ses[nr].nazwa[0] != '\0' && ses[nr].grafika;
+}
+
+/* 0.13.5 step 2 (ADR 0065, D1: A): the session's switch "Mikrofon" — its pages may hear the microphone (from its start) */
+int sesja_mikrofon(int nr)
+{
+    return nr >= 1 && nr <= K1_STREFY_MAKS && ses[nr].nazwa[0] != '\0' && ses[nr].mikrofon;
 }
 
 static void zapisz(void)
@@ -108,11 +116,13 @@ static void wyslij(int cel, int fd, pid_t ekr)
 {
     struct k1_komunikat s = k1_komunikat_nowy(K1_KOM_STREFY_STAN, 0, bity(BITY_PAMIETA), access(DEV "/kvm", F_OK) == 0,
                                               dysk(), bity(BITY_DZIALA), 0);
-    struct k1_komunikat g = k1_komunikat_nowy(K1_KOM_STREFY_GRAFIKA, 0, bity(BITY_GRAFIKA), bity(BITY_Z_KARTA), 0, 0, 0);
+    struct k1_komunikat g = k1_komunikat_nowy(K1_KOM_STREFY_GRAFIKA, 0, bity(BITY_GRAFIKA), bity(BITY_Z_KARTA),
+                                              bity(BITY_MIKROFON), 0, 0);
     int nowy = wyslane[cel].wersja != wersja || wyslane[cel].ekran != ekr;
     s.e = strefy_zamykane() & s.d; /* 0.10.2 step 1: closing in the background */
     if (fd < 0 || (!nowy && s.a == wyslane[cel].a && s.b == wyslane[cel].b && s.c == wyslane[cel].c &&
-                   s.d == wyslane[cel].d && s.e == wyslane[cel].e && g.a == wyslane[cel].ga && g.b == wyslane[cel].gb))
+                   s.d == wyslane[cel].d && s.e == wyslane[cel].e && g.a == wyslane[cel].ga && g.b == wyslane[cel].gb &&
+                   g.c == wyslane[cel].gc))
         return;
     for (int nr = 1; nr <= K1_STREFY_MAKS && nowy; nr++)
         if (ses[nr].nazwa[0] != '\0') {
@@ -125,7 +135,7 @@ static void wyslij(int cel, int fd, pid_t ekr)
         }
     if (k1_kanal_wyslij(fd, &s, sizeof s, -1) != 0 || k1_kanal_wyslij(fd, &g, sizeof g, -1) != 0)
         return;
-    wyslane[cel].ga = g.a, wyslane[cel].gb = g.b;
+    wyslane[cel].ga = g.a, wyslane[cel].gb = g.b, wyslane[cel].gc = g.c;
     wyslane[cel].wersja = wersja;
     wyslane[cel].ekran = ekr;
     wyslane[cel].a = s.a, wyslane[cel].b = s.b, wyslane[cel].c = s.c, wyslane[cel].d = s.d;
@@ -199,6 +209,9 @@ void sesje_prosba(const struct k1_komunikat *k, int z_testu)
     if (k->typ == K1_KOM_STREFA_TRWALOSC) {
         ses[nr].trwalosc = k->a;
         k1_log(TAG, "strefa %d: %s (od następnego otwarcia)", nr, k->a == K1_STALA ? "pamięta" : "zapomina");
+    } else if (k->typ == K1_KOM_STREFA_GRAFIKA && k->b == K1_PRZEL_MIKROFON) { /* 0.13.5 step 2 */
+        ses[nr].mikrofon = k->a;
+        k1_log(TAG, "strefa %d: mikrofon %s (od następnego otwarcia)", nr, k->a ? "włączony" : "wyłączony");
     } else if (k->typ == K1_KOM_STREFA_GRAFIKA) {
         ses[nr].grafika = k->a;
         k1_log(TAG, "strefa %d: szybka grafika %s (od następnego otwarcia)", nr,

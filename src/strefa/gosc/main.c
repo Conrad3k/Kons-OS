@@ -267,6 +267,10 @@ static void tryb_jednorazowy(int t)
             zlosliwy_dzwiek();
         wylacz();
     }
+    if (t == TRYB_MIKROFON || t == TRYB_MIKROFON_BEZ) { /* 0.13.5 step 2: the microphone, then the end */
+        mikrofon(t == TRYB_MIKROFON_BEZ);
+        wylacz();
+    }
     if (t == TRYB_PAMIEC) { /* 0.10.1 step 2: the balloon's scenario, then the end */
         pamiec_proba();
         wylacz();
