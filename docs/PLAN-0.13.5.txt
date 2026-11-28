@@ -1,0 +1,160 @@
+K1 — PLAN WERSJI 0.13.5 „MIKROFON” (krok w temacie 0.12 Dźwięk, wydany po 0.13.2)
+=================================================================================
+
+Data: 2026-11-28 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-28, w trakcie
+wydania 0.13.2): „napisz plan na 0.13.5, w którym będzie dodanie obsługi mikrofonu. Krótki, na jeden, góra dwa kroki”.
+Mikrofon był „Później” od 0.12.0 (ADR 0054, D1 = A), potem krokiem 4 a–b planu 0.14.0 (ADR 0064); ta wersja bierze go
+stamtąd wcześniej — w planie 0.14.0 zostają zgoda Discorda na mikrofon i UDP w Raptor Bridge (krok 4 c–d).
+Wersja stoi na 0.13.2 „Filmy kartą” (docs/archiwum/PLAN-0.13.2.txt) i na 0.12.0 / 0.12.3 (usługa dźwięku, ADR 0054, 0055).
+Ten plik jest SAMODZIELNY: cel, kroki, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+ADR kroku 1: następny wolny numer (dziś 0065 — numery przewidziane w planie 0.14.0 przesuwają się o jeden).
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.13.5 laptop ma mikrofon: wbudowany albo w słuchawkach z mikrofonem. Słyszy go tylko to, czemu na to pozwolisz —
+w 0.13.5 Ustawienia (próba: „Powiedz coś”, pasek poziomu się rusza) i sesje przeglądarki z włączonym przełącznikiem
+„Mikrofon” (rozmowy na stronach: Meet, Teams, Messenger w przeglądarce). Kiedy cokolwiek słucha, na górnym pasku i na
+pasku okna tej sesji jest **znak „mikrofon włączony”**, który rysuje K1 — strona nie może go ukryć ani podrobić;
+kliknięcie wycisza mikrofon. Kartę dźwiękową dalej ma tylko usługa dźwięku K1; strefa dostaje próbki, nigdy kartę.
+
+Kroki: DWA. 1 — mikrofon w K1: usługa dźwięku nagrywa, Ustawienia → Dźwięk (wybór, poziom, próba), znak na górnym pasku.
+2 — mikrofon w przeglądarce: wejście virtio-snd w strefie, przełącznik „Mikrofon” przy sesji, znak na pasku okna; test
+właściciela na laptopach; porządki i wydanie 0.13.5 (wydanie jest zawsze ostatnią częścią ostatniego kroku).
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł → docs/DO_ZROBIENIA.txt („Później”). Krok, który
+nie zmieści się w czacie, dzieli się na 1a/1b, 2a/2b (wydanie w ostatniej części).
+
+Oznaczenia:  [!] decyzja albo działanie właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.13.2), ZE ŹRÓDEŁ, POTWIERDZONE (próbą), NIEPEWNE (sprawdzić w kroku).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Właściciel wpisuje (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.13.5.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku: krok 1 — D2 (szkice znaku), D3; krok 2 — D1.
+Nowy czat: skill kons-dev (świeży main, PR-y i Issue robota); przeczytaj CEL, swój krok, luki i decyzje, ADR 0054, 0055,
+docs/komponenty/dzwiek.md, strefa.md (karta virtio-snd); pierwszy commit — „[w toku: …]” w tabeli punktu 2; nowe
+komunikaty i formaty — przepis z SKILL (pole po polu, test na hoście, fuzzing, test negatywny w systemie); limity
+czytelności (Z KODU: src/dzwiek/main.c 507 wierszy — dzielić przed rozbudową, osobny commit); wygląd — szkice przed kodem,
+wzorce po „OK” właściciela; testy: test-m1, test-dzwiek, test-m4, test-wzorce, test-strefa; pełny komplet — CI na PR-ze.
+Robot: krok 1 jest gotowy dla użytkownika sam w sobie (mikrofon tylko w Ustawieniach); krok 2 też (przełącznik domyślnie
+wyłączony) — robot może działać. Numer: robot może zająć 0.13.3–0.13.5 — wydanie bierze następny wolny PATCH.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1: K1 słyszy mikrofon. Ustawienia → Dźwięk mają część „Mikrofon”: który (wbudowany / w słuchawkach — przełącza się
+    sam, jak wyjście), poziom, wycisz i próbę „Powiedz coś” z paskiem poziomu. Gdy coś słucha — znak na górnym pasku.
+  - Krok 2: przeglądarka słyszy mikrofon — tylko sesja z włączonym przełącznikiem „Mikrofon” (Ustawienia → Przeglądarka,
+    domyślnie wyłączony wszędzie — D1); strona i tak pyta (okienko Firefoksa). Znak mikrofonu także na pasku okna sesji;
+    kliknięcie wycisza. Twój test: rozmowa na stronie na X230 i IdeaPadzie. Potem wydanie.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat)
+---------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Mikrofon w K1: nagrywanie, Ustawienia → Dźwięk, znak   L1–L5            0.13.2      D2, D3, T1–T4    M        0065
+[ ]  2  Mikrofon w przeglądarce, test na laptopach; wydanie    L6–L8            1           D1, T5, T6       M        —
+
+
+3. KROKI
+--------
+KROK 1: Mikrofon w K1                                                   M · D2, D3, T1–T4 · ADR (następny wolny)
+  Cel: usługa dźwięku nagrywa z karty i daje próbki klientom, którym K1 na to pozwala; Ustawienia pokazują mikrofon;
+  K1 zawsze pokazuje, że ktoś słucha.
+  a. Nadzorca (dzwiek.c): węzeł nagrywania karty (pcmC<k>D<u>c z sysfs class/sound — ta sama karta co odtwarzanie)
+     → usługa dźwięku (`DZWIEK_KARTA` z nowym rodzajem — T3, L4). Brak węzła — stan „brak mikrofonu”.
+  b. Usługa dźwięku (T1): nagrywanie ALSA bez alsa-lib — 48 kHz, format jak przy odtwarzaniu (pierwszy, który karta
+     przyjmie), `READI_FRAMES` (nowy ioctl w `KLATKA_DZWIEK` z uzasadnieniem); kontrolki wejścia kodeka (przełącznik
+     i poziom „Capture”, wybór źródła: wbudowany / gniazdo — przełącza się sam po podłączeniu, jak słuchawki); wejście
+     otwarte TYLKO, gdy ktoś słucha (karta nie nagrywa „na zapas”). Próbki do klienta: pierścień w memfd w drugą stronę
+     (T2: klient daje pusty pierścień, usługa pisze, klient czyta kopię — te same zasady co przy odtwarzaniu: pieczęcie,
+     rozmiar, nic od klienta nie jest indeksem). Kto może słuchać: kolumna w tabeli `K1_DZW_KLIENCI` (Ustawienia — tak,
+     gui — nie, strefa — od kroku 2, program testowy — tak). Ekran zabezpieczeń albo ekran hasła na wierzchu — wejście
+     wyciszone (T4).
+  c. Ustawienia → Dźwięk (D3): część „Mikrofon” — źródło, poziom, „Wycisz”, „Powiedz coś” z paskiem poziomu (liczony
+     w usłudze, do Ustawień idą tylko poziomy, nigdy próbki).
+  d. Znak „mikrofon włączony” (D2 — szkice): rysuje ekran na górnym pasku, gdy usługa dźwięku daje komuś próbki (stan
+     od usługi przez gui → ekran, nie od klienta); kliknięcie → okienko „Kto słucha” z „Wycisz”.
+  Testy: host — pierścień wejścia, nowe pola komunikatów (test_dzwiek, fuzz_dzwiek); w systemie — klatka, klient bez prawa
+  słuchania → odmowa (NEGATYWNY), wejście zamknięte, gdy nikt nie słucha; QEMU test-dzwiek: wejście karty HDA (T6 — źródło
+  testowe, L5), poziom w Ustawieniach rośnie, znak w opisie ekranu; test-wzorce (Ustawienia → Dźwięk, znak — po „OK”).
+  Dokumenty: ADR (mikrofon w K1), dzwiek.md, aplikacje.md (Ustawienia), gui/ekran (znak), WYGLAD (znak), RYZYKA (nowy
+  wiersz: mikrofon — podsłuch), SLOWNIK („mikrofon”, „znak mikrofonu”).
+
+KROK 2: Mikrofon w przeglądarce; test na laptopach; wydanie            M · D1, T5, T6
+  Cel: strona w sesji z przełącznikiem „Mikrofon” słyszy mikrofon; reszta sesji nie ma wejścia wcale.
+  a. VMM (T5): karta virtio-snd gościa dostaje drugi strumień — nagrywanie (Z KODU: src/strefa/dzwiek.c, dzwiek_prosby.c
+     — dziś jeden strumień wyjścia); próbki z pierścienia od usługi dźwięku do bufora gościa; bez zgody sesji VMM nie
+     pokazuje gościowi wejścia w ogóle (konfiguracja urządzenia: 1 strumień). Prośby gościa pole po polu (jak dziś).
+  b. Nadzorca i Ustawienia (D1): przełącznik „Mikrofon” przy każdej sesji (Ustawienia → Przeglądarka, jak „Szybka grafika
+     i filmy”; domyślnie wyłączony, zmiana od następnego otwarcia sesji); usługa dźwięku pozwala strefie słuchać tylko
+     z tym przełącznikiem (kolumna klienta + stan sesji od nadzorcy).
+  c. Znak mikrofonu na pasku okna sesji (obok głośnika z 0.12.0), kliknięcie wycisza mikrofon tej sesji.
+  d. Firefox w strefie (NIEPEWNE, L7): ALSA gościa → cubeb „alsa” (k1.js: media.cubeb.backend = alsa — Z KODU) nagrywa;
+     okienko zgody strony to okno Firefoksa (strefa) — zgoda K1 jest wyżej (przełącznik i znak).
+  e. Test właściciela (X230, IdeaPad): mikrofon wbudowany i w słuchawkach, próba w Ustawieniach, rozmowa testowa na
+     stronie (np. webcammictest albo Meet), znak na pasku i na oknie, wyciszenie, sesja bez przełącznika — strona nie widzi
+     mikrofonu; potem wydanie (porządki, CHANGELOG z „Opis w K1:”, DO_ZROBIENIA, README, plan → docs/archiwum/).
+  Testy: strefa próbna z trybem „nagrywaj” (z przełącznikiem — próbki z testowego źródła docierają; bez — gość nie widzi
+  wejścia, NEGATYWNY), fuzzing próśb virtio-snd wejścia; test-m4 / test-wzorce (przełącznik w Ustawieniach).
+  Dokumenty: strefa.md, dzwiek.md, aplikacje.md, RYZYKA, plan 0.14.0 (krok 4 — Discord używa tej samej drogi).
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+  [!] D1 (krok 2) Mikrofon w przeglądarce:
+      A (zalecane): przełącznik „Mikrofon” przy każdej sesji, domyślnie wyłączony wszędzie; strona i tak pyta (Firefox).
+      B: tylko Ogólna, zawsze (bez przełącznika). C: bez przeglądarki — mikrofon tylko dla K1 i aplikacji z 0.14.
+  [!] D2 (krok 1) Znak „mikrofon włączony” — szkice (kolor: rekomendacja — terakota jak akcent, wyraźnie inny niż ikona
+      głośnika; miejsce na górnym pasku: przy dźwięku; na pasku okna sesji: obok głośnika).
+  [!] D3 (krok 1) Ustawienia → Dźwięk → Mikrofon: A (zalecane) źródło, poziom, „Wycisz”, „Powiedz coś” z paskiem
+      poziomu; B — tylko „Wycisz” i pasek poziomu (bez wyboru i poziomu).
+Techniczne (decyduje czat w ADR kroku 1, Ty dostajesz krótkie wyjaśnienie):
+  T1 Nagrywanie w tej samej usłudze dźwięku (jeden właściciel karty — ADR 0054 pkt 1), jeden format i 48 kHz; mono czy
+     stereo — z karty (NIEPEWNE); bez przetwarzania (bez tłumienia echa i szumu — „Później”).
+  T2 Pierścień wejścia: memfd od klienta, pisze usługa, klient kopiuje — lustro odtwarzania (k1_dzw_*).
+  T3 Komunikaty: wszystkie 255 numerów typów k1_komunikat są zajęte (ustalenie z planu 0.13.2, krok 3) — mikrofon na
+     istniejących typach z polem kierunku (DZWIEK_KARTA, DZWIEK_OTWORZ, DZWIEK_STAN…) albo najpierw szerszy typ (16 bitów,
+     „Później” z 0.13.2) — wybór w ADR, z kosztem obu.
+  T4 Prywatność: wejście otwarte tylko przy słuchaczu; przy ekranie zabezpieczeń i ekranie hasła — cisza; w logu tylko
+     liczby (kto słucha, ile ramek), nigdy próbki ani poziomy w czasie (niezmiennik 8).
+  T5 virtio-snd: strumień wejścia gościa tylko przy zgodzie sesji (bez zgody urządzenie ma 1 strumień — gość nie wie
+     o mikrofonie); kierunek „input” w prośbach pole po polu.
+  T6 Test bez prawdziwego mikrofonu: QEMU HDA ma wejście, ale `-audiodev wav` tylko zapisuje (NIEPEWNE, L5) — źródło
+     testowe w usłudze dźwięku (ton, tylko obraz testowy, jak dekoder testowy) albo audiodev QEMU z wejściem.
+
+
+5. LUKI (Z KODU po 0.13.2, chyba że napisano inaczej)
+-----------------------------------------------------
+  L1 Usługa dźwięku tylko odtwarza: karta.c — węzeł odtwarzania; KLATKA_DZWIEK — 14 ioctl ALSA bez READI_FRAMES.
+  L2 Nadzorca szuka tylko węzła odtwarzania (dzwiek.c, sysfs class/sound); kontrolki.c celowo nie dotyka wejść.
+  L3 Brak części „Mikrofon” w Ustawieniach i znaku na pasku; tabela K1_DZW_KLIENCI bez kolumny „słucha”.
+  L4 Komunikaty: brak numerów typów (T3).
+  L5 NIEPEWNE: wejście HDA w QEMU z pliku; mikrofon wbudowany IdeaPada — analogowy HDA czy cyfrowy (DMIC przez SOF,
+     z plikami od producenta — wtedy osobna sprawa w jądrze: krok 1 sprawdza log karty na sprzęcie i zapisuje wynik).
+  L6 Karta virtio-snd strefy ma jeden strumień wyjścia (src/strefa/dzwiek.c); gość (jądro strefy) — czy ma sterownik
+     virtio-snd z nagrywaniem (strefa.config — NIEPEWNE, sprawdzić).
+  L7 NIEPEWNE: Firefox ESR 153 nagrywa przez cubeb ALSA w strefie (piaskownica procesu treści — dostęp do /dev/snd).
+  L8 Brak przełącznika „Mikrofon” przy sesji i jego zapisu w skarbcu (format sesji — sesje.c, wzór: szybka grafika).
+
+
+6. NIE W TEJ WERSJI (→ „Później”)
+---------------------------------
+  - Tłumienie echa i szumu, automatyczny poziom; kamera; mikrofon USB i Bluetooth; mikrofon dla aplikacji ze Sklepu
+    (Discord — plan 0.14.0, krok 4, na drodze z tej wersji).
+
+
+7. RYZYKA (wiersze w docs/RYZYKA.md — zmienia krok, który je dotyka)
+-------------------------------------------------------------------
+  - Nowy (krok 1): mikrofon to podsłuch, gdy coś pójdzie źle — wejście tylko przy słuchaczu z prawem w tabeli, znak
+    rysowany przez K1 (strona go nie ukryje), wyciszenie jednym kliknięciem, cisza przy ekranie zabezpieczeń.
+  - Nowy (krok 2): strona w sesji z przełącznikiem słyszy mikrofon — zgoda K1 (przełącznik, domyślnie wyłączony) i zgoda
+    Firefoksa; Bank i Prywatna domyślnie bez.
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------

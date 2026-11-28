@@ -10,6 +10,10 @@ w strefie): trzy sesje i strefa pobierania to wiersze `K1_STREFY`, obraz przegl�
 Brakuje: drogi, którą do K1 trafia inna obca aplikacja, miejsca na jej obraz, okna, w którym się ją wybiera, mikrofonu
 i rozmów przez UDP.
 Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Korekta 2026-11-28 (prośba właściciela): mikrofon w K1 i znak „mikrofon włączony” (krok 4 a–b, D6, T10, L14 część
+o nagrywaniu, L16 część o znaku) przechodzą do wersji 0.13.5 „Mikrofon” (docs/PLAN-0.13.5.txt), która idzie przed tym
+planem. Tu w kroku 4 zostają: zgoda „mikrofon” w wierszu aplikacji (D5 — Discord dostaje wejście drogą z 0.13.5) i UDP
+w Raptor Bridge. 0.13.5 zajmie ADR 0065 — numery ADR w tabeli niżej przesuwają się o jeden.
 Plik jest planem, nie specyfikacją: każdy krok ze zmianą architektury ustala swój ADR (od 0065, kolejne wolne — 0061 i
 0062 bierze plan 0.13.0, 0063 plan 0.13.2).
 
@@ -115,8 +119,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
         aktualizacje obrazów, Ustawienia → Aplikacje, robot
 [ ]  3  Discord: obraz, program startowy z pobieraniem,        L10–L13          2           D4, T7–T9      L        0067
         Electron w kompozytorze strefy, 500 MiB, ikona
-[ ]  4  Rozmowy głosowe: mikrofon w K1, UDP w Raptor Bridge    L14–L16          3           D5, D6, T10,   L        0068
-                                                                                            T11
+[ ]  4  Rozmowy głosowe: zgoda „mikrofon” aplikacji (mikrofon   L14–L16          3, 0.13.5   D5, T11        M–L      0068
+        i znak — 0.13.5), UDP w Raptor Bridge
 [ ]  5  Porządki; wydanie 0.14.0                               L17              1–4         —              S–M      —
 (ADR: 0065 to następny wolny po 0064; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
 
