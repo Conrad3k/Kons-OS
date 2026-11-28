@@ -127,11 +127,12 @@ przełącznikiem szybkiej grafiki — Bank i Prywatna domyślnie bez (Twoje D5 z
         PR #262 (ustalenia ze źródeł, ADR 0063; D3: A, D4: B ze źródeł)
 [x]  2  FFmpeg i libva w strefie: H.264 gra (procesorem)      L6, L7, L15      1           T4               M        —
         PR #263 (FFmpeg 7.1.5 z Debiana 13, libva2 i libva-drm2; H.264 gra na stanowisku)
-[ ]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
+[x]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
         na prośbę, złośliwy gość
-        [w toku: Claude, gałąź claude/dazzling-gates-9d355u]
+        PR #264 (kontekst filmów K1_FILMY = 20, dekoder na prośbę, klatka do bufora strefy; tryby 23 i 24)
 [ ]  4  Sterownik VA strefy, prefy, prośba o H.264,           L1–L3, L5,       2, 3        D1, D2, T2, T3,  L        —
         Ustawienia; test na IdeaPadzie                         L10, L11, L14               T6, T8
+        [w toku: Claude, gałąź claude/gracious-davinci-e32l9s]
 [ ]  5  Porządki; wydanie 0.13.2                               L13, L16         1–4         —                S        —
 (ADR: 0063 przewidywany — następny wolny po krokach 0.13.0.)
 
