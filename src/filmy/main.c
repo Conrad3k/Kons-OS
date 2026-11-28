@@ -4,7 +4,7 @@
  * for one client: the VMM of its zone (one decoder per zone, started and ended with it — nadzorca filmy.c), nadzorca's
  * question at boot ("what does the card decode?" — the answer, then the end) or the test program.
  * Arguments: the zone (0: nadzorca's question), "t": the test decoder (grey frames, no card; test image only, on request
- * of the test program). fd 3 = the channel to the client (its UID checked: the zone's VMM, or UID 0 for nadzorca and the
+ * of the test program), "s" (0.13.2 step 3): the same for the test zone's VMM (its client: the zone's UID). fd 3 = the channel to the client (its UID checked: the zone's VMM, or UID 0 for nadzorca and the
  * test program), fd 4 = the render node of the card (i915; nadzorca gives it only to this service) or /dev/null.
  * First message: FILMY_UMIE — what the card decodes. Then the requests (k1_filmy.h): the window (once), a film open,
  * a picture decoded into a surface, a picture back into the window (0.13.2 step 3: or into a buffer of the card of the
@@ -235,10 +235,10 @@ int main(int argc, char **argv)
     int strefa, test, stan, kod = 0;
     k1_klatka_w_usludze(TAG);
     strefa = argc > 1 ? atoi(argv[1]) : -1;
-    test = argc > 2 && strcmp(argv[2], "t") == 0;
+    test = argc > 2 && (strcmp(argv[2], "t") == 0 || strcmp(argv[2], "s") == 0); /* 0.13.2: "s" — for the test zone's VMM */
     if (strefa < 0 || strefa > K1_STREFY_MAKS || (strefa == 0 && test))
         k1_koniec(TAG, "złe argumenty");
-    klient = strefa == 0 || test ? 0 : (uid_t)k1_strefa(strefa)->uid;
+    klient = strefa == 0 || (argc > 2 && strcmp(argv[2], "t") == 0) ? 0 : (uid_t)k1_strefa(strefa)->uid;
     silnik = test ? &silnik_testowy : &silnik_karty;
     stan = silnik->start(&umie_bity, &umie_w, &umie_h, &kod);
     if (stan != K1_FILMY_KARTA_UMIE)

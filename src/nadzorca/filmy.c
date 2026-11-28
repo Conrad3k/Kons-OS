@@ -158,7 +158,7 @@ int filmy_dla_vmm(int nr)
                                                                        : "poprzedni zakończył się błędem");
         return -1;
     }
-    fd = filmy_dla_strefy(nr, dla_vmm[nr].test);
+    fd = filmy_dla_strefy(nr, dla_vmm[nr].test ? 2 : 0); /* 2: the test decoder for the VMM (its client: the zone) */
     if (fd >= 0)
         k1_log(TAG, "strefa %d: dekoder filmów na prośbę VMM%s", nr, dla_vmm[nr].test ? " (dekoder testowy)" : "");
     return fd;
