@@ -5,25 +5,29 @@ Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych w
 testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
 Stan: 0.13.2 „Filmy kartą” — film w przeglądarce rozpakowuje karta (sesja z „Szybka grafika i filmy”), filmy H.264
-grają w każdej sesji; przed nią 0.13.0 „Bezpieczny start” i 0.13.1 (robot: Firefox 153.8). Następna — 0.14 „Aplikacje”
-(docs/PLAN-0.14.0.txt, punkt 1).
+grają w każdej sesji; przed nią 0.13.0 „Bezpieczny start” i 0.13.1 (robot: Firefox 153.8). Następna — 0.13.5 „Mikrofon”
+(docs/PLAN-0.13.5.txt, punkt 1), po niej 0.14 „Aplikacje”.
 Data: 2026-11-28.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — po wydaniu 0.13.2 „Filmy kartą”: następna 0.14 „Aplikacje”
-------------------------------------------------------------------
+1. TERAZ — po wydaniu 0.13.2 „Filmy kartą”: następna 0.13.5 „Mikrofon”, potem 0.14 „Aplikacje”
+--------------------------------------------------------------------------------------------
 Wersja 0.13.2 wydana 2026-11-28 (plan w docs/archiwum/PLAN-0.13.2.txt, ADR 0063; Twoje decyzje D1: A, D3: A; D2 z 0.10.9;
 D4 — X230 bez filmów kartą — wynikła ze źródeł). Pięć kroków, PR #262, #263, #264, #265 i #267. Wydana bez testu na
 IdeaPadzie (Twoja decyzja z 2026-11-28: „wydawaj od razu”) — sprawdź ją, punkt 4, „Najpierw — nowe w 0.13.2”. Gdyby
 filmy kartą coś psuły: wyłącz przełącznik „Szybka grafika i filmy” w sesji (filmy wracają na procesor) i zgłoś to.
 Robot wydał w trakcie 0.13.1 (Firefox 153.8).
 
-Plan następnej: docs/PLAN-0.14.0.txt „Aplikacje” (ADR 0064: Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi).
+Plan następnej: docs/PLAN-0.13.5.txt „Mikrofon” (Twoja prośba z 2026-11-28; trzy kroki: 1 — mikrofon w K1 (także
+cyfrowy mikrofon laptopa), Ustawienia → Dźwięk i znak „mikrofon włączony”, 2 — mikrofon w przeglądarce z przełącznikiem
+przy sesji, 3 — gładziki starszych MacBooków i pewniejsze rozpoznawanie ładowania (Lenovo Y700), Twój test, wydanie).
 Co wpisać w nowym czacie:
-    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.14.0.txt.”
+    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.5.txt.”
+Po 0.13.5: docs/PLAN-0.14.0.txt „Aplikacje” (ADR 0064: Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi — mikrofon
+już z 0.13.5).
 
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
@@ -39,7 +43,8 @@ Co wpisać w nowym czacie:
     0.13     Bezpieczny start — gotowe: 0.13.0 (łańcuch wydań, TPM, tryb ratunkowy, obraz wydania, dostęp fizyczny,
              zaufany ekran K1, decyzje o jądrze)                                    (M10)
              0.13.2 Filmy kartą — gotowe (karta rozpakowuje H.264 w przeglądarce; krok tematu 0.10 Strefy, ADR 0063)
-    0.14     Aplikacje — NASTĘPNA (docs/PLAN-0.14.0.txt, ADR 0064): Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi
+             0.13.5 Mikrofon — NASTĘPNA (docs/PLAN-0.13.5.txt; krok tematu 0.12 Dźwięk)
+    0.14     Aplikacje — PLAN (docs/PLAN-0.14.0.txt, ADR 0064): Sklep w K1, obraz bazowy, Discord z rozmowami głosowymi
     0.15     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
@@ -49,7 +54,10 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
 
 3. NASTĘPNE WERSJE I PÓŹNIEJ (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 -------------------------------------------------------------------------------------------------------------------
-0.14 Aplikacje — plan: docs/PLAN-0.14.0.txt (stąd wziął: wspólny obraz bazowy, mikrofon; Twoje decyzje z 2026-11-27 —
+0.13.5 Mikrofon — plan: docs/PLAN-0.13.5.txt (mikrofon z planu 0.14.0, krok 4 a–b, gładziki Apple i ładowanie baterii —
+    Twoja prośba z 2026-11-28)
+
+0.14 Aplikacje — plan: docs/PLAN-0.14.0.txt (stąd wziął: wspólny obraz bazowy, mikrofon — od 2026-11-28 w 0.13.5; Twoje decyzje z 2026-11-27 —
     tylko Sklep, bez pendrive'a; robot pomaga, nie warunkuje; pierwsza aplikacja Discord; pamięć na start przy każdej
     aplikacji, Discord 500 MiB — ADR 0064)
 
@@ -100,7 +108,7 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran, pokaz slajdów, przybliżanie kółkiem
         i touchpadem
-  Dźwięk (z planu 0.12.0, punkt 6): mikrofon (D1 = A; od 2026-11-27 w planie 0.14.0, krok 4), HDMI, karty i słuchawki
+  Dźwięk (z planu 0.12.0, punkt 6): mikrofon (D1 = A; od 2026-11-28 w planie 0.13.5), HDMI, karty i słuchawki
     USB, Bluetooth, budzik w Zegarze (korektor i dźwięk przestrzenny — 0.12.3). Z planu 0.12.3, punkt 6: śledzenie ruchu głowy, zbiory HRTF z pomiarów,
     kształtowanie szumu, 96/192 kHz, korektor i scena dla każdej sesji osobno, wyrównywanie głośności, kompresor,
     dźwięk 5.1 z filmów.
@@ -298,6 +306,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     Intel PTT albo TPM); GitHub: logowanie dwuetapowe kluczem sprzętowym i „Watch → Releases” (powiadomienie o każdym
     wydaniu — w ciągu 20 minut możesz je zatrzymać, usuwając wydanie).
 [x] 0.13.2 — decyzje D1: A, D3: A podjęte, D2 z 0.10.9, D4 ze źródeł (docs/archiwum/PLAN-0.13.2.txt, punkt 4).
+[!] 0.13.5 — decyzje D1 (mikrofon w przeglądarce), D2 (szkice znaku), D3 (Ustawienia → Mikrofon), D4 (pliki Intela dla
+    mikrofonu cyfrowego — tylko jeśli potrzebne) — docs/PLAN-0.13.5.txt, punkt 4; czat zada je na początku kroków.
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
