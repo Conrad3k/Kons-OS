@@ -281,7 +281,8 @@ static void zamykanie_koniec(const struct zamykanie *z, int koniec)
         loguj("kanał sterujący: zapis nieudany");
 }
 
-static int z_grafika(void) /* k1.grafika=1 on the command line (the VMM, src/strefa/main.c) */
+/* `opcja` (" k1.grafika=1", " k1.filmy=1") on the command line (the VMM, src/strefa/main.c) */
+static int z_linii(const char *opcja)
 {
     char b[2048];
     ssize_t n;
@@ -293,12 +294,16 @@ static int z_grafika(void) /* k1.grafika=1 on the command line (the VMM, src/str
     if (n <= 0)
         return 0;
     b[n] = '\0';
-    return strstr(b, " k1.grafika=1") != NULL;
+    return strstr(b, opcja) != NULL;
 }
 
 /* The profile's user.js: how Firefox draws in this session (Firefox ESR 153, modules/libpref/init/StaticPrefList.yaml:
- * gfx.webrender.software — the processor; widget.dmabuf.force-enabled — the card's buffers on Wayland). */
-static void prefy(int grafika)
+ * gfx.webrender.software — the processor; widget.dmabuf.force-enabled — the card's buffers on Wayland).
+ * 0.13.2 step 4 (ADR 0063 pkt 7, plan D2): films by the card (k1.filmy=1 — only with fast graphics) — VA-API on (our VA
+ * driver, gosc/va), force-enabled past Firefox's list of blocked drivers (it does not know ours; it never skips the
+ * check for drawing with the card — L2), and the pages get no VP9 and AV1 to offer, so they send H.264 (the card decodes
+ * nothing else). Without films: VA-API off and VP9/AV1 as Firefox has them. Both ways are written at every start. */
+static void prefy(int grafika, int filmy)
 {
     const char *t = grafika ? "// K1: szybka grafika (0.10.9) — rysuje karta\n"
                               "user_pref(\"gfx.webrender.software\", false);\n"
@@ -306,12 +311,24 @@ static void prefy(int grafika)
                             : "// K1: rysuje procesor\n"
                               "user_pref(\"gfx.webrender.software\", true);\n"
                               "user_pref(\"widget.dmabuf.force-enabled\", false);\n";
+    const char *f = filmy ? "// K1: filmy kartą (0.13.2) — H.264 rozpakowuje karta przez dekoder filmów K1\n"
+                            "user_pref(\"media.hardware-video-decoding.enabled\", true);\n"
+                            "user_pref(\"media.hardware-video-decoding.force-enabled\", true);\n"
+                            "user_pref(\"media.mediasource.vp9.enabled\", false);\n"
+                            "user_pref(\"media.av1.enabled\", false);\n"
+                          : "// K1: filmy rozpakowuje procesor\n"
+                            "user_pref(\"media.hardware-video-decoding.enabled\", false);\n"
+                            "user_pref(\"media.hardware-video-decoding.force-enabled\", false);\n"
+                            "user_pref(\"media.mediasource.vp9.enabled\", true);\n"
+                            "user_pref(\"media.av1.enabled\", true);\n";
     int fd = open("/home/k1/profil/user.js", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0644);
-    if (fd < 0 || write(fd, t, strlen(t)) != (ssize_t)strlen(t) || fchown(fd, UZYTKOWNIK, UZYTKOWNIK) != 0)
+    if (fd < 0 || write(fd, t, strlen(t)) != (ssize_t)strlen(t) || write(fd, f, strlen(f)) != (ssize_t)strlen(f) ||
+        fchown(fd, UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("user.js: %s", strerror(errno));
     if (fd >= 0)
         close(fd);
-    loguj("przeglądarka: %s", grafika ? "szybka grafika — rysuje karta" : "rysuje procesor");
+    loguj("przeglądarka: %s%s", grafika ? "szybka grafika — rysuje karta" : "rysuje procesor",
+          filmy ? ", filmy kartą" : "");
 }
 
 void przegladarka(int ster)
@@ -348,8 +365,8 @@ void przegladarka(int ster)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
     dzwiek_dla_przegladarki();
-    grafika = z_grafika();
-    prefy(grafika);
+    grafika = z_linii(" k1.grafika=1");
+    prefy(grafika, grafika && z_linii(" k1.filmy=1"));
     uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);
     uruchom(AGENT, a_agent, env_k1, UZYTKOWNIK, -1); /* 0.11.0 step 2: a finished download → K1 asks the user */
     if (pipe2(okno, O_CLOEXEC | O_NONBLOCK) != 0)

@@ -192,6 +192,33 @@ jego pierwsze słowo (`FILMY_UMIE`) i zamyka kanał; odmowa albo cisza — zbior
 - Pamięć: nadzorca dodaje VMM-owi z pośrednikiem `K1_KF_PAMIEC_VMM` (okno dekodera + 4 pamięci wspólne).
 - Licznik w logu na końcu: „filmy kartą: polecenia N (błędy M)”.
 
+## Sterownik VA strefy (0.13.2 krok 4, ADR 0063 pkt 2, 3, 7)
+Firefox w sesji z filmami kartą rozpakowuje H.264 przez VA-API (FFmpeg `h264_vaapi` w procesie RDD); libva wybiera
+sterownik po nazwie sterownika jądra (`virtio_gpu`) — to nasz `virtio_gpu_drv_video.so` w `/usr/lib/x86_64-linux-gnu/dri`
+obrazu strefy (`src/strefa/gosc/va/`, budowany na glibc strefy jak Mesa — reguła w `Makefile`, tylko `libc`, jedna
+funkcja widoczna: `__vaDriverInit_1_0`). Nie mówi z żadną kartą — każdy obraz to jedna prośba `k1_filmy` przez kontekst
+filmów:
+- **Start** (`sterownik.c`): zbiór możliwości `K1_FILMY` z węzła libva (`lacze.c`; `sprawdz.c` — wersja, znane kodeki,
+  rozmiary); bez niego (sesja bez filmów kartą, X230) `vaInitialize` się nie udaje i Firefox gra procesorem. Profile
+  H.264 z bitów zbioru (`K1_KODEKI`), wejście tylko `VLD`, powierzchnie tylko NV12. `vaapitest` Firefoksa nie otwiera
+  niczego więcej — dekodera w K1 nie budzi.
+- **Powierzchnia** (`powierzchnie.c`) = bufor karty strefy: osobny deskryptor z kontekstem DRM (jak Mesa, `GEM_CREATE`
+  z blobem), liniowy NV12 w układzie dekodera (`k1_filmy_bufor_*`); pamięć liczy się do pośrednika (`K1_POSR_PAMIEC`).
+  `vaExportSurfaceHandle` daje Firefoksowi dma-buf z dwiema warstwami (R8 + GR88) albo jedną NV12.
+- **Film** = kontekst VA: pierwszy otwiera kontekst filmów (osobny deskryptor), `K1_KF_OTWORZ` z 20 numerami powierzchni;
+  pula FFmpeg rośnie sama (VA-API 1.x: kontekst nie dostaje listy powierzchni), więc numery daje `klatki.c` — powierzchnia
+  dostaje numer przy pierwszym obrazie, oddaje go nowej tylko wtedy, gdy obraz się do niej nie odwołuje. Ostatni film
+  zamknięty — kontekst filmów zamknięty, dekoder w K1 kończy się.
+- **Obraz** (`obraz.c`, `h264.c` — czyste): bufory VA (parametry obrazu, macierz, pary plaster + dane) → prośba wprost
+  w pamięci wspólnej kontekstu, potem `K1_KF_KLATKA` i `K1_KF_POBIERZ` (klatka do bufora powierzchni) — oba czekają na
+  płot, więc `vaSyncSurface` nie ma na co czekać. Odniesienie do powierzchni, której K1 nie rozpakował (luka w
+  `frame_num`) — „brak”; błąd K1 = błąd VA (FFmpeg porzuca obraz, Firefox przechodzi na procesor).
+- **Prefy** (`gosc/przegladarka.c`): VMM dopisuje `k1.filmy=1` do linii gościa, gdy urządzenie ma zbiór `K1_FILMY`;
+  `user.js` dostaje wtedy `media.hardware-video-decoding.enabled` i `.force-enabled` = `true`, `media.mediasource.vp9.enabled`
+  i `media.av1.enabled` = `false` (strony wysyłają H.264 — D2); bez filmów odwrotnie, przy każdym starcie.
+- Testy: `test_va_strefy` (sterownik przez tabelę libva jak vaapitest i FFmpeg, przeciw udawanemu K1, który sprawdza każdą
+  prośbę `k1_filmy_sprawdz`), `fuzz_va_strefy`; Firefox z kartą — właściciel na IdeaPadzie (about:support → „Media”).
+
 ## Okno
 Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Na
 początku **ekran startu**: „Uruchamiam: <tytuł> · <sesja>…” z ikoną strefy i paskiem, po którym przesuwa się odcinek w
