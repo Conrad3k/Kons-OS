@@ -11,6 +11,25 @@
 
 #define TAG "K1-DZWIEK"
 #define FD_NADZORCA 3 /* from nadzorca, one way (its UID 0 checked): the card's nodes, the clients' channels */
+#define KLIENCI_MAKS 12 /* channels at once (gui, Ustawienia, the test program, a VMM per zone with a window) */
+
+struct pollfd;
+extern int stan_karty;  /* K1_DZW_KARTA_* (main.c) */
+extern double cisza_od; /* CLOCK_MONOTONIC when the last stream ended (klienci.c) */
+
+/* klienci.c — the clients' channels, their messages and streams, the volume of K1 and of each session (0.13.5: split
+ * from main.c). */
+void klienci_start(void);
+void klienci_nowy(const struct k1_komunikat *m, int fd); /* DZWIEK_KLIENT from nadzorca */
+void klienci_poll(struct pollfd *pfd);                  /* KLIENCI_MAKS entries */
+void klienci_obsluz(const struct pollfd *pfd);          /* the same entries after poll */
+int klienci_czas(int czas);                             /* the poll's timeout for the sessions' state */
+void klienci_sesje(void);                               /* which session plays, to the steering clients */
+void klienci_stan_wszystkim(void);                      /* DZWIEK_STAN to every client */
+int klienci_strumienie(void);                           /* streams open now */
+unsigned long klienci_zmieszaj(float *suma);            /* each stream's period into the sum: bad F32 samples */
+float klienci_wzmocnienie(int wyjscie);                 /* the volume of K1 on `wyjscie` as a gain */
+void klienci_zerwij(void);                              /* the card failed: every stream ends */
 
 /* karta.c — the playback node (pcmC<k>D<u>p) from nadzorca: 48 kHz, stereo, K1_DZW_OKRESY periods of K1_DZW_OKRES
  * frames; 0.12.3 (ADR 0055, T1): the card's best format of its table — 24 bits (HDA: S32_LE with 24 significant), 20,
