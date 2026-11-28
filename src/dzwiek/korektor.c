@@ -2,7 +2,7 @@
  *
  * Each output (the speakers, the headphones) has its own ten bands, set by a steering client (DZWIEK_KOREKTOR: Ustawienia
  * → Dźwięk → Korektor; gui gives the remembered ones to every new service) and told to every steering client
- * (DZWIEK_KOREKTOR_STAN) — gui remembers them, Ustawienia and the popover show them. The equalizer runs on the sum of the
+ * (DZWIEK_KOREKTOR back: its state) — gui remembers them, Ustawienia and the popover show them. The equalizer runs on the sum of the
  * streams, before the volume of K1 (k1_korektor.c: pure); when the output changes (headphones plugged in) its bands take
  * over across one period, as any other change. Flat: nothing is computed. The cost is measured: once a minute in the log,
  * the mean time of a period (T6: the service under 5 % of one core of the X230). The bands are numbers from a client:
@@ -36,7 +36,7 @@ struct k1_komunikat korektor_stan(int wyjscie)
 {
     int32_t pola[3];
     k1_kor_do_pol(pasma[wyjscie], pola);
-    return k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR_STAN, 0, wyjscie, pola[0], pola[1], pola[2], 0);
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, wyjscie, pola[0], pola[1], pola[2], 0);
 }
 
 static void loguj(int w, double t)

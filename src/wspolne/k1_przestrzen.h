@@ -93,7 +93,7 @@ const char *k1_prz_nazwa(const struct k1_prz_scena *s);
 /* 1: both play the same (off and off, or on with the same places). */
 int k1_prz_rowne(const struct k1_prz_scena *a, const struct k1_prz_scena *b);
 
-/* In a message (DZWIEK_SCENA, DZWIEK_SCENA_STAN: b, c, d, e): b = 1 on / 0 off; c = the four directions, d = the four
+/* In a message (DZWIEK_SCENA, both ways: b, c, d, e): b = 1 on / 0 off; c = the four directions, d = the four
  * widths (in steps of K1_PRZ_KROK, a byte a band: two's complement −90..90, and 0..90), e = the four distances (0..100);
  * band i in byte i of each field. Inline: the check of the messages (k1_kom_dzwiek.c, in every program) needs it. */
 static inline void k1_prz_do_pol(const struct k1_prz_scena *sc, int32_t pola[4])

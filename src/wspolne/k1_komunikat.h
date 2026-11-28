@@ -242,48 +242,65 @@ enum k1_komunikat_typ {
                                    * K1_DZW_WYJSCIE_* (BRAK: no card — then a=b=0), d,e=0 — ekran shows its pill */
     /* 0.12.0 step 1 (ADR 0054): sound — formats and limits: k1_dzwiek.h; obiekt=0 in every one. nadzorca → the sound
      * service (its fd 3, one way: K1_KIER_STEROWANIE) */
-    K1_KOM_DZWIEK_KARTA = 4,       /* a=K1_DZW_WEZEL_* (ODTWARZANIE: b=the card, c=its device; KONTROLKI: b=the card, c=0;
-                                    * 0..K1_DZW_KARTA_NR_MAKS), d=e=0; + 1 fd: that node of /dev/snd */
+    K1_KOM_DZWIEK_KARTA = 4,       /* a=K1_DZW_WEZEL_* (ODTWARZANIE, 0.13.5: NAGRYWANIE: b=the card, c=its device; KONTROLKI:
+                                    * b=the card, c=0; 0..K1_DZW_KARTA_NR_MAKS), d=e=0; + 1 fd: that node of /dev/snd */
     K1_KOM_DZWIEK_KLIENT = 5,      /* a=the client's row 1..K1_DZW_KLIENCI_MAKS, b=its UID 0..65535, c=its zone 1..K1_STREFY_MAKS
-                                    * for a client STREFA (step 3), else 0, d,e=0; + 1 fd: the
+                                    * for a client STREFA (step 3), else 0, d=1 it may hear the microphone (0.13.5 step 2:
+                                    * a client STREFA whose session has the switch "Mikrofon"; else 0), e=0; + 1 fd: the
                                     * service's end of the client's channel (the service checks that UID as the sender) */
     K1_KOM_DZWIEK_BEZ_KARTY = 6,   /* all 0: 5 s after the start there is no card with a playback device */
-    /* a client → dzwiek (K1_KIER_DO_DZWIEKU): one stream at a time */
-    K1_KOM_DZWIEK_OTWORZ = 7,      /* a=the ring's format K1_DZW_FORMAT_* (0.12.3; 0: S16), b..e=0; + 1 fd: the ring, a memfd
-                                    * of exactly k1_dzw_pierscien_bajty(a) sealed against shrinking and growing — a new
-                                    * stream (refused or no card: ODTWORZONO a=0, b=1) */
+    /* a client → dzwiek (K1_KIER_DO_DZWIEKU): one stream at a time each way (0.13.5: one it plays, one it hears) */
+    K1_KOM_DZWIEK_OTWORZ = 7,      /* a=the ring's format K1_DZW_FORMAT_* (0.12.3; 0: S16), b=K1_DZW_KIER_GRA / K1_DZW_KIER_SLUCHA
+                                    * (0.13.5: the microphone into the ring — a client with the right, k1_dzw_klient_slucha),
+                                    * c..e=0; + 1 fd: the ring, a memfd of exactly k1_dzw_pierscien_bajty(a) sealed against
+                                    * shrinking and growing — a new stream (refused or no card: ODTWORZONO a=0, b=1; to hear:
+                                    * NAGRANO a=0, b=1) */
     K1_KOM_DZWIEK_ZAPISANO = 8,    /* a=new frames 1..K1_DZW_PIERSCIEN written after the previous ones (more than the ring
                                     * holds, or no stream: the client loses its channel), b..e=0 */
     K1_KOM_DZWIEK_ZAMKNIJ = 9,     /* a=K1_DZW_PO_ODEGRANIU (the stream ends when what was written played) / K1_DZW_OD_RAZU,
-                                    * b..e=0 */
+                                    * b=K1_DZW_KIER_* (0.13.5: SLUCHA — it hears no more, a=OD_RAZU), c..e=0 */
+    K1_KOM_DZWIEK_MIKROFON = 49,   /* 0.13.5 step 1 (ADR 0065): a=K1_DZW_MIK_* what — USTAW (a steering client): b=the level
+                                    * 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted; POZIOM (a client that may hear it): b=1 it watches
+                                    * the level (Ustawienia's "Powiedz coś" — the microphone opens) / 0; WSTRZYMAJ (gui only):
+                                    * b=1 its security screen is on top (silence to every listener) / 0; SESJA (step 2, a
+                                    * steering client): b=a zone 1..K1_STREFY_MAKS, c=1 its microphone muted; TESTOWY (the test
+                                    * program only): b=1 a tone in the microphone / 0; the other fields 0 */
     K1_KOM_DZWIEK_GLOSNOSC = 41,   /* a steering client only (K1_DZW_KLIENCI): a=the volume of all K1 0..K1_DZW_GLOSNOSC_MAKS,
                                     * b=1 muted / 0, c=of which output K1_DZW_WYJSCIE_* (step 2, D5; BRAK: the one
                                     * playing now), d=0 — or (step 3) d=a zone 1..K1_STREFY_MAKS: the volume and the
                                     * mute of its session (c=0), e=0 */
     K1_KOM_DZWIEK_KOREKTOR = 29,   /* 0.12.3 step 2 (ADR 0055), a steering client only: a=the output K1_DZW_WYJSCIE_GLOSNIKI /
                                     * SLUCHAWKI, b,c,d=its ten bands, half-decibels −K1_KOR_MAKS..K1_KOR_MAKS, four a field
-                                    * (k1_kor_do_pol; the unused bytes 0), e=0 — the equalizer of that output */
+                                    * (k1_kor_do_pol; the unused bytes 0), e=0 — the equalizer of that output. Both ways of the
+                                    * client's channel (0.13.5, ADR 0065 — until then KOREKTOR_STAN = 49): from the service
+                                    * the same fields are its state — first (both outputs), and after every change */
     K1_KOM_DZWIEK_SCENA = 255,     /* 0.12.3 step 3 (ADR 0055), a steering client only: a=the output GLOSNIKI / SLUCHAWKI,
                                     * b=1 Kons Spatial Audio on / 0 off, c=the four bands' directions, d=their widths (bytes in
                                     * steps of K1_PRZ_KROK: −90..90, 0..90), e=their distances (bytes 0..100) — k1_prz_do_pol
                                     * — the scene of that output; step 4: a=the output + K1_DZW_SCENA_WLASNA — its "Własna"
-                                    * (b=1 there is one), kept, not played */
+                                    * (b=1 there is one), kept, not played. Both ways, as DZWIEK_KOREKTOR (0.13.5 — until then
+                                    * SCENA_STAN = 251) */
     /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
-    K1_KOM_DZWIEK_KOREKTOR_STAN = 49, /* 0.12.3 step 2, to a steering client: as DZWIEK_KOREKTOR — first (both outputs), and
-                                       * after every change */
-    K1_KOM_DZWIEK_SCENA_STAN = 251, /* 0.12.3 step 3, to a steering client: as DZWIEK_SCENA — first (both outputs), and after
-                                     * every change */
     K1_KOM_DZWIEK_STAN = 42,       /* a=K1_DZW_KARTA_*, b=the volume 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted, d=K1_DZW_WYJSCIE_*
                                     * (BRAK unless a=JEST, then not BRAK; step 2: SLUCHAWKI while something is in their
-                                    * jack), e=0 — b, c of that output; first, and after every change */
+                                    * jack), e=the microphone (0.13.5: k1_dzw_mik_pole — its source, level, mute, held, K1
+                                    * hears it; to a steering client only, else 0) — b, c of that output; first, and after
+                                    * every change */
+    K1_KOM_DZWIEK_NAGRANO = 251,   /* 0.13.5 step 1 (ADR 0065), to a client that hears the microphone: a=new frames in its ring
+                                    * 0..K1_DZW_PIERSCIEN since the last (0: it watches the level only), b=1 it hears no more
+                                    * (refused, no microphone, closed; then a=0) / 0, c=the level 0..100 of the last periods
+                                    * (k1_dzw_mik_poziom), d=e=0 */
     K1_KOM_DZWIEK_ODTWORZONO = 43, /* a=frames taken from the client's ring since the last 0..K1_DZW_PIERSCIEN (room for as
                                     * many new ones), b=1 its stream ended (a may be 0) / 0 (then a ≥ 1), c..e=0 */
     /* nadzorca → gui (its fd 5) */
     K1_KOM_DZWIEK_SESJA = 46,      /* step 3 (D6: A), to a steering client: a=the zone 1..K1_STREFY_MAKS, b=1 it plays
-                                    * (K1_DZW_GRA_S), c=its volume 0..100, d=1 muted, e=0 — after every change */
+                                    * (K1_DZW_GRA_S), c=its volume 0..100, d=1 muted, e=its microphone (0.13.5 step 2:
+                                    * K1_DZW_SES_SLUCHA | K1_DZW_SES_MIK_WYCISZONY) — after every change */
     K1_KOM_DZWIEK_KANAL = 44,      /* all 0; + 1 fd: gui's end of its channel to dzwiek (again after the service restarts) */
     /* the test program → nadzorca (test image only) */
-    K1_KOM_TEST_DZWIEK = 45,       /* all 0 → TEST_GNIAZDO + 1 fd: a channel to dzwiek as the client TEST (its UID 0) */
+    K1_KOM_TEST_DZWIEK = 45,       /* a=0 → TEST_GNIAZDO + 1 fd: a channel to dzwiek as the client TEST (its UID 0); 0.13.5:
+                                    * a=another row of K1_DZW_KLIENCI — as that client (a zone: zone 1, b=1 it may hear the
+                                    * microphone), to see what the service refuses it; c..e=0 */
     K1_KOM_SCHOWEK = 249,             /* ekran → a client: obiekt=its window, a=bytes 1..K1_SCHOWEK_MAKS, b=where it was copied
                                        * (0 K1, a zone's number), c..e=0; + 1 sealed memfd — to an application: the answer to
                                        * SCHOWEK_DAJ; to a zone's VMM: right before Ctrl+V goes to its window (D5: A) */

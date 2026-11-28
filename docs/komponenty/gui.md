@@ -75,14 +75,22 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   (`DZWIEK_KOREKTOR_STAN`, zmiana z Ustawień — po tym, jak usługa ma już zapamiętane), daje każdej nowej usłudze
   (`DZWIEK_KOREKTOR`); log przy starcie „dźwięk: zapamiętany korektor — głośniki: …, słuchawki: …”. **Scena Kons Spatial
   Audio** (0.12.3 krok 3) tak samo: rekord „K1G3” (54 B: „K1G2” i po nim scena głośników i słuchawek, po 13 B — włączona,
-  kierunki, szerokości, odległości pasm; „K1G2” i „K1G1” czyta dalej — sceny na start: od 0.13.0 „Koncert” z basem na 4 %, włączony; ADR 0055 pkt 21), `DZWIEK_SCENA_STAN` od usługi,
+  kierunki, szerokości, odległości pasm; „K1G2” i „K1G1” czyta dalej — sceny na start: od 0.13.0 „Koncert” z basem na 4 %, włączony; ADR 0055 pkt 21), `DZWIEK_SCENA` od usługi (jej stan),
   `DZWIEK_SCENA` każdej nowej; log przy starcie „dźwięk: zapamiętana scena — głośniki: …, słuchawki: …”. **Krok 4**
   (D6: A): też „Własna” obu wyjść — rekord „K1G4” (80 B: „K1G3” i po nim „Własna” głośników i słuchawek po 13 B; włączona =
   jest), `DZWIEK_SCENA` z a = wyjście + 16 każdej nowej usłudze; w okienku pod „Korektor” wiersz 36 px: przełącznik Kons
   Spatial Audio (scena wyjścia, które gra — log „okienko dźwięku: Kons Spatial Audio włączony (Słuchawki)”) i nazwa sceny
   („Kino”, „Własna”, „Wyłączony”) ze strzałką; reszta wiersza: `POKAZ_USTAWIENIA` a = PRZESTRZEN (Ustawienia na scenie;
   opis ekranu: „Kons Spatial Audio” — przełącznik, „Scena” — wiersz); okienko ma 300 × 238 (powierzchnia rośnie jak przy
-  „Grają teraz”). Log: „dźwięk: zapamiętana głośność —
+  „Grają teraz”). **0.13.5 krok 1** (ADR 0065): rekord „K1G5” (82 B: „K1G4” i po nim poziom mikrofonu 0…100 i jego
+  wyciszenie), `DZWIEK_MIKROFON` USTAW każdej nowej usłudze. **Znak „mikrofon włączony”** (`mikrofon.c`, D2: A): póki
+  usługa mówi, że ktoś słucha (`DZWIEK_STAN` e — K1; krok 2: `DZWIEK_SESJA` e — sesja), na górnym pasku po lewej od pigułki
+  sieci, baterii i dźwięku stoi osobna terakotowa pigułka 32 × 24 z mikrofonem (wyciszony: szara, przekreślona; opis
+  ekranu: „Mikrofon”); log „mikrofon: znak pokazany (ktoś słucha)”, „mikrofon: znak zniknął”. Kliknięcie — okienko
+  „Mikrofon” (300 px, rośnie z listą): źródło, „Słucha teraz” (Ustawienia → Dźwięk, sesje — kropka i nazwa; nazwy sesji
+  nigdy w logu), okrągły przycisk „Wycisz mikrofon”. Klawisz laptopa KEY_MICMUTE wycisza i włącza mikrofon zawsze. Gdy
+  otwiera się ekran zabezpieczeń (Ctrl+Alt+Del), pulpit mówi usłudze `WSTRZYMAJ` b = 1 (cisza dla słuchaczy), przy
+  zamknięciu b = 0; nowej usłudze — od razu, gdy ekran jest otwarty. Log: „dźwięk: zapamiętana głośność —
   głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”. **Krok 3** (D2: B, D6: A): lista **„Grają teraz”** pod
   kreską okienka — wiersz dla każdej sesji, która gra (`DZWIEK_SESJA` od usługi): kropka w kolorze sesji, jej nazwa,
   okrągły przycisk wyciszenia 24 px, suwak głośności sesji, procenty; okienko rośnie o wiersze (powierzchnia okienka paska

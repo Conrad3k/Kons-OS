@@ -67,8 +67,9 @@ odrzuconych, te zmienia człowiek): nigdy równolegle z otwartym PR-em robota ze
 2. STAN KROKÓW (aktualizuje każdy czat)
 ---------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Mikrofon w K1: nagrywanie, Ustawienia → Dźwięk, znak   L1–L5            0.13.2      D2, D3, T1–T4    M        0065
+[x]  1  Mikrofon w K1: nagrywanie, Ustawienia → Dźwięk, znak   L1–L5            0.13.2      D2, D3, T1–T4    M        0065
 [ ]  2  Mikrofon w przeglądarce                               L6–L8            1           D1, T5, T6       M        —
+        [w toku: Claude, gałąź claude/dreamy-cray-0fpp2n]
 [ ]  3  Gładziki Apple, ładowanie baterii; test na laptopach;  L9–L12           2           T7, T8           M        —
         wydanie
 
@@ -153,12 +154,12 @@ KROK 3: Gładziki Apple, ładowanie baterii; test na laptopach; wydanie   M · T
 4. DECYZJE
 ----------
 Twoje (produkt):
-  [!] D1 (krok 2) Mikrofon w przeglądarce:
+  [x] D1 (krok 2) Mikrofon w przeglądarce — właściciel 2026-11-28: A.
       A (zalecane): przełącznik „Mikrofon” przy każdej sesji, domyślnie wyłączony wszędzie; strona i tak pyta (Firefox).
       B: tylko Ogólna, zawsze (bez przełącznika). C: bez przeglądarki — mikrofon tylko dla K1 i aplikacji z 0.14.
-  [!] D2 (krok 1) Znak „mikrofon włączony” — szkice (kolor: rekomendacja — terakota jak akcent, wyraźnie inny niż ikona
+  [x] D2 (krok 1) — właściciel 2026-11-28: A (szkic „osobna terakotowa pigułka”). Znak „mikrofon włączony” — szkice (kolor: rekomendacja — terakota jak akcent, wyraźnie inny niż ikona
       głośnika; miejsce na górnym pasku: przy dźwięku; na pasku okna sesji: obok głośnika).
-  [!] D3 (krok 1) Ustawienia → Dźwięk → Mikrofon: A (zalecane) źródło, poziom, „Wycisz”, „Powiedz coś” z paskiem
+  [x] D3 (krok 1) — właściciel 2026-11-28: A. Ustawienia → Dźwięk → Mikrofon: A (zalecane) źródło, poziom, „Wycisz”, „Powiedz coś” z paskiem
       poziomu; B — tylko „Wycisz” i pasek poziomu (bez wyboru i poziomu).
   [!] D4 (krok 1, tylko jeśli L5 tak wyjdzie) Mikrofon cyfrowy wpięty w procesor dźwięku Intela (DSP), a nie w kodek:
       A — pliki od Intela dla DSP w jądrze (jak pliki kart Wi-Fi: zamknięty kod na karcie, tabela z sumami) i jego
@@ -231,3 +232,20 @@ Techniczne (decyduje czat w ADR kroku 1, Ty dostajesz krótkie wyjaśnienie):
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
+Krok 1 (2026-11-28, Claude, gałąź claude/dreamy-cray-0fpp2n; ADR 0065):
+  - Decyzje właściciela: D1 = A, D2 = A (osobna terakotowa pigułka; szkice A/B/C z kodu rysowania K1), D3 = A. D4 — nie
+    potrzebna teraz: oczekujemy mikrofonu w kodeku HD Audio na X230 i IdeaPadzie (L5 a); potwierdzi test właściciela
+    (log usługi: „karta 0, urządzenie N: nagrywanie …”, „gniazdo mikrofonu: …”; raport z Ustawień → Informacje).
+  - T3 (komunikaty): bez szerszego typu — DZWIEK_KOREKTOR i DZWIEK_SCENA chodzą w obie strony kanału klienta (ich _STAN
+    miały te same pola), zwolnione 49 i 251 to DZWIEK_MIKROFON i DZWIEK_NAGRANO; kierunek strumienia w polu b
+    OTWORZ/ZAMKNIJ, stan mikrofonu w DZWIEK_STAN e. Szerszy typ zostaje w „Później”.
+  - Ustawienia → Dźwięk: czwarta zakładka „Mikrofon” nie mieści się w oknie 720 px obok „Kons Spatial Audio” — część
+    „Mikrofon” stoi na zakładce „Głośność” pod „Odtwórz próbę” (dopisek „K1 pamięta głośność…” ustąpił jej miejsca).
+  - L1–L4 zamknięte: nagrywanie.c (READI_FRAMES — jedyny nowy ioctl), mikrofon.c, kolumna „słucha” w K1_DZW_KLIENCI,
+    węzeł nagrywania od nadzorcy. src/dzwiek/main.c podzielony przed rozbudową (klienci.c).
+  - Test bez mikrofonu (T6): QEMU 8.2 — drugi kodek `hda-micro` z `-audiodev none` nagrywa ciszę (karta przyjmuje tylko
+    16 bitów), ton testowy daje program testowy (TESTOWY); w test-wzorce ten sam kodek — wzorzec pokazuje całą część.
+  - Testy: test_mikrofon (296), test_dzwiek, fuzz_mikrofon; t_mikrofon (bez karty, negatywne: pulpit, Ustawienia o próbki,
+    strefa bez przełącznika, WSTRZYMAJ i TESTOWY nie od swoich); test-m1 12/12 (w systemie 299/299); test-dzwiek.sh 86/86
+    (10 nowych: węzeł nagrywania, „Powiedz coś” — pasek ponad połowę, znak i okienko, wyciszenie, Ctrl+Alt+Del — cisza,
+    „Zatrzymaj” — karta nie nagrywa); test-wzorce — zmiana tylko Ustawienia → Dźwięk, przyjęta przez właściciela.

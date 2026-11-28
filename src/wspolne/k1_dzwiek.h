@@ -38,18 +38,25 @@
 #define K1_DZW_ZAPAS 2.0
 
 /* Who may be a client of the sound service — one table (rule 5; step 3 adds the zones).
- * X(NAME, number 1.., name in the log, 1: may steer — set the volume and the mute of all K1). */
+ * X(NAME, number 1.., name in the log, 1: may steer — set the volume and the mute of all K1, may hear the microphone —
+ * K1_DZW_SLUCHA_*: 0.13.5, ADR 0065). */
 #define K1_DZW_KLIENCI(X)                                                                                     \
-    X(GUI, 1, "pulpit", 1)            /* the popover "Dźwięk": the volume, the mute, "Odtwórz próbę" */      \
-    X(TEST, 2, "program testowy", 1)  /* the test image only (TEST_DZWIEK) */                               \
-    X(USTAWIENIA, 3, "Ustawienia", 1) /* step 2: Ustawienia → Dźwięk (DZWIEK_KANAL on its fd 4) */          \
-    X(STREFA, 4, "strefa", 0)         /* step 3: a zone's VMM, for its guest (virtio-snd; DZWIEK_KANAL on fd 7) */
+    X(GUI, 1, "pulpit", 1, NIE)            /* the popover "Dźwięk": the volume, the mute, "Odtwórz próbę"; 0.13.5:    \
+                                            * the microphone's sign and its mute — never its sound */              \
+    X(TEST, 2, "program testowy", 1, PROBKI) /* the test image only (TEST_DZWIEK) */                            \
+    X(USTAWIENIA, 3, "Ustawienia", 1, POZIOM) /* step 2: Ustawienia → Dźwięk (DZWIEK_KANAL on its fd 4); 0.13.5:  \
+                                               * "Powiedz coś" — the level only, never a sample */               \
+    X(STREFA, 4, "strefa", 0, PROBKI)      /* step 3: a zone's VMM, for its guest (virtio-snd; DZWIEK_KANAL on fd 7); \
+                                            * 0.13.5 step 2: hears only when nadzorca says so (DZWIEK_KLIENT d) */
+/* 0.13.5: what a client may hear of the microphone — nothing, the level (a bar that moves), the samples (its ring) */
+enum { K1_DZW_SLUCHA_NIE = 0, K1_DZW_SLUCHA_POZIOM = 1, K1_DZW_SLUCHA_PROBKI = 2 };
 #define K1_X_DZW_KLIENT(n, nr, ...) K1_DZW_KLIENT_##n = nr,
 enum k1_dzw_klient { K1_DZW_KLIENCI(K1_X_DZW_KLIENT) };
 #define K1_X_DZW_LICZ(...) +1
 enum { K1_DZW_KLIENCI_MAKS = 0 K1_DZW_KLIENCI(K1_X_DZW_LICZ) }; /* numbered 1..MAKS (checked in k1_dzwiek.c) */
 const char *k1_dzw_klient_nazwa(int nr); /* NULL outside 1..MAKS */
 int k1_dzw_klient_steruje(int nr);        /* 1: may steer (0 outside 1..MAKS) */
+int k1_dzw_klient_slucha(int nr);         /* K1_DZW_SLUCHA_* (NIE outside 1..MAKS) */
 
 /* The formats of a client's ring (0.12.3 step 1, ADR 0055; rule 5: a new one is a row) — DZWIEK_OTWORZ a.
  * X(NAME, number, bytes of a frame, name in the log). */
@@ -63,8 +70,46 @@ uint32_t k1_dzw_ramka_bajty(int format);   /* bytes of one frame; 0 outside 0..M
 const char *k1_dzw_format_nazwa(int format); /* NULL outside 0..MAKS */
 size_t k1_dzw_pierscien_bajty(int format); /* K1_DZW_PIERSCIEN frames of it; 0 outside */
 
-/* DZWIEK_KARTA a: which node of the card comes with it */
-enum { K1_DZW_WEZEL_ODTWARZANIE = 1, K1_DZW_WEZEL_KONTROLKI = 2 };
+/* DZWIEK_KARTA a: which node of the card comes with it (0.13.5: its recording node, the microphone) */
+enum { K1_DZW_WEZEL_ODTWARZANIE = 1, K1_DZW_WEZEL_KONTROLKI = 2, K1_DZW_WEZEL_NAGRYWANIE = 3 };
+#define K1_DZW_WEZEL_MAKS 3
+/* DZWIEK_OTWORZ b, DZWIEK_ZAMKNIJ b (0.13.5): the stream a client plays, or the one it hears (the microphone) */
+enum { K1_DZW_KIER_GRA = 0, K1_DZW_KIER_SLUCHA = 1 };
+/* DZWIEK_MIKROFON a (0.13.5 step 1, ADR 0065): what the client asks — see k1_komunikat.h */
+enum { K1_DZW_MIK_USTAW = 1, K1_DZW_MIK_POZIOM = 2, K1_DZW_MIK_WSTRZYMAJ = 3, K1_DZW_MIK_SESJA = 4, K1_DZW_MIK_TESTOWY = 5 };
+#define K1_DZW_MIK_MAKS 5
+/* DZWIEK_SESJA e (step 2): the session hears the microphone now; its microphone is muted (a click on its sign) */
+#define K1_DZW_SES_SLUCHA 1
+#define K1_DZW_SES_MIK_WYCISZONY 2
+/* The microphone as the steering clients see it (DZWIEK_STAN e, k1_dzw_mik_pole): where it is, its level and mute, held
+ * (gui's security screen on top: every listener gets silence), K1 hears it (Ustawienia's "Powiedz coś", the test
+ * program; the sessions — DZWIEK_SESJA e). The source: none (no recording node), built in, in the headphones' jack (the
+ * kernel switches to it itself — the HDA parser's auto-mic; the service only reads the jack). */
+enum { K1_DZW_ZRODLO_BRAK = 0, K1_DZW_ZRODLO_WBUDOWANY = 1, K1_DZW_ZRODLO_SLUCHAWKI = 2 };
+#define K1_DZW_ZRODLO_MAKS 2
+#define K1_DZW_MIK_START 50 /* the level until gui gives the remembered one: 0 dB (k1_mik_wzmocnienie) */
+struct k1_dzw_mik {
+    int zrodlo, poziom, wyciszony, wstrzymany, slucha_k1;
+};
+/* Into DZWIEK_STAN e: bits 0–1 the source, 2–8 the level 0..100, 9 muted, 10 held, 11 K1 hears it; the rest 0. Inline:
+ * the checking of messages (k1_kom_dzwiek.c, in every program) uses it. */
+static inline int32_t k1_dzw_mik_pole(const struct k1_dzw_mik *m)
+{
+    return (int32_t)((uint32_t)m->zrodlo | (uint32_t)m->poziom << 2 | (uint32_t)(m->wyciszony != 0) << 9 |
+                     (uint32_t)(m->wstrzymany != 0) << 10 | (uint32_t)(m->slucha_k1 != 0) << 11);
+}
+/* 0, or -1 (a bit or a value out of its range; m unchanged) */
+static inline int k1_dzw_mik_z_pola(int32_t pole, struct k1_dzw_mik *m)
+{
+    uint32_t p = (uint32_t)pole;
+    struct k1_dzw_mik w = { (int)(p & 3u), (int)(p >> 2 & 127u), (int)(p >> 9 & 1u), (int)(p >> 10 & 1u),
+                            (int)(p >> 11 & 1u) };
+    if (p >> 12 != 0 || w.zrodlo > K1_DZW_ZRODLO_MAKS || w.poziom > K1_DZW_GLOSNOSC_MAKS)
+        return -1;
+    *m = w;
+    return 0;
+}
+const char *k1_dzw_zrodlo_nazwa(int zrodlo); /* "Wbudowany", "W słuchawkach"; "" for BRAK */
 /* DZWIEK_STAN a: the card as the service sees it */
 enum {
     K1_DZW_KARTA_SZUKA = 0, /* nadzorca has not said yet (the kernel finds the card a moment after start) */
@@ -122,6 +167,9 @@ int k1_dzw_klawisz(unsigned kod, int wartosc, int *glosnosc, int *wyciszone);
  * hda_jack.c: "Headphone Jack", "Front Headphone Jack", "Headphone Jack Phantom"…): 1 for such a name. Never a
  * microphone's ("Headset Mic Jack", "Mic Jack"). */
 int k1_dzw_gniazdo_sluchawek(const char *nazwa);
+/* 0.13.5: a jack of an outside microphone (the headset's): "Mic Jack", "Headset Mic Jack", "Front Mic Jack"… — one
+ * the kernel can detect (never "… Phantom Jack": a built-in microphone, "Internal Mic Phantom Jack"). */
+int k1_dzw_gniazdo_mikrofonu(const char *nazwa);
 
 /* D5: the volume and the mute of each output, remembered by gui in skarbiec (its object K1_OB_GLOSNOSC):
  * "K1G1", then for the speakers and the headphones: the volume 0..100, muted 0/1. 0.12.3 step 2: "K1G2" — the same and
@@ -129,22 +177,25 @@ int k1_dzw_gniazdo_sluchawek(const char *nazwa);
  * Step 3: "K1G3" — the same and then the scene of Kons Spatial Audio of the speakers and of the headphones, 13 bytes each:
  * on 0/1, the four directions, the four widths (in steps of K1_PRZ_KROK) and the four distances — as in a message
  * (k1_prz_z_pol checks them). Step 4: "K1G4" — the same and then the "Własna" of the speakers and of the headphones, 13
- * bytes each in the same way (on = there is one). Records "K1G1", "K1G2", "K1G3" are still read (the equalizer flat, the
- * scenes as at the start, no "Własna"). */
+ * bytes each in the same way (on = there is one). 0.13.5: "K1G5" — the same and then the microphone's level 0..100 and
+ * its mute 0/1. Records "K1G1" … "K1G4" are still read (the equalizer flat, the scenes as at the start, no "Własna", the
+ * microphone at K1_DZW_MIK_START, not muted). */
 #define K1_DZW_ZAPIS_G1_BAJTY 8
 #define K1_DZW_ZAPIS_G2_BAJTY (8 + 2 * K1_KOR_PASMA_N)
 #define K1_DZW_ZAPIS_SCENA 13
 #define K1_DZW_ZAPIS_G3_BAJTY (K1_DZW_ZAPIS_G2_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
-#define K1_DZW_ZAPIS_BAJTY (K1_DZW_ZAPIS_G3_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
+#define K1_DZW_ZAPIS_G4_BAJTY (K1_DZW_ZAPIS_G3_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
+#define K1_DZW_ZAPIS_BAJTY (K1_DZW_ZAPIS_G4_BAJTY + 2)
 struct k1_dzw_zapamietane {
     int glosnosc[K1_DZW_WYJSCIE_MAKS + 1], wyciszone[K1_DZW_WYJSCIE_MAKS + 1]; /* by output; [BRAK] unused */
     int8_t korektor[K1_DZW_WYJSCIE_MAKS + 1][K1_KOR_PASMA_N];                    /* 0.12.3 step 2 */
     struct k1_prz_scena scena[K1_DZW_WYJSCIE_MAKS + 1];                         /* 0.12.3 step 3 */
     struct k1_prz_scena wlasna[K1_DZW_WYJSCIE_MAKS + 1];                        /* step 4 (wlaczona: there is one) */
+    int mik_poziom, mik_wyciszony;                                              /* 0.13.5 */
 };
 void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z);
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf); /* K1_DZW_ZAPIS_BAJTY */
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z); /* 0, or -1 (z unchanged);
-                                                                                            * K1G1 … K1G4 */
+                                                                                            * K1G1 … K1G5 */
 
 #endif

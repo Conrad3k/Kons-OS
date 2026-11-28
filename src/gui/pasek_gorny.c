@@ -222,9 +222,10 @@ static void el_siec(struct k1_obraz *o, int32_t x, uint32_t krem)
 /* The popover "Dźwięk": dzwiek.c (0.12.0 step 1). Higher than the surface at the start (0.12.3 step 4: the row "Kons
  * Spatial Audio"): the surface grows when it opens (dopasuj_powierzchnie), as for the list "Grają teraz". */
 _Static_assert(DZWIEK_OKIENKO_SZER <= OKIENKO_PASKA_SZER, "okienko paska w powierzchni");
+_Static_assert(MIKROFON_OKIENKO_SZER <= OKIENKO_PASKA_SZER, "okienko mikrofonu w powierzchni");
 
 /* The popovers of the bar: one surface (P_OKIENKO_PASKA) the size of the largest, under the icon that opens it. */
-enum { OK_DZWIEK = 0, OK_BATERIA, OK_N };
+enum { OK_DZWIEK = 0, OK_BATERIA, OK_MIKROFON, OK_N };
 static const struct {
     const char *nazwa;
     int32_t szer, wys;
@@ -236,15 +237,18 @@ static const struct {
                     dzwiek_okienko_wskaznik }, /* 0.12.0 step 1 (D2: B) */
     [OK_BATERIA] = { "Bateria", BATERIA_OKIENKO_SZER, BATERIA_OKIENKO_WYS, bateria_okienko, bateria_okienko_otwarte,
                      bateria_okienko_wskaznik }, /* 0.11.8 step 3 (D4: A) */
+    [OK_MIKROFON] = { "Mikrofon", MIKROFON_OKIENKO_SZER, 0, mikrofon_okienko, mikrofon_okienko_otwarte,
+                      mikrofon_okienko_wskaznik }, /* 0.13.5 step 1 (D2: A): its height — mikrofon_okienko_wys */
 };
 _Static_assert(BATERIA_OKIENKO_SZER <= OKIENKO_PASKA_SZER && BATERIA_OKIENKO_WYS <= OKIENKO_PASKA_WYS,
                "okienko baterii w powierzchni");
 static int32_t powierzchnia_wys = OKIENKO_PASKA_WYS; /* the surface's height now: it grows for a longer popover */
 
-/* The popover's height now: the sound's grows with the list "Grają teraz" (0.12.0 step 3). */
+/* The popover's height now: the sound's grows with the list "Grają teraz" (0.12.0 step 3), the microphone's with who
+ * hears it (0.13.5). */
 static int32_t wys_okienka(int nr)
 {
-    return nr == OK_DZWIEK ? dzwiek_okienko_wys() : okienka[nr].wys;
+    return nr == OK_DZWIEK ? dzwiek_okienko_wys() : nr == OK_MIKROFON ? mikrofon_okienko_wys() : okienka[nr].wys;
 }
 
 /* The surface as high as the popover: made anew (hidden) when the popover would not fit — never smaller than at the
@@ -259,14 +263,16 @@ static void dopasuj_powierzchnie(int32_t wys)
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 0, 0, 0, 0, 0));
 }
 
-/* The elements at the right of the bar, left to right, in one pill. */
-enum { EL_SIEC = 0, EL_BATERIA, EL_DZWIEK, EL_N };
+/* The elements at the right of the bar, left to right, in one pill — 0.13.5 (D2: A): the microphone's sign first, in a
+ * pill of its own left of it, only while anything hears the microphone. */
+enum { EL_MIKROFON = 0, EL_SIEC, EL_BATERIA, EL_DZWIEK, EL_N };
 static const struct {
     const char *nazwa;     /* in the screen's description */
     int okienko;           /* the popover it opens (OK_*); -1: none — then no hover either (nothing to promise) */
     int32_t (*szer)(void); /* its cell now; 0: not shown */
     void (*rysuj)(struct k1_obraz *o, int32_t x, uint32_t krem);
 } elementy[EL_N] = {
+    [EL_MIKROFON] = { "Mikrofon", OK_MIKROFON, mikrofon_szer, mikrofon_na_pasku },
     [EL_SIEC] = { "Sieć", -1, szer_sieci, el_siec },
     [EL_BATERIA] = { "Bateria", OK_BATERIA, bateria_szer, bateria_na_pasku }, /* 0.11.8 step 3: its popover */
     [EL_DZWIEK] = { "Dźwięk", OK_DZWIEK, szer_dzwieku, dzwiek_na_pasku },
@@ -275,16 +281,19 @@ static int32_t el_x[EL_N], el_w[EL_N];
 static void pokaz_okienko(int nr);
 static int32_t okienko_x;
 
-/* Where each element stands now — right to left from the date, 12 px before it; the pill's left edge. */
+/* Where each element stands now — right to left from the date, 12 px before it; the pill's left edge (the microphone's
+ * sign 8 px left of it). */
 static int32_t uloz_elementy(void)
 {
     int32_t x = k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_czas) - 8 -
                 k1_tekst_szer(K1_CZ_MALA, zegar_data) - 12 - 2;
-    for (int i = EL_N - 1; i >= 0; i--) {
+    for (int i = EL_N - 1; i > EL_MIKROFON; i--) {
         el_w[i] = elementy[i].szer();
         x -= el_w[i];
         el_x[i] = x;
     }
+    el_w[EL_MIKROFON] = elementy[EL_MIKROFON].szer();
+    el_x[EL_MIKROFON] = x - 2 - 8 - el_w[EL_MIKROFON];
     return x - 2;
 }
 
@@ -322,7 +331,7 @@ void rysuj_gora(void)
         int ok = elementy[i].okienko;
         if (el_w[i] == 0)
             continue;
-        if (ok >= 0 && (hover_gora == i || okienko_otwarte == ok))
+        if (ok >= 0 && (hover_gora == i || okienko_otwarte == ok) && i != EL_MIKROFON) /* its pill is its own */
             k1_zaokraglony(o, (float)el_x[i], PIG_Y, (float)el_w[i], PIG_H, PIG_H / 2.0f, k1_kolor(K1_KREM, 40));
         elementy[i].rysuj(o, el_x[i], krem);
     }
@@ -385,6 +394,12 @@ void okienko_paska_zamknij(void)
     pokaz_okienko(-1);
 }
 
+void okienko_mikrofonu_zamknij(void)
+{
+    if (okienko_otwarte == OK_MIKROFON)
+        pokaz_okienko(-1);
+}
+
 void wskaznik_okienka_paska(const struct k1_komunikat *m)
 {
     if (okienko_otwarte >= 0 && okienka[okienko_otwarte].wskaznik != NULL)
@@ -415,9 +430,9 @@ void wskaznik_gora(const struct k1_komunikat *m)
 void okienko_paska_wysokosc(void)
 {
     int32_t stara = powierzchnia_wys;
-    if (okienko_otwarte != OK_DZWIEK)
+    if (okienko_otwarte != OK_DZWIEK && okienko_otwarte != OK_MIKROFON)
         return;
-    dopasuj_powierzchnie(wys_okienka(OK_DZWIEK));
+    dopasuj_powierzchnie(wys_okienka(okienko_otwarte));
     rysuj_okienko_paska();
     if (powierzchnia_wys != stara) {
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_OKIENKO_PASKA, okienko_x - MARG, K1_PASEK_GORNY + 4 - MARG, 0,

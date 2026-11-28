@@ -126,6 +126,13 @@ static const struct prym ik_pobrane[] = { { P_KRESKA, 12, 4, 12, 14.5f, 0 },    
 static const struct prym ik_w_gore[] = { { P_KRESKA, 12, 19, 12, 5.5f, 0 }, { P_KRESKA, 6.5f, 11, 12, 5.5f, 0 },
                                          { P_KRESKA, 12, 5.5f, 17.5f, 11, 0 } };
 
+/* 0.13.5 step 1 (D2: A): the microphone — its head, its holder, its stand; muted: crossed out */
+#define MIKROFON                                                                                                    \
+    { P_PROST, 9, 3.5f, 6, 11, 3 }, { P_LUK, 12, 11, 6.5f, 90, 270 }, { P_KRESKA, 12, 17.5f, 12, 20.5f, 0 },          \
+        { P_KRESKA, 8.5f, 20.5f, 15.5f, 20.5f, 0 }
+static const struct prym ik_mikrofon[] = { MIKROFON };
+static const struct prym ik_mikrofon_wyciszony[] = { MIKROFON, { P_KRESKA, 4.5f, 3.5f, 19.5f, 20.5f, 0 } };
+
 static float sd_prym(const struct prym *p, float x, float y, float g)
 {
     switch (p->typ) {
@@ -185,6 +192,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_PRZEGLADARKA] = IK(ik_przegladarka), [K1_IK_AKTUALIZACJE] = IK(ik_aktualizacje),
         [K1_IK_KARTA] = IK(ik_karta),
         [K1_IK_GLOSNIK_CICHO] = IK(ik_glosnik_cicho), [K1_IK_GLOSNIK_WYCISZONY] = IK(ik_glosnik_wyciszony),
+        [K1_IK_MIKROFON] = IK(ik_mikrofon),   [K1_IK_MIKROFON_WYCISZONY] = IK(ik_mikrofon_wyciszony),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

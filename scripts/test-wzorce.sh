@@ -252,6 +252,7 @@ DYSKI="$DYSKI -drive if=none,id=znak,file=$ZNAK,format=raw,readonly=on -device v
 DYSKI="$DYSKI -rtc base=2026-11-25T10:00:00"
 # 0.12.0 step 1: a sound card (its sound goes nowhere) — the popover "Dźwięk" with its controls
 KARTA="-audiodev none,id=dz -device ich9-intel-hda,id=hda -device hda-output,audiodev=dz,bus=hda.0"
+KARTA="$KARTA -device hda-micro,audiodev=dz,bus=hda.0" # 0.13.5: an input — the part "Mikrofon" of Ustawienia → Dźwięk
 rm -f "$TESTY/wzorce.log" "$TESTY/wzorce.sock"
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$TESTY/wzorce.log" --monitor "$TESTY/wzorce.sock" --czas "$CZAS" \
     --obraz "$K1_WYNIK/rdzen-test.squashfs" --qemu "$DYSKI $KARTA" &

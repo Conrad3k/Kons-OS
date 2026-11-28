@@ -8,10 +8,12 @@
 
 #include <linux/input-event-codes.h>
 
-#define X_NAZWA(n, nr, nazwa, steruje) [nr] = nazwa,
+#define X_NAZWA(n, nr, nazwa, ...) [nr] = nazwa,
 static const char *const nazwy[K1_DZW_KLIENCI_MAKS + 1] = { K1_DZW_KLIENCI(X_NAZWA) };
-#define X_STERUJE(n, nr, nazwa, steruje) [nr] = steruje,
+#define X_STERUJE(n, nr, nazwa, steruje, ...) [nr] = steruje,
 static const int sterujacy[K1_DZW_KLIENCI_MAKS + 1] = { K1_DZW_KLIENCI(X_STERUJE) };
+#define X_SLUCHA(n, nr, nazwa, steruje, slucha) [nr] = K1_DZW_SLUCHA_##slucha,
+static const int slucha_t[K1_DZW_KLIENCI_MAKS + 1] = { K1_DZW_KLIENCI(X_SLUCHA) };
 #define X_SPR(n, nr, ...) _Static_assert(nr >= 1 && nr <= K1_DZW_KLIENCI_MAKS, #n ": numer klienta poza 1..MAKS");
 K1_DZW_KLIENCI(X_SPR)
 _Static_assert(K1_DZW_PIERSCIEN % K1_DZW_OKRES == 0 && (K1_DZW_PIERSCIEN & (K1_DZW_PIERSCIEN - 1)) == 0,
@@ -49,6 +51,16 @@ const char *k1_dzw_klient_nazwa(int nr)
 int k1_dzw_klient_steruje(int nr)
 {
     return nr >= 1 && nr <= K1_DZW_KLIENCI_MAKS ? sterujacy[nr] : 0;
+}
+
+int k1_dzw_klient_slucha(int nr)
+{
+    return nr >= 1 && nr <= K1_DZW_KLIENCI_MAKS ? slucha_t[nr] : K1_DZW_SLUCHA_NIE;
+}
+
+const char *k1_dzw_zrodlo_nazwa(int zrodlo)
+{
+    return zrodlo == K1_DZW_ZRODLO_WBUDOWANY ? "Wbudowany" : zrodlo == K1_DZW_ZRODLO_SLUCHAWKI ? "W słuchawkach" : "";
 }
 
 uint32_t k1_dzw_czeka(const struct k1_dzw_pierscien *p)
@@ -143,6 +155,13 @@ int k1_dzw_gniazdo_sluchawek(const char *nazwa)
     return koniec && strstr(nazwa, "Headphone") != NULL && strstr(nazwa, "Mic") == NULL;
 }
 
+int k1_dzw_gniazdo_mikrofonu(const char *nazwa)
+{
+    size_t n = strlen(nazwa), nj = strlen(" Jack");
+    return n > nj && strcmp(nazwa + n - nj, " Jack") == 0 && strstr(nazwa, "Mic") != NULL &&
+           strstr(nazwa, "Phantom") == NULL && strstr(nazwa, "Internal") == NULL;
+}
+
 void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
 {
     memset(z, 0, sizeof *z);
@@ -152,6 +171,7 @@ void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
         k1_prz_scena_start(&z->wlasna[w]);
         z->wlasna[w].wlaczona = 0; /* off: none yet */
     }
+    z->mik_poziom = K1_DZW_MIK_START;
 }
 
 /* A scene in its 13 bytes: as the fields of a message (k1_prz_do_pol), little endian. */
@@ -176,7 +196,7 @@ static int scena_czytaj(const uint8_t *b, struct k1_prz_scena *s)
 
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf)
 {
-    memcpy(buf, "K1G4", 4);
+    memcpy(buf, "K1G5", 4);
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         buf[4 + 2 * (w - 1)] = (uint8_t)z->glosnosc[w];
         buf[5 + 2 * (w - 1)] = (uint8_t)(z->wyciszone[w] != 0);
@@ -185,13 +205,16 @@ size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *bu
         scena_zapisz(&z->scena[w], buf + K1_DZW_ZAPIS_G2_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1));
         scena_zapisz(&z->wlasna[w], buf + K1_DZW_ZAPIS_G3_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1)); /* step 4 */
     }
+    buf[K1_DZW_ZAPIS_G4_BAJTY] = (uint8_t)z->mik_poziom; /* 0.13.5 */
+    buf[K1_DZW_ZAPIS_G4_BAJTY + 1] = (uint8_t)(z->mik_wyciszony != 0);
     return K1_DZW_ZAPIS_BAJTY;
 }
 
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z)
 {
     struct k1_dzw_zapamietane t;
-    int g4 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G4", 4) == 0;
+    int g5 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G5", 4) == 0;
+    int g4 = g5 || (n == K1_DZW_ZAPIS_G4_BAJTY && memcmp(buf, "K1G4", 4) == 0);
     int g3 = g4 || (n == K1_DZW_ZAPIS_G3_BAJTY && memcmp(buf, "K1G3", 4) == 0);
     int g2 = g3 || (n == K1_DZW_ZAPIS_G2_BAJTY && memcmp(buf, "K1G2", 4) == 0);
     if (!g2 && (n != K1_DZW_ZAPIS_G1_BAJTY || memcmp(buf, "K1G1", 4) != 0))
@@ -213,6 +236,12 @@ int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapami
             return -1; /* 0.12.3 step 3 */
         if (g4 && scena_czytaj(buf + K1_DZW_ZAPIS_G3_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1), &t.wlasna[w]) != 0)
             return -1; /* step 4 */
+    }
+    if (g5) { /* 0.13.5: the microphone */
+        if (buf[K1_DZW_ZAPIS_G4_BAJTY] > K1_DZW_GLOSNOSC_MAKS || buf[K1_DZW_ZAPIS_G4_BAJTY + 1] > 1)
+            return -1;
+        t.mik_poziom = buf[K1_DZW_ZAPIS_G4_BAJTY];
+        t.mik_wyciszony = buf[K1_DZW_ZAPIS_G4_BAJTY + 1];
     }
     *z = t;
     return 0;

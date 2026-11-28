@@ -13,7 +13,9 @@
  * volume (record K1G2) and given to every new service. Step 3: so is the scene of Kons Spatial Audio of each output
  * (record K1G3; Ustawienia → Dźwięk → Kons Spatial Audio sets it). Step 4 (point 20): the row "Kons Spatial Audio" under
  * "Korektor" — its switch (the scene of the output playing now on / off) and the scene's name; a click on the rest opens
- * Ustawienia on the scene (K1_UST_MIEJSCE_PRZESTRZEN); each output's "Własna" is remembered too (record K1G4). */
+ * Ustawienia on the scene (K1_UST_MIEJSCE_PRZESTRZEN); each output's "Własna" is remembered too (record K1G4).
+ * 0.13.5 step 1 (ADR 0065): the microphone's level and mute are remembered too (K1G5) and given to every new service;
+ * its sign on the bar and its popover — mikrofon.c. */
 #include <stdio.h>
 #include <string.h>
 
@@ -30,8 +32,9 @@
 static struct k1_dzw_polaczenie dz = K1_DZW_POLACZENIE_START(TAG);
 static struct k1_dzw_zapamietane zap;
 static int zgodne;          /* the service has what we remember (its STAN after a new channel said so) */
-static int kor_zgodne;      /* bit w: the service has our bands of output w (its KOREKTOR_STAN said so) */
-static int sc_zgodne;       /* bit w: the service has our scene of output w (its SCENA_STAN said so; 0.12.3 step 3) */
+static int kor_zgodne;      /* bit w: the service has our bands of output w (its KOREKTOR back said so) */
+static int sc_zgodne;       /* bit w: the service has our scene of output w (its SCENA back said so; 0.12.3 step 3) */
+static int mik_zgodne;      /* 0.13.5: the service has our level and mute of the microphone (its STAN e said so) */
 static double zmiana_t;     /* when the remembered volume changed (0: nothing to write) */
 static int hover = -1, wcisniete = -1; /* the control under the pointer / pressed (C_*) */
 
@@ -57,6 +60,11 @@ static int ekran_wie[K1_STREFY_MAKS + 1];  /* what ekran was told (STREFA_DZWIEK
 int dzwiek_fd(void)
 {
     return dz.fd;
+}
+
+struct k1_dzw_polaczenie *dzwiek_pol(void)
+{
+    return &dz;
 }
 
 static int32_t lista_wys(void)
@@ -150,7 +158,10 @@ void dzwiek_kanal_nowy(int fd)
     k1_dzwk_kanal(&dz, fd);
     zgodne = 0;
     sesje(1); /* step 3: no session plays until the new service says so */
-    kor_zgodne = sc_zgodne = 0;
+    kor_zgodne = sc_zgodne = mik_zgodne = 0;
+    k1_dzwk_mikrofon(&dz, zap.mik_poziom, zap.mik_wyciszony); /* 0.13.5 */
+    if (zab_otwarty())
+        k1_dzwk_mik_wstrzymaj(&dz, 1); /* a new service while the security screen is on top: silence at once */
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         k1_dzwk_glosnosc(&dz, zap.glosnosc[w], zap.wyciszone[w], w);
         k1_dzwk_korektor(&dz, w, zap.korektor[w]); /* 0.12.3 step 2 */
@@ -183,7 +194,7 @@ static void zapamietaj_sceny(void)
 }
 
 /* 0.12.3 step 2: the bands of the outputs as the service says them (Ustawienia changed them) remembered — once the
- * service has ours (its first KOREKTOR_STAN on a new channel still says flat). */
+ * service has ours (its first KOREKTOR on a new channel still says flat). */
 static void zapamietaj_korektor(void)
 {
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
@@ -218,28 +229,53 @@ static void zapamietaj(int wlasna)
     }
 }
 
+/* 0.13.5: the microphone's level and mute as the service says them (Ustawienia, our popover, the key) remembered — once
+ * the service has ours. */
+static void zapamietaj_mikrofon(void)
+{
+    int rowne = dz.mik.poziom == zap.mik_poziom && dz.mik.wyciszony == zap.mik_wyciszony;
+    if (!mik_zgodne) {
+        mik_zgodne = rowne;
+        return;
+    }
+    if (!rowne) {
+        zap.mik_poziom = dz.mik.poziom;
+        zap.mik_wyciszony = dz.mik.wyciszony;
+        zmiana_t = k1_teraz();
+    }
+}
+
 void dzwiek_odbierz(void)
 {
     int r = k1_dzwk_odbierz(&dz);
     if (r & K1_DZWK_STAN)
         zapamietaj(0);
+    if (r & K1_DZWK_MIKROFON) {
+        zapamietaj_mikrofon();
+        mikrofon_zmiana();
+    }
     if (r & K1_DZWK_KOREKTOR)
         zapamietaj_korektor();
     if (r & K1_DZWK_SCENA)
         zapamietaj_sceny();
-    if (r & (K1_DZWK_SESJE | K1_DZWK_KONIEC))
+    if (r & (K1_DZWK_SESJE | K1_DZWK_KONIEC)) {
         sesje(0);
+        mikrofon_zmiana(); /* 0.13.5 step 2: a session that hears the microphone */
+    }
     if (r)
         gora.brudna = okienko_paska.brudna = 1;
 }
 
-/* Step 2: a volume key from ekran (KEY_VOLUMEUP, _DOWN, KEY_MUTE; KEY_MICMUTE: nothing while K1 has no microphone).
- * 1: it was one. */
+/* Step 2: a volume key from ekran (KEY_VOLUMEUP, _DOWN, KEY_MUTE; 0.13.5: KEY_MICMUTE mutes the microphone —
+ * mikrofon.c). 1: it was one. */
 int dzwiek_klawisz(const struct k1_komunikat *m)
 {
     int g = dz.glosnosc, w = dz.wyciszone, jest = dz.karta == K1_DZW_KARTA_JEST;
-    if (m->a == KEY_MICMUTE)
+    if (m->a == KEY_MICMUTE) {
+        if (m->b == 1)
+            mikrofon_wycisz();
         return 1;
+    }
     if (!k1_dzw_klawisz((unsigned)m->a, m->b, &g, &w))
         return 0;
     if (m->b == 0 || (m->b == 2 && m->a == KEY_MUTE))

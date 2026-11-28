@@ -502,6 +502,15 @@ z firmware) — wyjaśnienie i wskazówka dla VirtualBoxa.
 - **Przeglądarka:** „Zmień nazwę”, „Wyczyść dane…” — odmiana przycisku `K1_PRZ_NA_KARCIE` (przycisk na karcie:
   lekkie tło `tekst` 12/255, pod wskaźnikiem 26/255, bez obrysu).
 
+## Znak „mikrofon włączony” (0.13.5 krok 1, ADR 0065; decyzje właściciela D2: A, D3: A z 2026-11-28)
+Szkice A/B/C (osobna pigułka, terakotowy mikrofon w pigułce, mikrofon z kropką) — wybrany **A**: póki cokolwiek słucha
+mikrofonu, na górnym pasku po lewej od pigułki sieci, baterii i dźwięku (8 px odstępu) stoi osobna pigułka 32 × 24
+w terakocie (`K1_TERAKOTA`) z kremowym mikrofonem 16 px (`K1_IK_MIKROFON`: główka, uchwyt, nóżka); wyciszony — pigułka
+kremowa półprzezroczysta (jak najechanie), mikrofon przekreślony (`K1_IK_MIKROFON_WYCISZONY`). Nikt nie słucha — znaku nie
+ma (pasek jak dotąd). Krok 2: ten sam znak na pasku okna sesji, obok głośnika. Ustawienia → Dźwięk → Głośność: pod
+„Odtwórz próbę” kreska i część „Mikrofon” (źródło, okrągły przycisk z mikrofonem, suwak poziomu, „Powiedz coś” i pasek
+poziomu 264 × 6 w kolorze akcentu).
+
 ## Motywy okien
 
 | Rola | Jasny (domyślny) | Ciemny |

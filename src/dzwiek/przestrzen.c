@@ -2,7 +2,7 @@
  *
  * Each output (the speakers, the headphones) has its own scene, set by a steering client (DZWIEK_SCENA: Ustawienia → Dźwięk
  * → Kons Spatial Audio; gui gives the remembered ones to every new service) and told to every steering client
- * (DZWIEK_SCENA_STAN) — gui remembers them, Ustawienia shows them. The scene runs on the sum after the equalizer, before
+ * (DZWIEK_SCENA back: its state) — gui remembers them, Ustawienia shows them. The scene runs on the sum after the equalizer, before
  * the volume of K1 (k1_przestrzen.c, k1_prz_licz.c: pure): in the headphones around the head, on the speakers a wider
  * stereo (D3: A); when the output changes its scene takes over across one period, as any other change. Off: nothing is
  * computed. The cost is measured: once a minute in the log, the mean time of a period (T6). The scene is numbers from a
@@ -43,14 +43,14 @@ struct k1_komunikat przestrzen_stan(int wyjscie)
 {
     int32_t pola[4];
     k1_prz_do_pol(&sceny[wyjscie], pola);
-    return k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA_STAN, 0, wyjscie, pola[0], pola[1], pola[2], pola[3]);
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, wyjscie, pola[0], pola[1], pola[2], pola[3]);
 }
 
 struct k1_komunikat przestrzen_wlasna_stan(int wyjscie)
 {
     int32_t pola[4];
     k1_prz_do_pol(&wlasne[wyjscie], pola);
-    return k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA_STAN, 0, K1_DZW_SCENA_WLASNA + wyjscie, pola[0], pola[1], pola[2],
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_SCENA_WLASNA + wyjscie, pola[0], pola[1], pola[2],
                              pola[3]);
 }
 

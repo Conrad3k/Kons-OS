@@ -32,6 +32,10 @@
 # 0.13.0 (zgłoszenie właściciela: „cały dźwięk dużo cichszy, spłaszczony”; ADR 0055 punkt 21): Kons Spatial Audio
 # domyślnie włączony („Koncert”, bas na 4 %) — test wyłącza go przełącznikiem okienka przed pierwszą próbą; korektor i scena
 # zachowują głośność (szósta próba: nuty w proporcji nowego poziomu; siódma: moc obu kanałów jak w piątej, ±1,5 dB).
+# 0.13.5 krok 1 (mikrofon, ADR 0065; D2: A, D3: A): drugi kodek QEMU z wejściem (hda-micro, nagrywa ciszę), program testowy
+# daje do mikrofonu ton (−12 dB); Ustawienia → Dźwięk → „Powiedz coś”: usługa nagrywa, pasek poziomu rośnie, znak
+# „mikrofon włączony” na górnym pasku i jego okienko („Wycisz mikrofon”), Ctrl+Alt+Del — cisza dla słuchaczy (T4),
+# „Zatrzymaj” — karta nie nagrywa, znak znika.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -172,6 +176,47 @@ q.sprawdz("pulpit zabity (program testowy, SIGKILL) i uruchomiony od nowa: gło�
 n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
 q.klik_w("Ustawienia", "Odtwórz próbę")
 q.sprawdz("próba z Ustawień po nowym pulpicie (45 %)", q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
+
+# ---- 0.13.5 step 1 (ADR 0065; D2: A, D3: A): the microphone — the second codec (hda-micro) records silence, the test
+# program puts its tone into the microphone (t_mikrofon_opis); Ustawienia's "Powiedz coś" hears the level only ----
+q.sprawdz("nadzorca daje usłudze węzeł nagrywania tej samej karty; usługa go przyjmuje (nie nagrywa, póki nikt nie słucha)",
+          q.czekaj(r"K1-NADZORCA: dźwięk: mikrofon — karta 0, urządzenie \d+", czas=30) and
+          q.czekaj(r"K1-DZWIEK: karta 0, urządzenie \d+: nagrywanie", czas=30) and
+          q.ile(r"K1-DZWIEK: mikrofon nagrywa") == 0)
+q.sprawdz("Ustawienia → Dźwięk: część „Mikrofon” — źródło, wyciszenie, poziom, „Powiedz coś”; ton testowy w mikrofonie",
+          q.czekaj_na_element("Ustawienia", "Powiedz coś", czas=30) and q.element("Ustawienia", "Wycisz mikrofon") and
+          q.element("Ustawienia", "Poziom mikrofonu") and q.czekaj(r"K1-USTAWIENIA: dźwięk: .*mikrofon: (Wbudowany|W słuchawkach)", czas=5) and
+          q.czekaj(r"K1-TEST: mikrofon: ton testowy włączony", czas=30))
+q.sprawdz("NEGATYWNY: nikt nie słucha — brak znaku mikrofonu na pasku", q.element("Pasek górny", "Mikrofon") is None)
+q.klik_w("Ustawienia", "Powiedz coś")
+q.sprawdz("„Powiedz coś”: usługa nagrywa, Ustawienia słyszą tylko poziom — pasek rośnie ponad połowę (ton −12 dB)",
+          q.czekaj(r"K1-DZWIEK: mikrofon: słucha Ustawienia \(poziom\)", czas=30) and
+          q.czekaj(r"K1-DZWIEK: mikrofon nagrywa", czas=30) and
+          q.czekaj(r"K1-USTAWIENIA: mikrofon: słychać \(poziom ponad połowę\)", czas=60))
+q.sprawdz("znak „mikrofon włączony” na górnym pasku (pulpit wie od usługi dźwięku)",
+          q.czekaj(r"K1-GUI: mikrofon: znak pokazany", czas=30) and q.czekaj_na_element("Pasek górny", "Mikrofon", czas=30))
+q.zrzut("mikrofon-ustawienia", gdy=lambda w, h, px: True)
+q.klik_w("Pasek górny", "Mikrofon")
+q.sprawdz("okienko „Mikrofon”: kto słucha, „Wycisz mikrofon”", q.czekaj_na_element(OK, "Wycisz mikrofon", czas=30))
+q.zrzut("mikrofon-okienko", gdy=lambda w, h, px: True)
+q.klik_w(OK, "Wycisz mikrofon")
+q.sprawdz("„Wycisz mikrofon” w okienku: usługa daje ciszę, znak przekreślony, Ustawienia to widzą",
+          q.czekaj(r"K1-DZWIEK: mikrofon: poziom 50%, wyciszony", czas=30) and
+          q.czekaj_na(lambda: (q.element("Ustawienia", "Wycisz mikrofon") or {}).get("stan", 0) & 1, czas=30))
+q.klik_w(OK, "Wycisz mikrofon")
+q.sprawdz("drugie kliknięcie: znów słychać", q.czekaj(r"K1-DZWIEK: mikrofon: poziom 50%(?!,)", czas=30))
+q.klik_w("Pasek górny", "Mikrofon")
+q.czekaj_na(lambda: q.element(OK) is None, czas=30)
+n_wst = q.ile(r"K1-DZWIEK: mikrofon: wstrzymany")
+q.monitor("sendkey ctrl-alt-delete")
+q.sprawdz("T4: ekran zabezpieczeń na wierzchu — usługa daje słuchaczom ciszę; po Esc znów słychać",
+          q.czekaj(r"K1-DZWIEK: mikrofon: wstrzymany \(ekran zabezpieczeń\)", od=n_wst, czas=30) and
+          (q.pisz("esc") or True) and q.czekaj(r"K1-DZWIEK: mikrofon: znów słychać", czas=30))
+q.klik_w("Ustawienia", "Zatrzymaj")
+q.sprawdz("„Zatrzymaj”: nikt nie słucha — karta nie nagrywa, znak znika",
+          q.czekaj(r"K1-USTAWIENIA: mikrofon: próba zakończona, najgłośniej (79|[89]\d)%", czas=30) and
+          q.czekaj(r"K1-DZWIEK: mikrofon nie nagrywa", czas=30) and q.czekaj(r"K1-GUI: mikrofon: znak zniknął", czas=30) and
+          q.czekaj_na(lambda: q.element("Pasek górny", "Mikrofon") is None, czas=30))
 
 # ---- 0.12.3 step 2: the equalizer (D2: A — ten bands in Ustawienia → Dźwięk → Korektor; D1: A — the popover's row) ----
 q.klik_w("Ustawienia", "Korektor", "zakladka")
@@ -324,6 +369,8 @@ dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
 SPRZET="-drive if=none,id=znak,file=$ZNAK,format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-opis-dzwieku,addr=0x1e"
 SPRZET="$SPRZET -audiodev wav,id=dz,path=$WAV,out.frequency=48000,out.channels=2,out.format=s16"
 SPRZET="$SPRZET -device ich9-intel-hda,id=hda -device hda-output,audiodev=dz,bus=hda.0"
+# 0.13.5 step 1: the microphone — a second codec with an input; QEMU's "none" records silence (the tone: the test program)
+SPRZET="$SPRZET -audiodev none,id=mik -device hda-micro,audiodev=mik,bus=hda.0"
 # 0.12.0 step 3: the test zone runs in K1 (its KVM: nested, else emulated — as test-strefa.sh)
 EMULACJA=
 if [ -w /dev/kvm ]; then

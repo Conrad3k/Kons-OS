@@ -49,7 +49,9 @@ static const long sc_posrednik[] = { 0 };
  * node: its name, the format, the start values, prepare, write frames, stop and free its buffer; on the controls: the
  * card's name, the list of controls, a control's description, value and dB scale, a new value. Not: ELEM_ADD/REPLACE/
  * REMOVE (no controls of its own), TLV_WRITE/COMMAND, POWER, mmap of the status pages (SYNC_PTR), LINK. Its clients'
- * rings from the clients (mmap read only, base). No open, no memfd, no socket. */
+ * rings from the clients (mmap read only, base). 0.13.5 (ADR 0065): the recording node of the same card — the same
+ * ioctls and READI_FRAMES (read frames; its start is the first read, not START); the ring of a client that hears the
+ * microphone mapped for writing (base: never executable). No open, no memfd, no socket. */
 static const long sc_dzwiek[] = { 0 };
 static const struct k1_warunek wa_dzwiek[] = {
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_INFO },
@@ -58,6 +60,7 @@ static const struct k1_warunek wa_dzwiek[] = {
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_SW_PARAMS },
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_PREPARE },
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_WRITEI_FRAMES },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_READI_FRAMES }, /* 0.13.5: the microphone's frames */
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_DROP },
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_CARD_INFO },
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_LIST },
@@ -133,9 +136,9 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 #define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 24, \
                     .rozmiar_pliku = 64u << 10
 
-/* the sound service: its clients' rings (64 KiB of S16, 128 KiB of F32 — a zone's; 12 clients: 1.5 MiB mapped at most),
- * its period buffers (0.12.3: floats, 8 KiB each); 16 MiB. Descriptors: its channel, the card's two nodes, 12 clients
- * and a ring while it opens. RLIMIT_FSIZE 0. */
+/* the sound service: its clients' rings (64 KiB of S16, 128 KiB of F32 — a zone's; 12 clients: 1.5 MiB mapped at most;
+ * 0.13.5: as many again for the microphone, 3 MiB in all), its period buffers (0.12.3: floats, 8 KiB each); 16 MiB.
+ * Descriptors: its channel, the card's three nodes, 12 clients and a ring while it opens. RLIMIT_FSIZE 0. */
 #define KLATKA_DZWIEK .wywolania = sc_dzwiek, .warunki = wa_dzwiek, .n_warunkow = N(wa_dzwiek), .pamiec = 16u << 20, \
                       .pliki = 24, .rozmiar_pliku = 0
 

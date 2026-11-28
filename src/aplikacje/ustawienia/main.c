@@ -183,6 +183,8 @@ void ustawienia_pokaz(int s)
         wifi_zamknij(); /* a typed Wi-Fi password is wiped */
         przegladarka_zamknij();
     }
+    if (s != S_DZWIEK)
+        dzwiek_ukryty(); /* 0.13.5: the microphone's test stops */
     sekcja = s;
     if (sekcja == S_INFO || sekcja == S_HASLO)
         haslo_info();

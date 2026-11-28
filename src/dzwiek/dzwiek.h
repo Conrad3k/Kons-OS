@@ -11,6 +11,47 @@
 
 #define TAG "K1-DZWIEK"
 #define FD_NADZORCA 3 /* from nadzorca, one way (its UID 0 checked): the card's nodes, the clients' channels */
+#define KLIENCI_MAKS 12 /* channels at once (gui, Ustawienia, the test program, a VMM per zone with a window) */
+
+struct pollfd;
+extern int stan_karty;  /* K1_DZW_KARTA_* (main.c) */
+extern double cisza_od; /* CLOCK_MONOTONIC when the last stream ended (klienci.c) */
+
+/* klienci.c — the clients' channels, their messages and streams, the volume of K1 and of each session (0.13.5: split
+ * from main.c). */
+void klienci_start(void);
+void klienci_nowy(const struct k1_komunikat *m, int fd); /* DZWIEK_KLIENT from nadzorca */
+void klienci_poll(struct pollfd *pfd);                  /* KLIENCI_MAKS entries */
+void klienci_obsluz(const struct pollfd *pfd);          /* the same entries after poll */
+int klienci_czas(int czas);                             /* the poll's timeout for the sessions' state */
+void klienci_sesje(void);                               /* which session plays, to the steering clients */
+void klienci_stan_wszystkim(void);                      /* DZWIEK_STAN to every client */
+int klienci_strumienie(void);                           /* streams open now */
+unsigned long klienci_zmieszaj(float *suma);            /* each stream's period into the sum: bad F32 samples */
+float klienci_wzmocnienie(int wyjscie);                 /* the volume of K1 on `wyjscie` as a gain */
+void klienci_zerwij(void);                              /* the card failed: every stream ends */
+void klient_wyslij(int i, struct k1_komunikat m);       /* to the client in slot i (0..KLIENCI_MAKS-1), if it is there */
+
+/* nagrywanie.c — the card's recording node (pcmC<k>D<u>c, 0.13.5 step 1, ADR 0065): it records only while someone hears
+ * the microphone; 48 kHz, S32_LE or S16_LE, two channels or one, periods of K1_DZW_OKRES frames. */
+int nagr_przyjmij(int fd, int nr, int urzadzenie); /* 0, or -1: not a recording node we can use (fd closed) */
+int nagr_jest(void);
+int nagr_otworz(void);                             /* someone hears: the card records; 0 or -1 */
+void nagr_zamknij(void);                           /* nobody hears: DROP, HW_FREE */
+int nagr_fd(void);                                 /* for poll while it records (POLLIN: a period waits), else -1 */
+int nagr_czytaj(uint8_t *ramki);                   /* one period: K1_DZW_OKRES frames read, 0 none yet, -1 failed */
+int nagr_bajty(void);                              /* bytes of a sample it records (2, 4) */
+int nagr_kanaly(void);                             /* 1 or 2 */
+unsigned long nagr_przepelnienia(void);            /* overruns since the start (the log: a number only) */
+
+/* mikrofon.c — who hears the microphone and what they get (0.13.5 step 1): the clients' requests, each period. */
+int32_t mikrofon_pole(void);                       /* DZWIEK_STAN e (k1_dzw_mik_pole) */
+int mikrofon_otworz(int i, int rodzaj, int wolno, int fd, int format); /* DZWIEK_OTWORZ SLUCHA: 0, or -1 (rules broken) */
+void mikrofon_zamknij(int i, int powiedz);         /* ZAMKNIJ SLUCHA (powiedz 1), or the client's channel ended */
+int mikrofon_prosba(int i, int rodzaj, const struct k1_komunikat *m); /* DZWIEK_MIKROFON: 0, or -1 (may not ask it) */
+void mikrofon_przyjmij(int fd, int nr, int urzadzenie); /* DZWIEK_KARTA NAGRYWANIE */
+int mikrofon_fd(void);                             /* nagr_fd */
+void mikrofon_okres(void);                         /* a period recorded: to every listener */
 
 /* karta.c — the playback node (pcmC<k>D<u>p) from nadzorca: 48 kHz, stereo, K1_DZW_OKRESY periods of K1_DZW_OKRES
  * frames; 0.12.3 (ADR 0055, T1): the card's best format of its table — 24 bits (HDA: S32_LE with 24 significant), 20,
@@ -31,12 +72,13 @@ unsigned long karta_przerwy(void);                  /* underruns since the start
  * service's own); the card's name for the log; step 2: the headphone jacks and their events. */
 void kontrolki_przyjmij(int fd);
 int kontrolki_fd(void);         /* for poll (POLLIN: an event of a control) while the card has a headphone jack, else -1 */
-int kontrolki_zdarzenia(void);  /* the events read, the jacks read again: 1 when the output changed */
+int kontrolki_zdarzenia(void);  /* the events read, the jacks read again: 1 when the output or the microphone changed */
+int kontrolki_zrodlo(void);      /* 0.13.5: K1_DZW_ZRODLO_WBUDOWANY or _SLUCHAWKI (an outside microphone in its jack) */
 int kontrolki_wyjscie(void);    /* K1_DZW_WYJSCIE_GLOSNIKI or _SLUCHAWKI */
 
 /* korektor.c — the system equalizer (0.12.3 step 2, ADR 0055): ten bands of each output, on the sum before K1's volume. */
 void korektor_start(void);                         /* both outputs flat */
-struct k1_komunikat korektor_stan(int wyjscie);   /* DZWIEK_KOREKTOR_STAN of that output */
+struct k1_komunikat korektor_stan(int wyjscie);   /* DZWIEK_KOREKTOR (its state) of that output */
 int korektor_ustaw(const struct k1_komunikat *m, double t); /* DZWIEK_KOREKTOR: 1 changed, 0 the same, -1 refused */
 int korektor_zalegle(double t);                   /* the log's line it owes: ms until it says it, -1 none */
 void korektor_licz(float *suma, uint32_t ramki, int wyjscie); /* one period of the sum, the bands of `wyjscie` */
@@ -44,7 +86,7 @@ void korektor_minuta(void);                       /* the log once a minute: the 
 
 /* przestrzen.c — Kons Spatial Audio (0.12.3 step 3, ADR 0055): the scene of each output, after the equalizer. */
 void przestrzen_start(void);                       /* both outputs off */
-struct k1_komunikat przestrzen_stan(int wyjscie); /* DZWIEK_SCENA_STAN of that output */
+struct k1_komunikat przestrzen_stan(int wyjscie); /* DZWIEK_SCENA (its state) of that output */
 struct k1_komunikat przestrzen_wlasna_stan(int wyjscie); /* step 4: … of its "Własna" (a = wyjscie + SCENA_WLASNA) */
 /* DZWIEK_SCENA: 1 changed (the scene of an output), 2 changed (its "Własna", step 4), 0 the same, -1 refused */
 int przestrzen_ustaw(const struct k1_komunikat *m, double t);
