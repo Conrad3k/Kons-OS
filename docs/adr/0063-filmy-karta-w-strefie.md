@@ -106,6 +106,19 @@ pytana: plan zadaje ją tylko, gdy L2 wyjdzie „da się”, a wyszło „nie da
    hoście (tłumaczenie VA na polecenia K1, fuzzing odpowiedzi), a Firefoksa z kartą sprawdza właściciel na IdeaPadzie
    (krok 4 f; about:support → „Media”).
 
+*Uzupełnienie z kroku 4 (2026-11-28):*
+- **Numery powierzchni.** FFmpeg z VA-API 1.x ma pulę powierzchni, która rośnie sama (`initial_pool_size` = 0 —
+  `libavcodec/vaapi_decode.c`), a `vaCreateContext` nie dostaje listy powierzchni. Sterownik otwiera film z
+  `K1_FILMY_KLATEK_MAKS` numerami i daje powierzchni numer przy pierwszym obrazie; nowa powierzchnia bierze wolny numer
+  albo numer powierzchni, do której obraz się nie odwołuje (obraz spoza bufora obrazów odniesienia już nigdy nie jest
+  odniesieniem). Odniesienie do powierzchni, której K1 nie rozpakował (FFmpeg po luce w `frame_num`) — „brak”.
+- **Bufory powierzchni** sterownik zakłada sam: własny deskryptor z kontekstem DRM (jak Mesa — `GEM_CREATE` z blobem),
+  drugi deskryptor dla kontekstu filmów; deskryptora libva nie rusza. Obraz czeka na oba polecenia (`KLATKA`,
+  `POBIERZ`) w `vaEndPicture` — `vaSyncSurface` nie czeka na nic.
+- **Pref** `media.hardware-video-decoding.force-enabled` = `true` w sesji z filmami kartą (obok pkt 7): lista
+  zablokowanych sterowników Firefoksa nie zna naszego; składania kartą (L2) i tak nie omija.
+- Ustawienia (D1 „A”): przełącznik „Szybka grafika i filmy”, pod listą linia o filmach (`FILMY_KARTA`).
+
 ## Odrzucone
 - vsock (piaskownica RDD nie tworzy gniazd — S7 planu 0.10.9) i wyłączenie piaskownicy RDD.
 - Nowe urządzenie virtio-video / virtio-media z V4L2 w Firefoksie (`v4l2test`): sterownik gościa i dekoder bezstanowy

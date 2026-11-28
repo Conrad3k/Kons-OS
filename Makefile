@@ -77,7 +77,11 @@ USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
             $(BIN)/strefa $(BIN)/gosc $(BIN)/kompozytor $(BIN)/przekaznik $(BIN)/agent $(BIN)/k1-test-systemu
 
-all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(OBJ)/wydanie $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
+# 0.13.2 step 4: the zone's VA driver (its rule below, with the zone's programs)
+VA_STREFY := $(sort $(wildcard src/strefa/gosc/va/*.c))
+VA_STREFY_SO := $(BUDOWA)/strefa-va/virtio_gpu_drv_video.so
+
+all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(OBJ)/wydanie $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify $(VA_STREFY_SO)
 
 # Our musl (0.9.0 step 4): built when musl/ changes; every program is built again with a new one.
 $(MUSL): musl/wersja.env $(wildcard musl/latki/*.patch) scripts/zbuduj-musl.sh
@@ -226,6 +230,16 @@ $(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
 AGENT := $(sort $(wildcard src/strefa/agent/*.c)) src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 $(BIN)/agent: $(AGENT) $(wildcard src/strefa/agent/*.h) src/wspolne/k1_pliki_strefy.h | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/agent -o $@ $(AGENT) $(LDFLAGS_K1)
+
+# 0.13.2 step 4 (ADR 0063 pkt 2): the VA driver of the browser zone — a library for the zone's glibc (Firefox's RDD
+# process loads it through libva: virtio_gpu_drv_video.so), built with the build computer's compiler and libva's headers
+# (libva-dev) like our Mesa; it needs only libc. scripts/zbuduj-strefe.sh puts it into the zone image; its pure parts
+# and its way through VA are tested on the host (test_va_strefy, fuzz_va_strefy).
+$(VA_STREFY_SO): $(VA_STREFY) src/strefa/gosc/va/sterownik.h src/wspolne/k1_filmy.h
+	mkdir -p $(dir $@)
+	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -D_FORTIFY_SOURCE=3 $(OSTRZEZENIA) -fPIC -fvisibility=hidden \
+	    -fstack-protector-strong -fstack-clash-protection -ffile-prefix-map=$(CURDIR)=. -Isrc/wspolne -shared -o $@ \
+	    $(VA_STREFY) -Wl,-z,relro,-z,now,-z,noexecstack,-z,defs -Wl,--build-id=sha1 -s
 
 $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c src/wejscie/touchpad.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -409,6 +423,12 @@ $(OBJ)/test_wpa: testy/host/test_wpa.c src/siec/wpa.c src/siec/eapol.c src/siec/
 $(OBJ)/test_wifi_polacz: testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c src/siec/wifi.h src/siec/pamiec.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c $(KOMUNIKAT) $(DOK_C)
 # 0.10.0 step 1 (ADR 0042): the zones' virtqueues and virtio-mmio, the start of the zone kernel (fuzzing: fuzz_virtq)
+# 0.13.2 step 4: the zone's VA driver against a fake K1 that checks every request as the film decoder does (lacze.c —
+# virtio-gpu — is replaced by testy/host/va_k1_falszywe.c)
+$(OBJ)/test_va_strefy: testy/host/test_va_strefy.c testy/host/va_k1_falszywe.c testy/host/va_k1_falszywe.h $(VA_STREFY) \
+		src/strefa/gosc/va/sterownik.h src/wspolne/k1_filmy.c src/wspolne/k1_filmy.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa/gosc/va -o $@ testy/host/test_va_strefy.c testy/host/va_k1_falszywe.c \
+	    $(filter-out src/strefa/gosc/va/lacze.c,$(VA_STREFY)) src/wspolne/k1_filmy.c -lpthread
 # 0.10.9 step 6: the bridge of fast graphics in the VMM (fuzzing: fuzz_gpu_most)
 # 0.13.2 step 3: with the film context (gpu_filmy.c; k1_kf_sprawdz from k1_filmy.c)
 $(OBJ)/test_gpu_most: testy/host/test_gpu_most.c testy/host/gpu_most_falszywy.h src/strefa/gpu_most.c src/strefa/gpu_most.h \
@@ -563,7 +583,7 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 # took most of test-m1's time); `-O` keeps the output of each one together. The slow ones come first, so they start
 # first. A plain test (no arguments, no files): its name in TESTY_HOST. One that needs files: its own rule below,
 # named host-<name>, and the name in TESTY_HOST_PLIKI.
-TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wpa test_krypto test_virtio \
+TESTY_HOST := test_gpu_most test_va_strefy test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wpa test_krypto test_virtio \
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
@@ -629,7 +649,8 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka tpm raport
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka tpm raport \
+        va_strefy
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -706,8 +727,10 @@ FUZZ_DL_przestrzen := 4096
 FUZZ_ZR_virtio_dzwiek := src/strefa/dzwiek_prosby.c
 FUZZ_DL_virtio_dzwiek := 4096
 FUZZ_DL_gpu_most  := 8192
+FUZZ_ZR_va_strefy := src/strefa/gosc/va/h264.c src/strefa/gosc/va/sprawdz.c src/wspolne/k1_filmy.c
+FUZZ_DL_va_strefy := 16384
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
-              -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
+              -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/strefa/gosc/va -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs
 
 $(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h src/dekoder/*.h src/siec/*.h src/strefa/*.h) | $(OBJ)

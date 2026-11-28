@@ -103,10 +103,11 @@ static int przygotuj(void)
      * single key a minute or more later; with KVM on a real processor (and in CI) the zone keeps them. 0.11.3: the
      * guest's halt polling (jadro/strefa.config: HALTPOLL_CPUIDLE) only on a real processor — in the emulation the
      * polling processor would only take the emulator's time */
-    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s%s",
+    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s%s%s",
              emulacja_qemu() ? " highres=off" : " cpuidle_haltpoll.force=1", mz.tryb,
              zlosliwy_gosc() ? " memmap=1M$0x3f00000" : "", /* the hostile test guest's queue (gosc/zlosliwy.c) */
              gpu_lacze_jest() ? " k1.grafika=1" : "", /* 0.10.9 step 6: the guest's browser draws with the card */
+             gpu_lacze_capsety() == 2 ? " k1.filmy=1" : "", /* 0.13.2 step 4: … and decodes films with it (ADR 0063) */
              mz.pobierz[0] ? " k1.pobierz=" : "", mz.pobierz); /* 0.10.5 step 2: the download zone (gosc/pobieranie.c) */
     jadro = wczytaj_jadro(&dl);
     if (jadro == NULL) {

@@ -12,6 +12,9 @@
  * a line — whether the card serves fast graphics (POSR_KARTA: nadzorca's question to the graphics broker). Step 6 (the owner's D5, D9 „A”): on
  * each card a switch „Szybka grafika” (the owner: films with the card come in a later version; STREFY_GRAFIKA in, STREFA_GRAFIKA out; from the session's next start) —
  * muted where the card cannot (the line under the list says why).
+ * 0.13.2 step 4 (ADR 0063, plan D1 „A” — as the owner's D9 „A” of 0.10.9): films by the card go with that switch, so it is
+ * „Szybka grafika i filmy” again, and the line about films is back under the one about fast graphics (FILMY_KARTA): what
+ * the card decodes — used only where fast graphics works (ADR 0063 pkt 5: without it Firefox never asks the card).
  * The names are the user's text: never in the log. Part of Ustawienia (ustawienia.h). */
 #include <linux/input-event-codes.h>
 #include <stdio.h>
@@ -19,6 +22,7 @@
 
 #include "k1_kanal.h"
 #include "k1_klawiatura.h"
+#include "k1_filmy.h"
 #include "k1_log.h"
 #include "k1_menu.h"
 #include "k1_uslugi.h"
@@ -33,7 +37,7 @@
 #define POLE_W 210
 #define PRZEL_W 36 /* the switch of fast graphics (k1_przelacznik) */
 #define PRZEL_H 20
-#define GRAFIKA_NAPIS "Szybka grafika"
+#define GRAFIKA_NAPIS "Szybka grafika i filmy"
 
 static struct {
     int znane;
@@ -208,6 +212,23 @@ static void linia_grafiki(char *t, size_t n)
         snprintf(t, n, "Ten komputer nie obsługuje szybkiej grafiki.");
 }
 
+/* The line about films (0.13.2 step 4): what the card decodes (FILMY_KARTA: b the state, a the codecs' bits) — with
+ * the card only in a session with fast graphics. */
+static void linia_filmow(char *t, size_t n)
+{
+    char k[48];
+    if (filmy.typ == 0 || filmy.b == K1_FILMY_KARTA_SPRAWDZA) {
+        snprintf(t, n, "Sprawdzam, czy karta graficzna rozpakowuje filmy…");
+    } else if (filmy.b == K1_FILMY_KARTA_UMIE && k1_filmy_nazwy(filmy.a, k, sizeof k) > 0) {
+        if (grafika.typ != 0 && grafika.a == K1_POSR_KARTA_UMIE)
+            snprintf(t, n, "Karta graficzna tego komputera rozpakowuje filmy: %s.", k);
+        else
+            snprintf(t, n, "Karta rozpakowuje filmy (%s), ale bez szybkiej grafiki filmy rozpakowuje procesor.", k);
+    } else {
+        snprintf(t, n, "Karta graficzna tego komputera nie rozpakowuje filmów. Rozpakowuje je procesor.");
+    }
+}
+
 /* "Wyczyść dane…": the question in a window of przybornik (the one of dragging files), in the middle of the list. */
 enum { PY_WYCZYSC = 1, PY_ANULUJ };
 static void pytanie(struct k1_menu *q, int32_t *x, int32_t *y)
@@ -240,15 +261,20 @@ void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (n == 0)
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, pr.znane ? "Ta wersja K1 nie ma przeglądarki." : "Czekam na K1…",
                  k1_kolor(m->tekst2, 255), 0);
-    if (n > 0) { /* 0.10.9 step 5: fast graphics — a quiet line like those above the list (the line about films of step 2
-                  * is gone with films with the card: the owner's decision 2026-11-20, „może” later; FILMY_KARTA is logged) */
-        char f[120];
-        linia_grafiki(f, sizeof f);
-        k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(pod_lista(n) - 1), 16, k1_kolor(m->tekst3, 255));
-        k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, pod_lista(n) + 12, f, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 46);
+    if (n > 0) { /* 0.10.9 step 5: fast graphics — a quiet line like those above the list; 0.13.2 step 4: films under it */
+        char f[128];
+        for (int i = 0; i < 2; i++) {
+            if (i == 0)
+                linia_grafiki(f, sizeof f);
+            else
+                linia_filmow(f, sizeof f);
+            k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(pod_lista(n) - 1 + i * UWAGA_H), 16, k1_kolor(m->tekst3, 255));
+            k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, pod_lista(n) + 12 + i * UWAGA_H, f, k1_kolor(m->tekst2, 255),
+                     apl.szer - TRESC_X - 46);
+        }
     }
     if (wiadomosc[0])
-        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, pod_lista(n) + 12 + (n > 0 ? UWAGA_H + 4 : 0), wiadomosc,
+        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, pod_lista(n) + 12 + (n > 0 ? 2 * UWAGA_H + 4 : 0), wiadomosc,
                  k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
     if (pytana) {
         struct k1_menu q;

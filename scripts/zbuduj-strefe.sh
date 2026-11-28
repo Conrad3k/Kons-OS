@@ -15,7 +15,8 @@
 #     i GTK (bez przycisków okna Firefoksa — okno strefy zamyka i minimalizuje pasek K1);
 #   - od 0.10.9 krok 6 nasza Mesa (build/mesa — scripts/zbuduj-mese.sh: iris z intel-virtio, EGL, GBM; szybka grafika);
 #   - od 0.13.2 krok 2 nasz FFmpeg (build/ffmpeg — scripts/zbuduj-ffmpeg.sh: libavcodec i libavutil, tylko H.264 i VA-API;
-#     filmy H.264 — bez niego Firefox ich nie grał; libva2 i libva-drm2 z tabeli strefy).
+#     filmy H.264 — bez niego Firefox ich nie grał; libva2 i libva-drm2 z tabeli strefy);
+#   - od 0.13.2 krok 4 nasz sterownik VA strefy (build/strefa-va — make: virtio_gpu_drv_video.so; filmy kartą, ADR 0063).
 # Powtarzalnie: stała kolejność i czas plików (SOURCE_DATE_EPOCH), właściciel root.
 . "$(dirname "$0")/wspolne.sh"
 
@@ -26,6 +27,8 @@ WYNIK=$K1_WYNIK/strefa-przegladarka.img
 for p in kompozytor przekaznik agent gosc; do [ -x "$K1_BUDOWA/bin/$p" ] || blad "brak $p — najpierw make"; done
 [ -f "$K1_BUDOWA/mesa/gotowe" ] || blad "brak Mesy — najpierw scripts/zbuduj-mese.sh"
 [ -f "$K1_BUDOWA/ffmpeg/gotowe" ] || blad "brak FFmpeg — najpierw scripts/zbuduj-ffmpeg.sh"
+VA=$K1_BUDOWA/strefa-va/virtio_gpu_drv_video.so
+[ -f "$VA" ] || blad "brak sterownika VA strefy — najpierw make"
 
 info "pakiety strefy przeglądarki ($(grep -vc '^#' "$TABELA") z tabeli)"
 mkdir -p "$PAKIETY"
@@ -98,6 +101,10 @@ cp -a "$K1_BUDOWA/mesa/inst/usr/lib/x86_64-linux-gnu/." "$LIB/"
 # 0.13.2 step 2 (ADR 0063 pkt 7): our FFmpeg — H.264 (Firefox's built-in ffvpx has VP8, VP9 and AV1 only)
 cp -a "$K1_BUDOWA/ffmpeg/inst/usr/lib/x86_64-linux-gnu/." "$LIB/"
 for f in libavcodec.so.61 libavutil.so.59 libva.so.2 libva-drm.so.2; do [ -e "$LIB/$f" ] || blad "obraz strefy bez $f"; done
+# 0.13.2 step 4 (ADR 0063 pkt 2): our VA driver — libva takes it by the kernel driver's name (virtio_gpu) from its own
+# driver directory; only libc, one visible function (the build in Makefile)
+grep -q /usr/lib/x86_64-linux-gnu/dri "$LIB/libva.so.2" || blad "libva strefy szuka sterowników gdzie indziej"
+install -D -m 0444 "$VA" "$LIB/dri/virtio_gpu_drv_video.so"
 
 rm -f "$WYNIK" "$WYNIK.skrot" "${WYNIK%.img}.skrot"
 # zstd with 128 KiB blocks (ADR 0050, step 4b, measured 2026-11-19): about 21 % larger than xz with 1 MiB blocks, but a
