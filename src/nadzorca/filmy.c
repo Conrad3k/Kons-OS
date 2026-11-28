@@ -144,17 +144,18 @@ void filmy_strefa_start(int nr, int posrednik, int test)
     dla_vmm[nr].test = test, dla_vmm[nr].zablokowane = 0;
 }
 
-/* The VMM of zone nr asks for its decoder (STREFA_POLACZ c=K1_STREFA_FILMY): the client's end, or -1 (refused: films on
- * the processor). One at a time — the VMM closes the channel before it asks again. */
+/* The VMM of zone nr asks for its decoder (STREFA_POLACZ c=K1_STREFA_FILMY): the client's end, -1 (refused: films on
+ * the processor), or -2 (the one before still ends — the VMM closed its channel a moment ago: it asks again soon). */
 int filmy_dla_vmm(int nr)
 {
     struct usluga *u = karta_usluga_strefy(K1_PROFIL_FILMY, nr);
     int fd;
-    if (nr < 1 || nr > K1_STREFY_MAKS || !dla_vmm[nr].dozwolone || dla_vmm[nr].zablokowane || u == NULL || u->pid > 0) {
+    if (u != NULL && u->pid > 0 && nr >= 1 && nr <= K1_STREFY_MAKS && dla_vmm[nr].dozwolone && !dla_vmm[nr].zablokowane)
+        return -2;
+    if (nr < 1 || nr > K1_STREFY_MAKS || !dla_vmm[nr].dozwolone || dla_vmm[nr].zablokowane || u == NULL) {
         k1_log(TAG, "strefa %d: dekoder filmów odmówiony (%s)", nr,
                nr < 1 || nr > K1_STREFY_MAKS || !dla_vmm[nr].dozwolone ? "bez szybkiej grafiki albo karta nie umie"
-               : dla_vmm[nr].zablokowane                               ? "poprzedni zakończył się błędem"
-                                                                       : "już działa");
+                                                                       : "poprzedni zakończył się błędem");
         return -1;
     }
     fd = filmy_dla_strefy(nr, dla_vmm[nr].test);

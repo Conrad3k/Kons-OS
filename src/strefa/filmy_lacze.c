@@ -49,22 +49,23 @@ static struct {
 /* nadzorca's answer: the main thread puts it here, the asking thread takes it */
 static pthread_mutex_t skrzynka_zamek = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t skrzynka_jest = PTHREAD_COND_INITIALIZER;
-static int skrzynka_stan = 3, skrzynka_fd = -1; /* stan: 0 waiting, 1 a channel (fd), 2 refused, 3 nobody asks */
+static int skrzynka_stan = 3, skrzynka_fd = -1; /* stan: 0 waiting, 1 a channel (fd), 2 refused, 3 nobody asks,
+                                                  * 4 busy (the decoder before still ends) */
 
-void filmy_od_nadzorcy(int fd)
+void filmy_od_nadzorcy(int fd, int powod)
 {
     pthread_mutex_lock(&skrzynka_zamek);
     if (skrzynka_stan == 0 && skrzynka_fd < 0) {
         skrzynka_fd = fd >= 0 ? fcntl(fd, F_DUPFD_CLOEXEC, 0) : -1; /* (dup is not in the sandbox) */
-        skrzynka_stan = skrzynka_fd >= 0 ? 1 : 2;
+        skrzynka_stan = skrzynka_fd >= 0 ? 1 : fd < 0 && powod == K1_STREFA_ODM_LIMIT ? 4 : 2;
     }
     pthread_cond_signal(&skrzynka_jest);
     pthread_mutex_unlock(&skrzynka_zamek);
 }
 
-/* Asks nadzorca for the decoder: the channel, or -1. `na_starcie`: the main thread itself takes the answers off fd 7
- * (pol_od_nadzorcy — before the machine runs); else the main thread's loop does and we wait for it. */
-static int popros(int na_starcie)
+/* Asks nadzorca for the decoder once: the channel, -1 (refused), -2 (busy). `na_starcie`: the main thread itself takes
+ * the answers off fd 7 (pol_od_nadzorcy — before the machine runs); else the main thread's loop does and we wait. */
+static int popros_raz(int na_starcie)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 0, 0, 0, K1_STREFA_FILMY, 0, 0);
     double do_kiedy = k1_teraz() + NADZORCA_S;
@@ -89,10 +90,21 @@ static int popros(int na_starcie)
             break;
         }
     }
-    fd = skrzynka_stan == 1 ? skrzynka_fd : -1;
+    fd = skrzynka_stan == 1 ? skrzynka_fd : skrzynka_stan == 4 ? -2 : -1;
     skrzynka_stan = 3, skrzynka_fd = -1; /* a late answer is not taken (filmy_od_nadzorcy waits for stan 0) */
     pthread_mutex_unlock(&skrzynka_zamek);
     return fd;
+}
+
+/* …and again while the decoder before still ends (it ends at once when we close its channel: 2 s at most) */
+static int popros(int na_starcie)
+{
+    int fd = popros_raz(na_starcie);
+    for (int i = 0; fd == -2 && i < 20; i++) {
+        poll(NULL, 0, 100);
+        fd = popros_raz(na_starcie);
+    }
+    return fd < 0 ? -1 : fd;
 }
 
 /* The decoder's next message within ms: 1 (*k), 0 (none), -1 (it ended). */

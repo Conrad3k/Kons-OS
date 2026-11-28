@@ -113,7 +113,7 @@ sprawdzenia, jest odrzucany bez odpowiedzi (liczony w logu).
 | `FILMY_KARTA` | nadzorca → Ustawienia (fd 4) | a = bity kodeków, b = `K1_FILMY_KARTA_*` (też `SPRAWDZA`, `BLAD`), c = kod (BLAD: kod wyjścia albo 128 + sygnał; NIC: status VA) |
 | `TEST_FILMY` | program testowy → nadzorca | a = strefa, b = 0 karta / 1 dekoder testowy → `TEST_GNIAZDO` + kanał klienta |
 | `STREFA_POLACZ` c = `K1_STREFA_FILMY` (0.13.2) | VMM → nadzorca (fd 7) | obiekt = 0, a = b = d = e = 0 — prośba o dekoder strefy |
-| `STREFA_GNIAZDO` a = `K1_STREFA_FILMY` / `STREFA_ODMOWA` obiekt 0 (0.13.2) | nadzorca → VMM | kanał do dekodera (+ fd) / odmowa (a = `K1_STREFA_ODM_BLAD`) |
+| `STREFA_GNIAZDO` a = `K1_STREFA_FILMY` / `STREFA_ODMOWA` obiekt 0 (0.13.2) | nadzorca → VMM | kanał do dekodera (+ fd) / odmowa (a = `K1_STREFA_ODM_BLAD`; `K1_STREFA_ODM_LIMIT` — poprzedni dekoder jeszcze się kończy, VMM pyta znowu do 2 s) |
 
 ## Ustawienia → Przeglądarka
 Do 0.10.9 krok 5 jedna cicha linia pod listą sesji mówiła, co rozpakowuje karta („Karta graficzna tego komputera

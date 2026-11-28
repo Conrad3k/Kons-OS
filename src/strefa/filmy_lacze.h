@@ -16,7 +16,7 @@ void filmy_lacze_polecenie(uint32_t k, const struct k1_kf_polecenie *p, int fd, 
 void filmy_lacze_koniec(uint32_t k);
 void filmy_lacze_podsumowanie(void);  /* at the end: the numbers to the log */
 /* nadzorca's answer to the request for the decoder (polaczenia.c, the main thread): its channel (fd ≥ 0, duplicated
- * here) or a refusal (-1) */
-void filmy_od_nadzorcy(int fd);
+ * here) or a refusal (-1, `powod`: K1_STREFA_ODM_* — LIMIT: the decoder before still ends, ask again) */
+void filmy_od_nadzorcy(int fd, int powod);
 
 #endif

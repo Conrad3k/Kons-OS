@@ -64,7 +64,7 @@ static int gniazdo(int nr, const struct k1_komunikat *k, int *fd)
     double t = k1_teraz();
     if (k->c == K1_STREFA_FILMY) { /* 0.13.2 step 3 (ADR 0063 pkt 4): the zone's film decoder (filmy.c) */
         *fd = filmy_dla_vmm(nr);
-        return *fd >= 0 ? 0 : K1_STREFA_ODM_BLAD;
+        return *fd >= 0 ? 0 : *fd == -2 ? K1_STREFA_ODM_LIMIT : K1_STREFA_ODM_BLAD; /* LIMIT: still ending, ask again */
     }
     if (k->c == K1_STREFA_POBRANE) { /* 0.10.5 step 2b: the download zone's end to the writing program, once */
         *fd = k1_strefa(nr)->okno ? -1 : akt_gniazdo();

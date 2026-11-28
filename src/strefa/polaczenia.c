@@ -372,7 +372,7 @@ static int nie_polaczenie(const struct k1_komunikat *k, int *fd)
     else if (k->typ == K1_KOM_DZWIEK_KANAL && *fd >= 0) /* 0.12.0 step 3: sound (dzwiek.c) */
         dzwiek_kanal(*fd);
     else if (k->obiekt == 0 && (k->typ == K1_KOM_STREFA_GNIAZDO || k->typ == K1_KOM_STREFA_ODMOWA))
-        filmy_od_nadzorcy(k->typ == K1_KOM_STREFA_GNIAZDO ? *fd : -1); /* 0.13.2 step 3: the film decoder's channel */
+        filmy_od_nadzorcy(k->typ == K1_KOM_STREFA_GNIAZDO ? *fd : -1, k->a); /* 0.13.2 step 3: the film decoder */
     else if (k->typ == K1_KOM_STREFA_ZAMKNIJ) /* 0.10.2 step 1: K1 powers off (main.c closes) */
         mz.prosba_nadzorcy = 1;
     else
