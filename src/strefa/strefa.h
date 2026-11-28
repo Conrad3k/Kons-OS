@@ -159,6 +159,7 @@ int gpu_jest_2d(uint32_t typ, uint32_t id);
 /* gpu_lacze.c (0.10.9 step 6): fast graphics — the bridge to the graphics broker (fd 10), its thread, KVM's slots */
 int gpu_lacze_start(void);      /* 0 (with or without a broker), -1: the machine cannot start */
 int gpu_lacze_jest(void);       /* the device offers 3D (the broker said the card can) */
+uint32_t gpu_lacze_capsety(void); /* 0.13.2 step 3: its capsets — 0, 1 (DRM) or 2 (+ K1_FILMY) */
 int gpu_lacze_zasob(uint32_t id); /* a blob resource id exists */
 void gpu_lacze_obudz(struct mmio_urz *u);
 void gpu_lacze_reset(struct mmio_urz *u);

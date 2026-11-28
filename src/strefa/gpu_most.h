@@ -16,6 +16,7 @@
 
 #include <linux/virtio_gpu.h>
 
+#include "k1_filmy.h"     /* 0.13.2 step 3: the film context (K1_FILMY_CAPSET, k1_kf_*) */
 #include "k1_komunikat.h" /* K1_POW_MAKS_BOK, K1_STREFA_* (0.10.11 step 2) */
 #include "k1_posrednik.h"
 
@@ -68,12 +69,18 @@ struct most_lacze {
      * cannot (bigger than it); o NULL: the guest shows no buffer of the card any more. obraz_koniec: buffer res is gone. */
     int (*obraz)(void *ja, const struct most_obraz *o, int fd);
     void (*obraz_koniec)(void *ja, uint32_t res);
+    /* 0.13.2 step 3 (ADR 0063 pkt 1): film context k (1..K1_KF_KONTEKSTY) — its shared memory (a memfd the VMM maps too),
+     * a command (checked: k1_kf_sprawdz; `fd` — POBIERZ: the buffer's dma-buf, borrowed; `blad` ≠ 0: only answer it with
+     * that), its end. filmy writes the answer into the shared memory itself, before it returns. */
+    int (*filmy_wspolna)(void *ja, uint32_t k, uint64_t rozmiar, int *fd);
+    void (*filmy)(void *ja, uint32_t k, const struct k1_kf_polecenie *p, int fd, int blad);
+    void (*filmy_koniec)(void *ja, uint32_t k);
 };
 
-enum { MOST_BRAK = 0, MOST_WSPOLNA = 1, MOST_BUFOR = 2 };
+enum { MOST_BRAK = 0, MOST_WSPOLNA = 1, MOST_BUFOR = 2, MOST_FILMY = 3 /* a film context's shared memory (0.13.2) */ };
 struct most_zasob {
     uint8_t rodzaj;   /* MOST_*: none, the shared memory of a guest context (its blob 0), a buffer of the card */
-    uint8_t gosc;     /* the guest context that created it */
+    uint8_t gosc;     /* the guest context that created it (MOST_FILMY: the film context) */
     uint8_t mapa;     /* VIRTIO_GPU_MAP_CACHE_* of its mapping */
     uint8_t mapowalny;
     int fd;           /* MOST_WSPOLNA: the memfd (ours); MOST_BUFOR: its dma-buf once the guest showed it (0.10.11) */
@@ -96,6 +103,9 @@ struct most {
     uint64_t okno_baza;               /* the host-visible region's guest address (most_okno_baza; most_start: the
                                        * smallest, MOST_OKNO_BAZA) */
     int padl;                         /* the broker ended (a crash, a hang): every 3D command fails, fences are done */
+    struct k1_filmy_zbior filmy;      /* 0.13.2 step 3: what the card decodes (kodeki 0: no capset K1_FILMY) */
+    uint32_t ctx_filmy[K1_KF_KONTEKSTY + 1]; /* the guest's virtio-gpu context of each film context (0: free) */
+    uint32_t wspolna_filmow[K1_KF_KONTEKSTY + 1]; /* its shared memory's resource (0: none yet) */
     unsigned long polecenia, bledy, obrazy; /* obrazy: SET_SCANOUT_BLOB accepted (0.10.11 step 2) */
 };
 
@@ -113,6 +123,16 @@ int most_polecenie(struct most *m, const uint8_t *p, uint64_t n, uint8_t *odp, u
 uint64_t most_okno_baza(uint64_t koniec_pamieci);
 
 int most_zasob_jest(const struct most *m, uint32_t res); /* a blob resource res exists (2D must not take its number) */
+void most_filmy(struct most *m, const struct k1_filmy_zbior *z); /* 0.13.2 step 3: offer the film context */
+uint32_t most_capsety(const struct most *m); /* how many capsets the device offers (num_capsets): 1 or 2 */
+/* gpu_filmy.c — the film context's commands (for gpu_most.c): each returns the reply's length in odp */
+uint32_t most_filmy_kontekst(const struct most *m, uint32_t ctx); /* its film context 1..K1_KF_KONTEKSTY, 0: none */
+uint32_t most_filmy_kontekst_nowy(struct most *m, uint32_t ctx, uint8_t *odp);
+uint32_t most_filmy_wspolna(struct most *m, uint32_t k, const struct virtio_gpu_resource_create_blob *b, uint8_t *odp);
+uint32_t most_filmy_zglos(struct most *m, uint32_t k, const uint8_t *strumien, uint32_t dl, uint8_t *odp);
+void most_filmy_koniec(struct most *m, uint32_t k); /* film context k ended (0: nothing) */
+uint32_t most_blad(struct most *m, uint8_t *odp, uint32_t typ); /* an error reply (counted) */
+uint32_t most_ok(uint8_t *odp);                                 /* OK_NODATA */
 void most_reset(struct most *m);                         /* the device's reset: every context and resource goes */
 void most_padl(struct most *m);                          /* the broker is gone: nothing new (mappings stay) */
 

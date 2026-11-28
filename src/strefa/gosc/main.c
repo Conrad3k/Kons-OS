@@ -248,6 +248,10 @@ static void tryb_jednorazowy(int t)
         grafika(t == TRYB_GRAFIKA_ZLA);
         wylacz();
     }
+    if (t == TRYB_FILMY || t == TRYB_FILMY_ZLE) { /* 0.13.2 step 3: the film context, then the end */
+        filmy(t == TRYB_FILMY_ZLE);
+        wylacz();
+    }
     if (t == TRYB_POBRANIE || t == TRYB_POBRANIE_ZLE) { /* 0.11.0 step 2: files into Pliki, then the end */
         pobrane(t == TRYB_POBRANIE_ZLE);
         wylacz();

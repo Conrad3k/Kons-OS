@@ -47,7 +47,7 @@ pytana: plan zadaje ją tylko, gdy L2 wyjdzie „da się”, a wyszło „nie da
 1. **Droga w strefie (T1): kontekst filmów.** Drugi rodzaj kontekstu virtio-gpu w tym samym urządzeniu, które ma szybka
    grafika (jeden most w VMM-ie — ADR 0049 pkt 4): własny zbiór możliwości K1 **`K1_FILMY` = 20** (poza numerami 1–6
    virtio, poniżej 31 przez maskę jądra). Urządzenie podaje go tylko w sesji z pośrednikiem grafiki **i** gdy karta
-   rozpakowuje filmy (pkt 6); bez tego jest tylko zbiór `DRM` (jak dziś). Treść zbioru: wersja, bity kodeków
+   rozpakowuje filmy (pkt 4); bez tego jest tylko zbiór `DRM` (jak dziś). Treść zbioru: wersja, bity kodeków
    (`K1_KODEKI`) i największy rozmiar — tyle wystarcza `vaapitest` Firefoksa (otwiera VA, pyta o profile i punkty
    wejścia, tworzy i niszczy konfigurację — `widget/gtk/vaapitest/vaapitest.cpp`) bez uruchamiania dekodera.
    W kontekście filmów:
@@ -78,13 +78,15 @@ pytana: plan zadaje ją tylko, gdy L2 wyjdzie „da się”, a wyszło „nie da
    w Mesie — „Później”, po pomiarze na IdeaPadzie (D3). **Odrzucone:** klatka do pamięci gościa (poziom 1 z ADR 0049
    pkt 6) — Firefox i tak potrzebuje dma-bufa karty.
 4. **Kiedy dekoder strefy (T5 — korekta T6 planu 0.10.9): na prośbę.** VMM prosi nadzorcę o dekoder przy pierwszym
-   otwarciu filmu (`STREFA_FILMY` na fd 7), nadzorca sprawdza: przełącznik sesji włączony, pośrednik tej strefy działa,
+   otwarciu filmu (na fd 7), nadzorca sprawdza: przełącznik sesji włączony, pośrednik tej strefy działa,
    karta „umie”, dekoder tej sesji nie zakończył się błędem — i odpowiada kanałem do dekodera (komunikat z deskryptorem)
-   albo odmową (bez). Odmowa = film procesorem. VMM zamyka kanał, gdy zamknie się ostatni kontekst filmów — dekoder
+   albo odmową (bez). Odmowa = film procesorem. *Uzupełnienie z kroku 3:* wszystkie 255 numerów typów `k1_komunikat`
+   są zajęte, więc prośba to `STREFA_POLACZ` z nowym rodzajem `K1_STREFA_FILMY` (obiekt 0), odpowiedź —
+   `STREFA_GNIAZDO` a = `K1_STREFA_FILMY` z kanałem albo `STREFA_ODMOWA` obiekt 0; klatka do bufora — `FILMY_OKNO`
+   z numerem filmu (typ zawsze z deskryptorem); „co umie karta” VMM czyta z pierwszego słowa dekodera (`FILMY_UMIE`)
+   przy swoim starcie i zaraz zamyka kanał — bez osobnego `STREFA_FILMY_KARTA`. Szerszy typ komunikatu — „Później”. VMM zamyka kanał, gdy zamknie się ostatni kontekst filmów — dekoder
    kończy się sam i oddaje pamięć; następny film = nowy dekoder. Dekoder zakończony błędem (awaria, sygnał) — do końca
    sesji bez filmów kartą. Większość sesji nie gra filmów, a dekoder przy filmie 4K trzyma do `K1_FILMY_PAMIEC`.
-   Co umie karta, VMM wie od startu: strefa z pośrednikiem dostaje od nadzorcy na fd 7 **jako pierwsze**
-   `STREFA_FILMY_KARTA` (bity kodeków, największy rozmiar; 0 — filmów kartą nie ma) i czyta je przed startem maszyny.
 5. **X230 (D4): bez filmów kartą.** Firefox nie używa VA-API bez składania kartą i bez sprzętowego GL (L2), a X230 nie ma
    szybkiej grafiki (brak pełnego PPGTT — ADR 0049 pkt 7). Jedyną drogą byłoby udawanie `glxtest` i WebRendera — odrzucone
    w ADR 0049. Plan zadaje D4 tylko przy „da się”, więc wybór „B” wynika ze źródeł; Ustawienia na X230 mówią o filmach
@@ -117,9 +119,9 @@ pytana: plan zadaje ją tylko, gdy L2 wyjdzie „da się”, a wyszło „nie da
 - ADR 0049: dopisek „pkt 4–6: [korekta: ADR 0063]”. Niezmiennik 7 bez zmian: węzeł render dalej tylko dekoder filmów
   i pośrednik; dekoder dostaje dodatkowo dma-buf bufora strefy (tylko do zapisu klatki, `mmap` bez `PROT_EXEC`).
 - Krok 2: FFmpeg (`libavcodec.so.62`) i libva w obrazie strefy, `k1.js` bez martwego prefu.
-- Krok 3: zbiór możliwości `K1_FILMY`, kontekst filmów w VMM-ie (podział `gpu_lacze.c` przed rozbudową), komunikaty
-  `STREFA_FILMY_KARTA`, `STREFA_FILMY`, `STREFA_FILMY_KANAL`, `STREFA_FILMY_ODMOWA` (nadzorca ↔ VMM) i klatka do bufora
-  z deskryptorem (VMM → dekoder), tryby 23 i 24 strefy próbnej.
+- Krok 3: zbiór możliwości `K1_FILMY`, kontekst filmów w VMM-ie (`gpu_filmy.c`, `filmy_lacze.c`), prośba o dekoder
+  i odpowiedź istniejącą parą `STREFA_POLACZ` / `STREFA_GNIAZDO` / `STREFA_ODMOWA` (rodzaj `K1_STREFA_FILMY`) i klatka do
+  bufora `FILMY_OKNO` z filmem (pkt 4, uzupełnienie), tryby 23 i 24 strefy próbnej.
 - Krok 4: sterownik VA strefy, prefy, Ustawienia (D1), test właściciela na IdeaPadzie.
 - RYZYKA R98 (prośby dekodera ze strefy, dma-buf od VMM-a), nowy wiersz dla FFmpeg i libva w strefie (krok 2) i dla
   sterownika VA w procesie RDD (krok 4).

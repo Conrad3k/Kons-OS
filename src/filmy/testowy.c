@@ -52,14 +52,14 @@ static int klatka(int film, const struct k1_filmy_film *f, uint32_t cel, const u
     return 0;
 }
 
-static int pobierz(int film, const struct k1_filmy_film *f, uint32_t cel, uint8_t *nv12)
+static int pobierz(int film, const struct k1_filmy_film *f, uint32_t cel, uint8_t *y, uint8_t *uv)
 {
     uint32_t rzad = k1_filmy_rzad(f->w), uv_h = (f->h + 1) / 2;
     const uint8_t *s = powierzchnie[film][cel];
     for (uint32_t r = 0; r < f->h; r++)
-        memcpy(nv12 + (size_t)r * rzad, s + (size_t)r * f->w, f->w);
+        memcpy(y + (size_t)r * rzad, s + (size_t)r * f->w, f->w);
     for (uint32_t r = 0; r < uv_h && r < f->h / 2; r++)
-        memcpy(nv12 + (size_t)rzad * f->h + (size_t)r * rzad, s + (size_t)f->w * f->h + (size_t)r * f->w, f->w);
+        memcpy(uv + (size_t)r * rzad, s + (size_t)f->w * f->h + (size_t)r * f->w, f->w);
     return 0;
 }
 

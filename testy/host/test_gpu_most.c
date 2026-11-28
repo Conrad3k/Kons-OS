@@ -295,8 +295,113 @@ static void t_koniec(void)
     EXPECT(!most_zasob_jest(&m, 4) && m.ctx[1] == 0);
 }
 
+/* 0.13.2 step 3 (ADR 0063 pkt 1, 3): the film context — the capset K1_FILMY only when the card decodes, a context with
+ * it, its one shared memory, one command per SUBMIT_3D (checked: k1_kf_sprawdz), a frame's target only a buffer of the
+ * card of this zone, the end of the context. */
+static uint32_t film(uint32_t ctx, const struct k1_kf_polecenie *p, uint32_t n)
+{
+    struct virtio_gpu_cmd_submit s = { .hdr = { .type = VIRTIO_GPU_CMD_SUBMIT_3D, .flags = VIRTIO_GPU_FLAG_FENCE,
+                                                .fence_id = 5, .ctx_id = ctx }, .size = n };
+    memcpy(b, &s, sizeof s);
+    memcpy(b + sizeof s, p, n);
+    powod = NULL;
+    EXPECT(most_polecenie(&m, b, sizeof s + n, odp, &dl, &cz, &powod) == 0); /* answered at once, never waits */
+    return typ();
+}
+
+static void t_filmy(void)
+{
+    const struct k1_filmy_zbior z = { K1_FILMY_CAPSET_WERSJA, 7, 4096, 2304 };
+    struct virtio_gpu_get_capset_info i = { .hdr = { .type = VIRTIO_GPU_CMD_GET_CAPSET_INFO }, .capset_index = 1 };
+    struct virtio_gpu_get_capset c = { .hdr = { .type = VIRTIO_GPU_CMD_GET_CAPSET }, .capset_id = K1_FILMY_CAPSET };
+    struct virtio_gpu_resp_capset_info ri;
+    struct k1_filmy_zbior zz;
+    struct k1_kf_polecenie p = { K1_KF_OTWORZ, 1, K1_KODEK_H264_GLOWNY, 1920, 1088, 20, 1, 0 };
+    uint32_t n;
+    memset(&f, 0, sizeof f);
+    most_start(&m, &f_lacze, 0x1916, 7, 0x010600);
+    EXPECT(most_capsety(&m) == 1); /* the card decodes nothing (yet): no capset of films, no film context */
+    EXPECT(wykonaj(&i, sizeof i) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(wykonaj(&c, sizeof c) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    kontekst(9, K1_FILMY_CAPSET);
+    EXPECT(typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && m.ctx_filmy[1] == 0);
+    most_filmy(&m, &z);
+    EXPECT(most_capsety(&m) == 2 && wykonaj(&i, sizeof i) == 0);
+    memcpy(&ri, odp, sizeof ri);
+    EXPECT(ri.hdr.type == VIRTIO_GPU_RESP_OK_CAPSET_INFO && ri.capset_id == K1_FILMY_CAPSET && ri.capset_max_size == 16);
+    i.capset_index = 2;
+    EXPECT(wykonaj(&i, sizeof i) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(wykonaj(&c, sizeof c) == 0 && dl == 24 + 16 && typ() == VIRTIO_GPU_RESP_OK_CAPSET);
+    memcpy(&zz, odp + 24, sizeof zz);
+    EXPECT(memcmp(&zz, &z, sizeof z) == 0);
+    c.capset_version = 1;
+    EXPECT(wykonaj(&c, sizeof c) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    /* contexts: films and DRM side by side, never the same id, at most K1_KF_KONTEKSTY of films */
+    kontekst(9, K1_FILMY_CAPSET);
+    EXPECT(typ() == VIRTIO_GPU_RESP_OK_NODATA && m.ctx_filmy[1] == 9);
+    kontekst(9, VIRTIO_GPU_CAPSET_DRM);
+    EXPECT(typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && m.ctx[1] == 0);
+    kontekst(3, VIRTIO_GPU_CAPSET_DRM);
+    kontekst(3, K1_FILMY_CAPSET);
+    EXPECT(typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && m.ctx[1] == 3);
+    for (n = 10; n <= 12; n++)
+        kontekst(n, K1_FILMY_CAPSET);
+    EXPECT(typ() == VIRTIO_GPU_RESP_OK_NODATA);
+    kontekst(13, K1_FILMY_CAPSET);
+    EXPECT(typ() == VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY);
+    /* a command before the shared memory: nowhere to answer */
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && f.filmy == 0);
+    /* the shared memory: blob 0, mappable only, whole pages, K1_KF_WSPOLNA_MIN..MAKS, one */
+    EXPECT(nowy(9, 40, 1, 16384, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(nowy(9, 40, 0, 4096, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(nowy(9, 40, 0, 16384 + 1, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(nowy(9, 40, 0, K1_KF_WSPOLNA_MAKS + 4096, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE) ==
+           VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(nowy(9, 40, 0, 16384, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE | VIRTIO_GPU_BLOB_FLAG_USE_SHAREABLE) ==
+           VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(nowy(9, 40, 0, 16384, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE) == VIRTIO_GPU_RESP_OK_NODATA &&
+           m.zasoby[40].rodzaj == MOST_FILMY && m.wspolna_filmow[1] == 40);
+    EXPECT(nowy(9, 41, 0, 16384, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(mapuj(40, 0x100000) == VIRTIO_GPU_RESP_OK_MAP_INFO && f.mapy == 1);
+    /* commands */
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_OK_NODATA && f.filmy == 1 && f.filmy_k == 1 && f.filmy_blad == 0 &&
+           f.filmy_p.numer == 1 && f.filmy_fd == -1);
+    EXPECT(film(9, &p, sizeof p - 1) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && f.filmy == 1); /* not one command */
+    p.typ = 9;
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && f.filmy == 2 &&
+           f.filmy_blad == K1_FILMY_BLAD_PROSBA); /* the link only answers the error */
+    p = (struct k1_kf_polecenie){ K1_KF_KLATKA, 1, 0, 16384 - K1_KF_PROSBA + 1, 0, 0, 2, 0 }; /* beyond the memory */
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && f.filmy_blad == K1_FILMY_BLAD_PROSBA);
+    /* a frame's target: a buffer of the card of this zone (a DRM context's), its dma-buf from the broker for the command */
+    EXPECT(nowy(3, 2, 5, 65536, VIRTIO_GPU_BLOB_FLAG_USE_MAPPABLE | VIRTIO_GPU_BLOB_FLAG_USE_SHAREABLE) ==
+           VIRTIO_GPU_RESP_OK_NODATA);
+    n = f.zamkniete;
+    p = (struct k1_kf_polecenie){ K1_KF_POBIERZ, 1, 0, 2, 0, 0, 3, 0 };
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_OK_NODATA && f.filmy_blad == 0 && f.filmy_fd >= 2000 &&
+           f.zamkniete == n + 1 && f.bufory == 1);
+    p.b = 40; /* the film context's own shared memory: not a buffer of the card */
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && f.filmy_blad == K1_FILMY_BLAD_OKNO &&
+           f.filmy_fd == -1 && f.bufory == 1);
+    p.b = K1_POSR_ZASOBY_MAKS + 5;
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER && f.filmy_blad == K1_FILMY_BLAD_OKNO);
+    EXPECT(film(10, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER); /* another context: no shared memory */
+    /* the end: the link hears it once, the context's id is nobody's, its shared memory a resource until UNREF */
+    {
+        struct virtio_gpu_ctrl_hdr h = { .type = VIRTIO_GPU_CMD_CTX_DESTROY, .ctx_id = 9 };
+        EXPECT(wykonaj(&h, sizeof h) == 0 && typ() == VIRTIO_GPU_RESP_OK_NODATA && f.filmy_konce == 1 && m.ctx_filmy[1] == 0);
+    }
+    p.typ = K1_KF_ZAMKNIJ, p.a = p.b = 0;
+    n = f.filmy;
+    EXPECT(film(9, &p, sizeof p) == VIRTIO_GPU_RESP_ERR_INVALID_CONTEXT_ID && f.filmy == n);
+    EXPECT(zasob(VIRTIO_GPU_CMD_RESOURCE_UNREF, 40) == VIRTIO_GPU_RESP_OK_NODATA && m.wspolna_filmow[1] == 0);
+    most_reset(&m); /* the other three film contexts end too */
+    EXPECT(f.filmy_konce == 4 && m.ctx_filmy[2] == 0 && m.ctx_filmy[4] == 0);
+}
+
 int main(void)
 {
+    t_filmy();
+    memset(&f, 0, sizeof f);
     most_start(&m, &f_lacze, 0x1916, 7, 0x010600);
     t_capset();
     t_konteksty();

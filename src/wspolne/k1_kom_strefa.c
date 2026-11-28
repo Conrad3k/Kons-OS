@@ -113,15 +113,18 @@ int k1_kom_sprawdz_strefa(const struct k1_komunikat *k, enum k1_kanal_kierunek k
 {
     switch (k->typ) {
     case K1_KOM_STREFA_POLACZ:
+        if (k->c == K1_STREFA_FILMY) /* 0.13.2 step 3 (ADR 0063 pkt 4): the zone's film decoder — not a connection */
+            return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && k->a == 0 && k->b == 0 && zera(k, 3);
         return kier == K1_KIER_DO_NADZORCY && polaczenie(k->obiekt) &&
                ((k->c == K1_STREFA_TCP && k1_siec_serwer_dobry((uint32_t)k->a) && w(k->b, 1, 65535)) ||
                 ((k->c == K1_STREFA_DNS || k->c == K1_STREFA_POBRANE) && k->a == 0 && k->b == 0)) &&
                zera(k, 3);
-    case K1_KOM_STREFA_GNIAZDO:
-        return kier == K1_KIER_OD_NADZORCY && polaczenie(k->obiekt) && w(k->a, K1_STREFA_TCP, K1_STREFA_POBRANE) &&
+    case K1_KOM_STREFA_GNIAZDO: /* obiekt 0 exactly with the film decoder's channel */
+        return kier == K1_KIER_OD_NADZORCY && w(k->a, K1_STREFA_TCP, K1_STREFA_FILMY) &&
+               (k->a == K1_STREFA_FILMY ? k->obiekt == 0 : polaczenie(k->obiekt)) && zera(k, 1);
+    case K1_KOM_STREFA_ODMOWA: /* obiekt 0: the film decoder refused */
+        return kier == K1_KIER_OD_NADZORCY && (k->obiekt == 0 || polaczenie(k->obiekt)) && w(k->a, 1, K1_STREFA_ODM_MAKS) &&
                zera(k, 1);
-    case K1_KOM_STREFA_ODMOWA:
-        return kier == K1_KIER_OD_NADZORCY && polaczenie(k->obiekt) && w(k->a, 1, K1_STREFA_ODM_MAKS) && zera(k, 1);
     case K1_KOM_STREFA_PAMIEC: /* 0.10.1 step 2: a hint only — nadzorca trusts no number of it (ADR 0044 T3) */
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_STREFA_PAMIEC_MAKS) &&
                w(k->b, -1, K1_STREFA_PAMIEC_MAKS) && w(k->c, 0, K1_STREFA_PAMIEC_MAKS) &&

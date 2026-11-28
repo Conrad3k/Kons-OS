@@ -20,6 +20,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     memset(&f, 0, sizeof f);
     f.odp = data[0] % 4 == 0 ? 0 : data[0] % 4 == 1 ? K1_POSR_BLAD_POLE : data[0] % 4 == 2 ? K1_POSR_BLAD_PAMIEC : MOST_PADL;
     most_start(&m, &f_lacze, 0x1916, 7, 0x010600);
+    if (data[0] & 0x80) { /* 0.13.2 step 3: with the film context */
+        const struct k1_filmy_zbior z = { K1_FILMY_CAPSET_WERSJA, 7, 4096, 2304 };
+        most_filmy(&m, &z);
+    }
     while (o + 2 <= size) {
         size_t n = (size_t)data[o] | (size_t)data[o + 1] << 8;
         uint8_t *p;

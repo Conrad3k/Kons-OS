@@ -80,6 +80,34 @@ static long long pamiec_dekodera(void)
 }
 
 /* The window, a film, a picture and its frame back. */
+/* 0.13.2 step 3 (ADR 0063 pkt 3): FILMY_OKNO with a film — the frame into a buffer of the zone (here a memfd, as the
+ * graphics broker's test engine gives one): the luma, the chroma from k1_filmy_bufor_uv; too small, or a surface with
+ * nothing decoded — refused, the buffer untouched. */
+static void do_bufora(void)
+{
+    uint64_t dl = (k1_filmy_bufor_bajty(320, 240) + 4095u) & ~(uint64_t)4095u;
+    int b = memfd(dl, 0), maly = memfd(4096, 0), r1, r2, r3;
+    uint8_t *m = b >= 0 ? mmap(NULL, (size_t)dl, PROT_READ | PROT_WRITE, MAP_SHARED, b, 0) : MAP_FAILED;
+    if (m == MAP_FAILED || maly < 0) {
+        check(0, "filmy: bufor strefy dla klatki", "memfd: %s", strerror(errno));
+        return;
+    }
+    memset(m, 0xee, (size_t)dl);
+    r1 = wynik(k1_komunikat_nowy(K1_KOM_FILMY_OKNO, 1, 0, 0, 0, 0, 0), b);
+    check(r1 == 0 && m[0] == 16 + 0x40 % 220 && m[239 * 320] == m[0] && m[k1_filmy_bufor_uv(320, 240)] == 128 &&
+              m[320 * 240] == 0xee,
+          "filmy: klatka prosto do bufora strefy (FILMY_OKNO z filmem; kolory od pełnej strony)", "wynik %d, Y %d, UV %d",
+          r1, m[0], m[k1_filmy_bufor_uv(320, 240)]);
+    memset(m, 0xee, (size_t)dl);
+    r2 = wynik(k1_komunikat_nowy(K1_KOM_FILMY_OKNO, 1, 0, 0, 0, 0, 0), maly);
+    r3 = wynik(k1_komunikat_nowy(K1_KOM_FILMY_OKNO, 1, 3, 0, 0, 0, 0), b);
+    check(r2 == K1_FILMY_BLAD_OKNO && r3 == K1_FILMY_BLAD_ODNIES && m[0] == 0xee,
+          "NEGATYWNY: bufor mniejszy niż klatka i klatka bez obrazu — odrzucone, bufor nietknięty", "%d, %d", r2, r3);
+    munmap(m, (size_t)dl);
+    close(b);
+    close(maly);
+}
+
 static void obraz(void)
 {
     struct k1_komunikat w;
@@ -106,6 +134,7 @@ static void obraz(void)
               okno[K1_FILMY_PROSBA_MAKS] == 16 + 0x40 % 220 && okno[K1_FILMY_PROSBA_MAKS + 320 * 240] == 128,
           "filmy: klatka wraca w oknie (NV12, szara z dekodera testowego)", "typ %d, Y %d", w.typ,
           okno[K1_FILMY_PROSBA_MAKS]);
+    do_bufora();
 }
 
 /* Hostile requests: refused, the decoder lives. */

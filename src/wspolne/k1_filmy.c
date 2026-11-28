@@ -215,3 +215,27 @@ size_t k1_filmy_nazwy(int32_t bity, char *buf, size_t n)
     }
     return d;
 }
+
+/* 0.13.2 step 3: a command of a film context (k1_filmy.h) */
+int k1_kf_sprawdz(const struct k1_kf_polecenie *p, uint64_t wspolna)
+{
+    uint64_t miejsce = wspolna > K1_KF_PROSBA ? wspolna - K1_KF_PROSBA : 0;
+    if (p->zarezerwowane != 0 || p->film < 1 || p->film > K1_KF_FILMY)
+        return K1_FILMY_BLAD_PROSBA;
+    switch (p->typ) {
+    case K1_KF_OTWORZ:
+        return w((int)p->a, 1, K1_KODEKI_MAKS) && p->b >= K1_FILMY_MIN_WH && p->b <= K1_FILMY_MAKS_W &&
+                       p->c >= K1_FILMY_MIN_WH && p->c <= K1_FILMY_MAKS_H && p->d >= 1 && p->d <= K1_FILMY_KLATEK_MAKS
+                   ? 0 : K1_FILMY_BLAD_PROSBA;
+    case K1_KF_KLATKA:
+        return p->a < K1_FILMY_KLATEK_MAKS && p->b >= sizeof(struct k1_filmy_naglowek) && p->b <= K1_FILMY_PROSBA_MAKS &&
+                       p->b <= miejsce && p->c == 0 && p->d == 0
+                   ? 0 : K1_FILMY_BLAD_PROSBA;
+    case K1_KF_POBIERZ:
+        return p->a < K1_FILMY_KLATEK_MAKS && p->b >= 1 && p->c == 0 && p->d == 0 ? 0 : K1_FILMY_BLAD_PROSBA;
+    case K1_KF_ZAMKNIJ:
+        return p->a == 0 && p->b == 0 && p->c == 0 && p->d == 0 ? 0 : K1_FILMY_BLAD_PROSBA;
+    default:
+        return K1_FILMY_BLAD_PROSBA;
+    }
+}

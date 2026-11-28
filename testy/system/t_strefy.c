@@ -329,6 +329,8 @@ int t_strefy_scenariusz(void)
         strefa_raz(K1_STREFA_TRYB_DYSK, 240); /* after "Wyczyść dane sesji": 1 */
         strefa_raz(K1_STREFA_TRYB_GRAFIKA, 300);     /* 0.10.9 step 6: the bridge of fast graphics (test engine) */
         strefa_raz(K1_STREFA_TRYB_GRAFIKA_ZLA, 400); /* …and a guest hostile to it */
+        strefa_raz(K1_STREFA_TRYB_FILMY, 300);       /* 0.13.2 step 3: the film context (test decoder, test engine) */
+        strefa_raz(K1_STREFA_TRYB_FILMY_ZLE, 300);   /* …and a guest hostile to it */
         rozdzielacz();
         okno_i_zamykanie(); /* 0.10.2 step 1 */
         strefa_raz_start(0); /* S5: it runs when the script powers K1 off — it must close and save first */

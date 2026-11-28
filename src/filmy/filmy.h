@@ -23,8 +23,9 @@ struct silnik {
     int (*otworz)(int film, const struct k1_filmy_film *f); /* 0 or K1_FILMY_BLAD_* */
     /* The request `p` (copied out of the window and checked; its parts: c) into surface `cel`: 0 or K1_FILMY_BLAD_*. */
     int (*klatka)(int film, const struct k1_filmy_film *f, uint32_t cel, const uint8_t *p, const struct k1_filmy_czesci *c);
-    /* The picture of surface `cel` into `cel_nv12` (NV12, rows of k1_filmy_rzad(f->w)): 0 or K1_FILMY_BLAD_*. */
-    int (*pobierz)(int film, const struct k1_filmy_film *f, uint32_t cel, uint8_t *cel_nv12);
+    /* The picture of surface `cel` in NV12, rows of k1_filmy_rzad(f->w): the luma into `y`, the chroma into `uv` (the
+     * window: right after the luma; a buffer of the zone: k1_filmy_bufor_uv — 0.13.2 step 3): 0 or K1_FILMY_BLAD_*. */
+    int (*pobierz)(int film, const struct k1_filmy_film *f, uint32_t cel, uint8_t *y, uint8_t *uv);
     void (*zamknij)(int film);
 };
 extern const struct silnik silnik_karty;   /* karta.c */

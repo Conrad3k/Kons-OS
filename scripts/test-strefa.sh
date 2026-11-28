@@ -539,6 +539,10 @@ sprawdz("SZYBKA GRAFIKA (0.10.9 krok 6): VMM strefy dostaje pośrednika grafiki 
         czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 16\)", czas=300) and
         czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, uid 300, .*szybka grafika, gość testowy", czas=60) and
         czekaj(r"K1-STREFA: szybka grafika: most do karty 0x1916", czas=60))
+sprawdz("NEGATYWNY (0.13.2 krok 3): szybka grafika bez filmów — VMM pyta o dekoder filmów, nadzorca odmawia (karta nie "
+        "rozpakowuje), gość nie dostaje zbioru możliwości filmów",
+        czekaj(r"K1-NADZORCA: strefa 1: dekoder filmów odmówiony \(bez szybkiej grafiki albo karta nie umie\)", czas=60) and
+        czekaj(r"K1-STREFA: filmy kartą: K1 nie dał dekodera — filmy procesorem", czas=60))
 sprawdz("SZYBKA GRAFIKA: gość widzi zbiór możliwości DRM karty (i915, 0x1916) i mapuje pamięć wspólną mostu",
         czekaj(r"K1-GOSC: grafika: zbiór możliwości DRM — kontekst 3, karta 0x1916", czas=240) and
         czekaj(r"K1-GOSC: grafika: pamięć wspólna zmapowana, odpowiedzi od 16", czas=60))
@@ -595,6 +599,37 @@ sprawdz("NEGATYWNY: „zawieszenie karty” przez strefę — koniec jej pośred
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 17\)", czas=300),
         "; ".join(re.findall(r"K1-(?:NADZORCA: pośrednik grafiki|STREFA: szybka grafika|GOSC: grafika \(zła\): po)[^\n]*",
                              q.tekst())[-4:]))
+# 0.13.2 step 3 (ADR 0063): the film context — the test zone's VMM gets the broker's test engine and, on request, the
+# test film decoder (grey frames); the guest speaks the film context as our VA driver will (gosc/filmy.c)
+sprawdz("FILMY KARTĄ (0.13.2 krok 3): VMM pyta raz przy starcie, co rozpakowuje karta (dekoder strefy na prośbę, potem "
+        "koniec), gość widzi zbiór możliwości filmów",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 23\)", czas=300) and
+        czekaj(r"K1-NADZORCA: strefa 1: dekoder filmów na prośbę VMM \(dekoder testowy\)", czas=60) and
+        czekaj(r"K1-STREFA: filmy kartą: karta rozpakowuje \(kodeki 0x7, do 4096 × 2304\)", czas=60) and
+        czekaj(r"K1-GOSC: filmy: zbiór możliwości filmów — kodeki 0x7, do 4096 × 2304", czas=240))
+sprawdz("FILMY KARTĄ: kontekst filmów — otwarcie, klatka, klatka prosto do bufora karty strefy (szara z dekodera "
+        "testowego, w pamięci gościa)",
+        czekaj(r"K1-GOSC: filmy: otwarcie 0, klatka 0, pobranie do bufora karty \(zasób \d+\) 0", czas=120) and
+        czekaj(r"K1-GOSC: filmy: klatka w buforze karty — jasność 101 \(oczekiwana 101\), ostatni wiersz 101, "
+               r"kolory 128", czas=30) and czekaj(r"K1-GOSC: filmy: ok", czas=30),
+        "; ".join(re.findall(r"K1-GOSC: filmy:[^\n]*", q.tekst())[-4:]))
+sprawdz("FILMY KARTĄ: ostatni kontekst zamknięty — dekoder kończy się sam; następny film — nowy dekoder na prośbę",
+        czekaj(r"K1-GOSC: filmy: drugi kontekst po zamknięciu pierwszego — nowy dekoder, otwarcie 0", czas=120) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 23\)", czas=300) and
+        czekaj(r"K1-STREFA: filmy kartą: polecenia [1-9]\d* \(błędy 0\)", czas=30) and
+        q.ile(r"K1-NADZORCA: strefa 1: dekoder filmów na prośbę VMM") >= 3)
+sprawdz("NEGATYWNY: złośliwy gość kontekstu filmów — krótkie i nieznane polecenia, zły kodek, prośba poza pamięcią "
+        "wspólną, odniesienie do pustej klatki, klatka do zasobu spoza kart, piąty film strefy, zalew — odrzucone, dekoder "
+        "i strefa żyją",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 24\)", czas=300) and
+        czekaj(r"K1-GOSC: filmy \(złe\): krótkie polecenie -100, nieznane -1, zły kodek -1, prośba poza pamięcią -1",
+               czas=240) and
+        czekaj(r"K1-GOSC: filmy \(złe\): otwarcie 0, odniesienie do pustej klatki -5, pobranie do zasobu spoza kart -8, "
+               r"następna 0", czas=120) and
+        czekaj(r"K1-GOSC: filmy \(złe\): piąty film strefy -6", czas=60) and
+        czekaj(r"K1-GOSC: filmy \(złe\): zalew 300 poleceniami — odpowiedzi 300, potem otwarcie 0", czas=600) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 24\)", czas=300),
+        "; ".join(re.findall(r"K1-GOSC: filmy \(złe\)[^\n]*", q.tekst())))
 # 0.10.1 step 3 (T6, D3): the rozdzielacz — K1 here has 1 GiB, below its reserve (768 MiB): nadzorca takes the guest's
 # free memory by its balloon itself; when no more can be taken, gui shows "Mało pamięci" with the zone and "Zamknij"
 sprawdz("ROZDZIELACZ (0.10.1 krok 3): K1 poniżej rezerwy — nadzorca sam bierze balonem wolną pamięć strefy (cel od "

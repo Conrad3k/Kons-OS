@@ -171,6 +171,27 @@ przeglądarka rysuje procesorem.
 - **Ramka**: ekran rysuje mały znak — układ scalony — tuż za nazwą sesji, póki strefa działa ze swoim pośrednikiem
   (`STREFY_GRAFIKA` b; D7 właściciela). Gdy pośrednik się skończy, znak znika.
 
+## Filmy kartą: kontekst filmów (0.13.2 krok 3, ADR 0063 pkt 1, 3, 4)
+Sesja z pośrednikiem grafiki, której karta rozpakowuje filmy, dostaje w tym samym urządzeniu virtio-gpu **drugi
+zbiór możliwości** — K1 `K1_FILMY` = 20 (`num_capsets` = 2; jądro strefy przyjmuje 1…63, ale maskę liczy na `int`, więc
+poniżej 31). Jego treść (`struct k1_filmy_zbior`, 16 B): wersja, bity kodeków, największy film. VMM bierze ją przy
+starcie (`filmy_lacze.c`): prosi nadzorcę o dekoder filmów strefy (`STREFA_POLACZ` c = `K1_STREFA_FILMY`, fd 7), czyta
+jego pierwsze słowo (`FILMY_UMIE`) i zamyka kanał; odmowa albo cisza — zbioru filmów nie ma, filmy procesorem.
+- **Kontekst filmów** (`gpu_filmy.c`, czyste — `test_gpu_most`, `fuzz_gpu_most`): `CTX_CREATE` z `K1_FILMY` (najwyżej
+  `K1_KF_KONTEKSTY` = 4, numer kontekstu nigdy ten sam co DRM), jedna **pamięć wspólna** (blob 0, `HOST3D`, tylko
+  mapowalna, całe strony, `K1_KF_WSPOLNA_MIN`…`MAKS` — memfd VMM-a, zmapowany też w VMM-ie), **polecenie** = dokładnie
+  jedna `struct k1_kf_polecenie` (32 B) w `SUBMIT_3D`: otwórz film, klatka (prośba `k1_filmy` w pamięci wspólnej od
+  4 KiB), pobierz klatkę do bufora, zamknij. VMM sprawdza pole po polu (`k1_kf_sprawdz`), cel klatki tylko bufor karty
+  tej strefy (zasób kontekstu DRM — jego dma-buf od pośrednika, `POSR_BUFOR`), treści prośby nie rozbiera.
+- **Dekoder na prośbę**: pierwszy film kontekstu — VMM prosi nadzorcę znowu (wątek mostu wysyła, odpowiedź odbiera
+  główny wątek i podaje dalej), okno dekodera (memfd `K1_FILMY_OKNO` z pieczęciami) → `FILMY_OKNO`; numery filmów
+  kontekstu → numery dekodera (najwyżej 4 filmy strefy), prośba kopiowana z pamięci wspólnej do okna, klatka do
+  bufora — `FILMY_OKNO` z filmem + dma-buf; **odpowiedź** (`struct k1_kf_odpowiedz`: numer polecenia, wynik) VMM
+  wpisuje na początek pamięci wspólnej, zanim odpowie na łańcuch (płot gościa). Ostatni kontekst filmów zamknięty —
+  kanał zamknięty, dekoder kończy się sam. Dekoder zakończony albo cichy 10 s: `K1_KF_BLAD_DEKODER` do końca sesji.
+- Pamięć: nadzorca dodaje VMM-owi z pośrednikiem `K1_KF_PAMIEC_VMM` (okno dekodera + 4 pamięci wspólne).
+- Licznik w logu na końcu: „filmy kartą: polecenia N (błędy M)”.
+
 ## Okno
 Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Na
 początku **ekran startu**: „Uruchamiam: <tytuł> · <sesja>…” z ikoną strefy i paskiem, po którym przesuwa się odcinek w
@@ -363,14 +384,14 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 |---|---|---|
 | `ROZMIAR` (0.10.5 krok 4) | ekran → VMM (fd 3) | obiekt = okno, a, b = nowy rozmiar obrazu (od 640 × 480; do 0.11.0 szerokość co 8), c = `K1_ROZMIAR_*` (0 zwykłe, 1 zmaksymalizowane, 2 pełny ekran — 0.11.0); odpowiedź: `POWIERZCHNIA` e = 1 tego rozmiaru (`ekran.md`) |
 | `PELNY_EKRAN` (0.11.0 krok 1) | VMM → ekran (fd 3) | obiekt = okno, a = 1 gość prosi o pełny ekran / 0 wyszedł z niego; tylko zmiany, najwyżej 4 na sekundę (`ekran.md`) |
-| `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = połączenie 1…128; TCP: a = adres IPv4 (`k1_siec_serwer_dobry`), b = port 1…65535, c = `K1_STREFA_TCP`; DNS: a = b = 0, c = `K1_STREFA_DNS`; d = e = 0 |
-| `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
+| `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = połączenie 1…128; TCP: a = adres IPv4 (`k1_siec_serwer_dobry`), b = port 1…65535, c = `K1_STREFA_TCP`; DNS: a = b = 0, c = `K1_STREFA_DNS`; d = e = 0; 0.13.2: dekoder filmów strefy — obiekt = 0, a = b = 0, c = `K1_STREFA_FILMY` |
+| `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53) / `K1_STREFA_FILMY` (obiekt 0: kanał do dekodera filmów strefy, 0.13.2), reszta 0 |
 | `STREFA_PAMIEC` (0.10.1 krok 2, ADR 0044) | VMM → nadzorca, najwyżej raz na sekundę | obiekt 0, a = pamięć gościa trzymana w K1 (MiB — strony memfd), b = dostępna w gościu wg jego statystyk (−1: jeszcze brak; podpowiedź), c = w balonie, d = cel balonu, e = oddane K1 od startu (a–d: 0…`K1_STREFA_PAMIEC_MAKS`, e: 0…`INT32_MAX`) |
 | `STREFA_BALON` (0.10.1 krok 2) | nadzorca → VMM; program testowy → nadzorca | obiekt = strefa, a = cel balonu 0…`K1_STREFA_PAMIEC_MAKS` MiB, reszta 0; od kroku 3 cel ustawia rozdzielacz nadzorcy (`nadzorca.md`); strefa programu testowego (tryby 1…9) — tylko jego prośby |
 | `STREFA_FOKUS` (0.10.1 krok 3) | gui → nadzorca (fd 4) | obiekt 0, a = strefa, której okno ma fokus 0…`K1_STREFY_MAKS` (0: żadna), reszta 0; tylko od gui (UID), podpowiedź dla rozdzielacza i `oom_score_adj` |
 | `STREFA_PRZYDZIAL` (0.10.1 krok 3) | nadzorca → Zasoby (fd 4, co sekundę), gui (fd 5, tuż przed `MALO_PAMIECI`) | obiekt = działająca strefa, a = ile używa (pamięć gościa w K1), b = ile może dostać (górna granica minus cel balonu), MiB 0…`K1_STREFA_PAMIEC_MAKS`; c = 1 jej okno ma fokus; d = e = 0 |
 | `MALO_PAMIECI` (0.10.1 krok 3) | nadzorca → gui (fd 5) | obiekt 0, a = ile K1 ma wolnej pamięci (MiB, 0…`K1_PAMIEC_MAKS_MIB`), b = bit nr−1: strefa nr w okienku (tylko bity stref, nie 0), reszta 0 |
-| `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie, a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
+| `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie (0: dekoder filmów odmówiony, 0.13.2), a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
 | `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…`K1_STREFA_TRYB_MAKS` (≠ 0 tylko od programu testowego; gui — odrzucone; 10 od 0.10.1 krok 3: zwykły gość, którego balonem rządzi rozdzielacz; 11 od 0.10.2 krok 1: gość z „oknem” jak przeglądarka — „etap start”, pierwszy obraz od razu, „etap okno” 8 s później, zamyka się 6 s), reszta 0; prośba o strefę, która **zamyka się** w tle (0.10.2, D2): nadzorca otwiera ją sam, gdy stara maszyna skończy |
 | `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD`; od 0.10.1 krok 1 `_LIMIT` (8: strefa zużyła całą pamięć, którą K1 jej daje — limit klatki) (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
 | `KLIENT` (rola `STREFA`) | nadzorca → ekran | `b` = numer strefy (1…`K1_STREFY_MAKS`) |

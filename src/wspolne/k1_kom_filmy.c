@@ -36,8 +36,8 @@ static int karta(const struct k1_komunikat *k, int z_nadzorcy)
 static int do_filmow(const struct k1_komunikat *k)
 {
     switch (k->typ) {
-    case K1_KOM_FILMY_OKNO:
-        return k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_FILMY_OKNO: /* 0.13.2 step 3: with a film — a frame into the zone's buffer */
+        return k->obiekt == 0 ? zera(k, 0) : film(k->obiekt) && w(k->a, 0, K1_FILMY_KLATEK_MAKS - 1) && zera(k, 1);
     case K1_KOM_FILMY_OTWORZ:
         return film(k->obiekt) && w(k->a, 1, K1_KODEKI_MAKS) && w(k->b, K1_FILMY_MIN_WH, K1_FILMY_MAKS_W) &&
                w(k->c, K1_FILMY_MIN_WH, K1_FILMY_MAKS_H) && w(k->d, 1, K1_FILMY_KLATEK_MAKS) && k->e == 0;
@@ -60,7 +60,7 @@ static int od_filmow(const struct k1_komunikat *k)
         return k->obiekt == 0 && karta(k, 0);
     case K1_KOM_FILMY_WYNIK:
         return k->obiekt <= K1_FILMY_FILMOW_MAKS && w(k->a, K1_KOM_FILMY_OKNO, K1_KOM_FILMY_ZAMKNIJ) &&
-               (k->a == K1_KOM_FILMY_OKNO) == (k->obiekt == 0) && w(k->b, K1_FILMY_BLAD_MIN, 0) && zera(k, 2);
+               (k->a == K1_KOM_FILMY_OKNO || k->obiekt != 0) && w(k->b, K1_FILMY_BLAD_MIN, 0) && zera(k, 2);
     case K1_KOM_FILMY_OBRAZ:
         return film(k->obiekt) && w(k->a, 0, K1_FILMY_KLATEK_MAKS - 1) && w(k->b, K1_FILMY_MIN_WH, K1_FILMY_MAKS_W) &&
                w(k->c, K1_FILMY_MIN_WH, K1_FILMY_MAKS_H) && k->d == (int32_t)k1_filmy_rzad((uint32_t)k->b) && k->e == 0;

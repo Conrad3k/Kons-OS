@@ -15,6 +15,9 @@ static struct {
     int obraz_odp, obraz_fd;           /* 0.10.11 step 2: what the window answers; the fd it was given last */
     uint32_t obrazy, obrazy_brak, obrazy_koniec, ost_obraz_res;
     struct most_obraz ost_obraz;
+    uint32_t filmy, filmy_konce, filmy_k; /* 0.13.2 step 3 */
+    int filmy_fd, filmy_blad;
+    struct k1_kf_polecenie filmy_p;
 } f;
 
 static int f_prosby(void *ja, uint32_t g, uint32_t dl)
@@ -89,7 +92,25 @@ static void f_obraz_koniec(void *ja, uint32_t res)
     (void)ja;
     f.obrazy_koniec++, f.ost_obraz_res = res;
 }
+/* 0.13.2 step 3: the film contexts — the link's answer is what f.filmy_wynik says (it writes nothing: pure) */
+static int f_filmy_wspolna(void *ja, uint32_t k, uint64_t rozmiar, int *fd)
+{
+    (void)ja, (void)k, (void)rozmiar;
+    *fd = 3000 + (f.fd++);
+    return f.odp != 0;
+}
+static void f_filmy(void *ja, uint32_t k, const struct k1_kf_polecenie *p, int fd, int blad)
+{
+    (void)ja;
+    f.filmy++, f.filmy_k = k, f.filmy_p = *p, f.filmy_fd = fd, f.filmy_blad = blad;
+}
+static void f_filmy_koniec(void *ja, uint32_t k)
+{
+    (void)ja;
+    f.filmy_konce++, f.filmy_k = k;
+}
 static const struct most_lacze f_lacze = { NULL, f.okno, f_prosby, f_wspolna, f_blob, f_bufor, f_zwolnij, f_plot, f_koniec,
-                                           f_zamknij, f_mapuj, f_odmapuj, f_obraz, f_obraz_koniec };
+                                           f_zamknij, f_mapuj, f_odmapuj, f_obraz, f_obraz_koniec, f_filmy_wspolna,
+                                           f_filmy, f_filmy_koniec };
 
 #endif
