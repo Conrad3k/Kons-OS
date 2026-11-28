@@ -568,11 +568,14 @@ enum k1_komunikat_typ {
     K1_KOM_STREFA_POLACZ = 165,   /* from the VMM: obiekt=its connection 1..K1_STREFA_POLACZENIA_MAKS; TCP: a=IPv4 address
                                    * (k1_siec_serwer_dobry), b=port 1..65535, c=K1_STREFA_TCP; the DNS server: a=b=0,
                                    * c=K1_STREFA_DNS; 0.10.5: the download zone's way to the writing program: a=b=0,
-                                   * c=K1_STREFA_POBRANE; d=e=0 */
-    K1_KOM_STREFA_GNIAZDO = 166,  /* to the VMM: obiekt=the connection, a=K1_STREFA_TCP/DNS/POBRANE, b..e=0; + 1 fd: a
-                                   * TCP socket connecting (non-blocking), a UDP socket connected to the DNS server, port
-                                   * 53, or (POBRANE) a stream socket to the writing program */
-    K1_KOM_STREFA_ODMOWA = 167,   /* to the VMM: obiekt=the connection, a=K1_STREFA_ODM_* why not, b..e=0 (no fd) */
+                                   * c=K1_STREFA_POBRANE; 0.13.2 step 3 (ADR 0063 pkt 4): the zone's film decoder:
+                                   * obiekt=0, a=b=0, c=K1_STREFA_FILMY; d=e=0 */
+    K1_KOM_STREFA_GNIAZDO = 166,  /* to the VMM: obiekt=the connection (FILMY: 0), a=K1_STREFA_TCP/DNS/POBRANE/FILMY,
+                                   * b..e=0; + 1 fd: a TCP socket connecting (non-blocking), a UDP socket connected to the
+                                   * DNS server, port 53, (POBRANE) a stream socket to the writing program, or (FILMY) the
+                                   * client's end of the channel to the zone's film decoder (it speaks FILMY_*) */
+    K1_KOM_STREFA_ODMOWA = 167,   /* to the VMM: obiekt=the connection (0: the film decoder), a=K1_STREFA_ODM_* why not,
+                                   * b..e=0 (no fd) */
     /* 0.10.1 step 2 (ADR 0044 T3): the zone's memory and its balloon — on the same channel (VMM's fd 7) */
     K1_KOM_STREFA_PAMIEC = 175,   /* from the VMM, at most once a second: obiekt=0, a=the guest's memory K1 holds now (MiB),
                                    * b=available in the guest by its own statistics (-1: none yet), c=in the balloon,
@@ -621,7 +624,10 @@ enum k1_komunikat_typ {
     K1_KOM_SIEC_USTAWIENIA = 161,  /* obiekt=0, all 0; + 1 fd (siec's end of K1_KIER_DO_SIECI, sender UID checked) */
     /* 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder — its client → filmy (K1_KIER_DO_FILMOW; formats: k1_filmy.h) */
     K1_KOM_FILMY_OKNO = 195,       /* obiekt=0, all 0; + 1 fd: the window, a memfd of K1_FILMY_OKNO bytes sealed against
-                                    * shrinking and growing (once; the decoder checks size and seals) */
+                                    * shrinking and growing (once; the decoder checks size and seals). 0.13.2 step 3 (ADR
+                                    * 0063 pkt 3): obiekt=film, a=surface, b..e=0; + 1 fd: a buffer of the card of the zone
+                                    * (its dma-buf from the graphics broker; at least k1_filmy_bufor_bajty) — the frame goes
+                                    * there (k1_filmy_bufor_uv), not into the window; reply FILMY_WYNIK */
     K1_KOM_FILMY_OTWORZ = 196,     /* obiekt=film 1..K1_FILMY_FILMOW_MAKS, a=codec 1..K1_KODEKI_MAKS, b,c=width, height
                                     * K1_FILMY_MIN_WH..K1_FILMY_MAKS_W/_H, d=surfaces 1..K1_FILMY_KLATEK_MAKS, e=0 */
     K1_KOM_FILMY_KLATKA = 197,     /* obiekt=film, a=its surface to decode into 0..K1_FILMY_KLATEK_MAKS-1, b=the request's
@@ -632,7 +638,7 @@ enum k1_komunikat_typ {
     K1_KOM_FILMY_UMIE = 200,       /* first, once: obiekt=0, a=bit k-1: codec k of K1_KODEKI the card decodes (only with
                                     * b=UMIE, then not 0), b=K1_FILMY_KARTA_BRAK/NIC/UMIE, c=VA status 0..255 (NIC; else 0),
                                     * d,e=the largest width, height of the card and K1 (UMIE; else 0) */
-    K1_KOM_FILMY_WYNIK = 201,      /* obiekt=film 0..K1_FILMY_FILMOW_MAKS (OKNO: 0), a=the request's type (FILMY_OKNO..
+    K1_KOM_FILMY_WYNIK = 201,      /* obiekt=film 0..K1_FILMY_FILMOW_MAKS (OKNO: its obiekt), a=the request's type (FILMY_OKNO..
                                     * ZAMKNIJ), b=0 or K1_FILMY_BLAD_*, c..e=0 */
     K1_KOM_FILMY_OBRAZ = 202,      /* obiekt=film, a=surface, b,c=width, height (the film's), d=k1_filmy_rzad(b), e=0: the
                                     * frame (NV12) at K1_FILMY_PROSBA_MAKS in the window */
@@ -780,7 +786,10 @@ enum { K1_STREFA_TRYB_GRAFIKA = 16, K1_STREFA_TRYB_GRAFIKA_ZLA = 17 };
 enum { K1_STREFA_TRYB_POBRANIE = 18, K1_STREFA_TRYB_POBRANIE_ZLE = 19 };
 enum { K1_STREFA_TRYB_ODBIOR = 20 }; /* 0.11.0 step 3: files from K1 to the zone and back changed */
 enum { K1_STREFA_TRYB_DZWIEK = 21, K1_STREFA_TRYB_DZWIEK_ZLY = 22 }; /* 0.12.0 step 3: a tone; hostile to the sound card */
-#define K1_STREFA_TRYB_MAKS 22
+/* 0.13.2 step 3 (ADR 0063): the film context from inside the test zone — nadzorca gives its VMM the graphics broker's
+ * test engine and, on request, the test film decoder (grey frames): 23 an honest guest (gosc/filmy.c), 24 a hostile one */
+enum { K1_STREFA_TRYB_FILMY = 23, K1_STREFA_TRYB_FILMY_ZLE = 24 };
+#define K1_STREFA_TRYB_MAKS 24
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480
@@ -788,7 +797,9 @@ enum { K1_STREFA_TRYB_DZWIEK = 21, K1_STREFA_TRYB_DZWIEK_ZLY = 22 }; /* 0.12.0 s
                                      * was 64 GiB) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
-enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1, K1_STREFA_POBRANE = 2 /* 0.10.5: the download zone's bytes to K1 */ };
+enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1, K1_STREFA_POBRANE = 2 /* 0.10.5: the download zone's bytes to K1 */,
+       K1_STREFA_FILMY = 3 /* 0.13.2 step 3: the channel to the zone's film decoder (every type number of k1_komunikat
+                            * is taken — ADR 0063 pkt 4) */ };
 enum { K1_STREFA_ODM_ADRES = 1,  /* not allowed (D3: the home network) */
        K1_STREFA_ODM_SIEC = 2,   /* K1 has no network (or no DNS server from the router) */
        K1_STREFA_ODM_LIMIT = 3,  /* too many connections in a short time */

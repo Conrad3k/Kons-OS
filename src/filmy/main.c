@@ -4,10 +4,11 @@
  * for one client: the VMM of its zone (one decoder per zone, started and ended with it — nadzorca filmy.c), nadzorca's
  * question at boot ("what does the card decode?" — the answer, then the end) or the test program.
  * Arguments: the zone (0: nadzorca's question), "t": the test decoder (grey frames, no card; test image only, on request
- * of the test program). fd 3 = the channel to the client (its UID checked: the zone's VMM, or UID 0 for nadzorca and the
+ * of the test program), "s" (0.13.2 step 3): the same for the test zone's VMM (its client: the zone's UID). fd 3 = the channel to the client (its UID checked: the zone's VMM, or UID 0 for nadzorca and the
  * test program), fd 4 = the render node of the card (i915; nadzorca gives it only to this service) or /dev/null.
  * First message: FILMY_UMIE — what the card decodes. Then the requests (k1_filmy.h): the window (once), a film open,
- * a picture decoded into a surface, a picture back into the window, a film closed. Each request out of the window is
+ * a picture decoded into a surface, a picture back into the window (0.13.2 step 3: or into a buffer of the card of the
+ * zone — its dma-buf from the zone's graphics broker), a film closed. Each request out of the window is
  * copied before any check, then checked field by field (k1_filmy_sprawdz) — the card gets only what passed.
  * Trust boundary: the client is hostile (the zone); the card's driver in the kernel and i965 are within its reach only
  * through the checked requests. Sandbox: UID 109 (the question) or 400 + zone, no paths, seccomp: base + getuid/geteuid
@@ -18,8 +19,11 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
+#include <linux/dma-buf.h>
 #include <unistd.h>
 
 #include "filmy.h"
@@ -128,10 +132,41 @@ static int pobierz(const struct k1_komunikat *k)
         return K1_FILMY_BLAD_OKNO;
     if ((uint32_t)k->a >= f->klatki || !(f->zdekodowane & (1u << k->a)))
         return K1_FILMY_BLAD_ODNIES;
-    r = silnik->pobierz((int)k->obiekt, f, (uint32_t)k->a, okno + K1_FILMY_PROSBA_MAKS);
+    r = silnik->pobierz((int)k->obiekt, f, (uint32_t)k->a, okno + K1_FILMY_PROSBA_MAKS,
+                        okno + K1_FILMY_PROSBA_MAKS + (size_t)k1_filmy_rzad(f->w) * f->h);
     if (r == 0)
         wyslij(k1_komunikat_nowy(K1_KOM_FILMY_OBRAZ, k->obiekt, k->a, (int32_t)f->w, (int32_t)f->h,
                                  (int32_t)k1_filmy_rzad(f->w), 0));
+    return r;
+}
+
+/* 0.13.2 step 3 (ADR 0063 pkt 3): FILMY_OKNO with a film — the picture of a surface into a buffer of the card of the
+ * zone (its dma-buf, from the zone's graphics broker through the VMM; the test engine's: a memfd). Its size from lseek
+ * (a dma-buf has no st_size): at least the frame; mapped for writing only as long as the frame takes, never executable;
+ * the card's caches around the processor's writes (DMA_BUF_IOCTL_SYNC — a memfd has none: ENOTTY, nothing to do). */
+static int do_bufora(const struct k1_komunikat *k, int fd)
+{
+    struct k1_filmy_film *f = &filmy[k->obiekt];
+    struct dma_buf_sync s = { DMA_BUF_SYNC_START | DMA_BUF_SYNC_WRITE };
+    uint64_t dl = k1_filmy_bufor_bajty(f->w, f->h);
+    off_t rozmiar;
+    uint8_t *m;
+    int r;
+    if (f->kodek == 0)
+        return K1_FILMY_BLAD_FILM;
+    if ((uint32_t)k->a >= f->klatki || !(f->zdekodowane & (1u << k->a)))
+        return K1_FILMY_BLAD_ODNIES;
+    rozmiar = fd >= 0 ? lseek(fd, 0, SEEK_END) : -1;
+    if (rozmiar < 0 || (uint64_t)rozmiar < dl)
+        return K1_FILMY_BLAD_OKNO;
+    m = mmap(NULL, (size_t)dl, PROT_WRITE, MAP_SHARED, fd, 0);
+    if (m == MAP_FAILED)
+        return K1_FILMY_BLAD_OKNO;
+    (void)ioctl(fd, (int)DMA_BUF_IOCTL_SYNC, &s);
+    r = silnik->pobierz((int)k->obiekt, f, (uint32_t)k->a, m, m + k1_filmy_bufor_uv(f->w, f->h));
+    s.flags = DMA_BUF_SYNC_END | DMA_BUF_SYNC_WRITE;
+    (void)ioctl(fd, (int)DMA_BUF_IOCTL_SYNC, &s);
+    munmap(m, (size_t)dl);
     return r;
 }
 
@@ -150,7 +185,7 @@ static void obsluz(const struct k1_komunikat *k, int fd)
     int r;
     switch (k->typ) {
     case K1_KOM_FILMY_OKNO:
-        r = przyjmij_okno(fd);
+        r = k->obiekt == 0 ? przyjmij_okno(fd) : do_bufora(k, fd);
         break;
     case K1_KOM_FILMY_OTWORZ:
         r = otworz(k);
@@ -200,10 +235,10 @@ int main(int argc, char **argv)
     int strefa, test, stan, kod = 0;
     k1_klatka_w_usludze(TAG);
     strefa = argc > 1 ? atoi(argv[1]) : -1;
-    test = argc > 2 && strcmp(argv[2], "t") == 0;
+    test = argc > 2 && (strcmp(argv[2], "t") == 0 || strcmp(argv[2], "s") == 0); /* 0.13.2: "s" — for the test zone's VMM */
     if (strefa < 0 || strefa > K1_STREFY_MAKS || (strefa == 0 && test))
         k1_koniec(TAG, "złe argumenty");
-    klient = strefa == 0 || test ? 0 : (uid_t)k1_strefa(strefa)->uid;
+    klient = strefa == 0 || (argc > 2 && strcmp(argv[2], "t") == 0) ? 0 : (uid_t)k1_strefa(strefa)->uid;
     silnik = test ? &silnik_testowy : &silnik_karty;
     stan = silnik->start(&umie_bity, &umie_w, &umie_h, &kod);
     if (stan != K1_FILMY_KARTA_UMIE)

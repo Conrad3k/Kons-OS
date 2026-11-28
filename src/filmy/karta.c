@@ -160,7 +160,7 @@ static int obraz_dobry(const VAImage *o, uint32_t w, uint32_t h)
            (uint64_t)o->offsets[0] + (uint64_t)o->pitches[0] * h <= o->data_size && uv <= o->data_size;
 }
 
-static int pobierz(int film, const struct k1_filmy_film *ff, uint32_t cel, uint8_t *nv12)
+static int pobierz(int film, const struct k1_filmy_film *ff, uint32_t cel, uint8_t *y, uint8_t *uv)
 {
     struct karta_film *f = &karta_filmy[film];
     uint32_t rzad = k1_filmy_rzad(ff->w), uv_w = (ff->w + 1) & ~1u;
@@ -175,10 +175,9 @@ static int pobierz(int film, const struct k1_filmy_film *ff, uint32_t cel, uint8
     if (s != VA_STATUS_SUCCESS)
         return karta_blad(s);
     for (uint32_t r = 0; r < ff->h; r++)
-        memcpy(nv12 + (size_t)r * rzad, m + f->obraz.offsets[0] + (size_t)r * f->obraz.pitches[0], ff->w);
+        memcpy(y + (size_t)r * rzad, m + f->obraz.offsets[0] + (size_t)r * f->obraz.pitches[0], ff->w);
     for (uint32_t r = 0; r < (ff->h + 1) / 2; r++)
-        memcpy(nv12 + (size_t)rzad * ff->h + (size_t)r * rzad, m + f->obraz.offsets[1] + (size_t)r * f->obraz.pitches[1],
-               uv_w);
+        memcpy(uv + (size_t)r * rzad, m + f->obraz.offsets[1] + (size_t)r * f->obraz.pitches[1], uv_w);
     vaUnmapBuffer(karta_dpy, f->obraz.buf);
     return 0;
 }

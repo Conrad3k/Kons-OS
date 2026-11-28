@@ -20,6 +20,7 @@
 #include "k1_teraz.h"
 #include "lacznik.h"
 #include "pliki.h"
+#include "filmy_lacze.h"
 #include "polaczenia.h"
 
 #define DNS_CZEKAJ 2.5 /* s before asking again; twice, then the name is not found */
@@ -357,6 +358,31 @@ static void dns_odbierz(void)
 }
 
 /* --- nadzorca's answers (main thread) --- */
+/* A message of nadzorca that is not about a connection: 1 when it was one (handled; *fd taken), 0 otherwise. */
+static int nie_polaczenie(const struct k1_komunikat *k, int *fd)
+{
+    if (k->typ == K1_KOM_STREFA_BALON) /* 0.10.1 step 2: the balloon's target (balon.c) */
+        balon_cel((uint32_t)k->a);
+    else if (k->typ == K1_KOM_STREFA_PLIK_ODP) /* 0.11.0 step 2: a file of the zone (pliki.c) */
+        pliki_odp(k);
+    else if (k->typ == K1_KOM_STREFA_DO_PLIK) /* step 3 */
+        pliki_do_plik(k, *fd), vsock_wyslij();
+    else if (k->typ == K1_KOM_STREFA_DO_KAWALEK)
+        pliki_do_kawalek(k, *fd), vsock_wyslij();
+    else if (k->typ == K1_KOM_DZWIEK_KANAL && *fd >= 0) /* 0.12.0 step 3: sound (dzwiek.c) */
+        dzwiek_kanal(*fd);
+    else if (k->obiekt == 0 && (k->typ == K1_KOM_STREFA_GNIAZDO || k->typ == K1_KOM_STREFA_ODMOWA))
+        filmy_od_nadzorcy(k->typ == K1_KOM_STREFA_GNIAZDO ? *fd : -1, k->a); /* 0.13.2 step 3: the film decoder */
+    else if (k->typ == K1_KOM_STREFA_ZAMKNIJ) /* 0.10.2 step 1: K1 powers off (main.c closes) */
+        mz.prosba_nadzorcy = 1;
+    else
+        return 0;
+    if (*fd >= 0)
+        close(*fd); /* each of them duplicates what it keeps */
+    *fd = -1;
+    return 1;
+}
+
 static void od_nadzorcy(void)
 {
     struct k1_komunikat k;
@@ -370,35 +396,8 @@ static void od_nadzorcy(void)
             koniec("nadzorca zamknął kanał połączeń");
             return;
         }
-        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_BALON) { /* 0.10.1 step 2: the balloon's target (balon.c) */
-            balon_cel((uint32_t)k.a);
+        if (w == K1_ODB_JEST && nie_polaczenie(&k, &fd))
             continue;
-        }
-        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_PLIK_ODP) { /* 0.11.0 step 2: a file of the zone (pliki.c) */
-            pliki_odp(&k);
-            continue;
-        }
-        if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFA_DO_PLIK || k.typ == K1_KOM_STREFA_DO_KAWALEK)) { /* step 3 */
-            if (k.typ == K1_KOM_STREFA_DO_PLIK)
-                pliki_do_plik(&k, fd);
-            else
-                pliki_do_kawalek(&k, fd);
-            if (fd >= 0)
-                close(fd);
-            fd = -1;
-            vsock_wyslij();
-            continue;
-        }
-        if (w == K1_ODB_JEST && k.typ == K1_KOM_DZWIEK_KANAL && fd >= 0) { /* 0.12.0 step 3: sound (dzwiek.c) */
-            dzwiek_kanal(fd);
-            close(fd);
-            fd = -1;
-            continue;
-        }
-        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_ZAMKNIJ) { /* 0.10.2 step 1: K1 powers off (main.c closes) */
-            mz.prosba_nadzorcy = 1;
-            continue;
-        }
         if (w != K1_ODB_JEST || (p = nr(k.obiekt)) == NULL) {
             if (fd >= 0)
                 close(fd);
@@ -497,6 +496,13 @@ void pol_obsluz(const struct pollfd *p, int n)
     }
     pliki_obsluz(); /* 0.11.0 step 2: a file of the zone, to nadzorca */
     vsock_wyslij(); /* what came from the sockets, to the guest */
+    zamek_oddaj();
+}
+
+void pol_od_nadzorcy(void)
+{
+    zamek_wez("połączenia: nadzorca na starcie");
+    od_nadzorcy();
     zamek_oddaj();
 }
 

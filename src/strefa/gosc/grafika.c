@@ -105,7 +105,7 @@ static long getparam(uint32_t param)
     return (long)c32(r + 12);
 }
 
-static int zacznij(void)
+int grafika_zacznij(void)
 {
     struct capset c;
     struct drm_virtgpu_get_caps g = { .cap_set_id = CAPSET_DRM, .addr = (uintptr_t)&c, .size = sizeof c };
@@ -142,7 +142,7 @@ static int zacznij(void)
 
 /* A buffer of the card as Mesa makes one: GEM_CREATE (blob `blob`) inside RESOURCE_CREATE_BLOB; its GEM handle, and
  * its resource number in *res; 0 on failure. */
-static uint32_t bufor(uint32_t blob, uint64_t dl, uint32_t *res)
+uint32_t grafika_bufor(uint32_t blob, uint64_t dl, uint32_t *res)
 {
     uint8_t b[32];
     struct drm_virtgpu_resource_create_blob c = { .blob_mem = VIRTGPU_BLOB_MEM_HOST3D,
@@ -160,7 +160,7 @@ static uint32_t bufor(uint32_t blob, uint64_t dl, uint32_t *res)
     return c.bo_handle;
 }
 
-static void *mapuj(uint32_t uchwyt, uint64_t dl)
+void *grafika_mapuj(uint32_t uchwyt, uint64_t dl)
 {
     struct drm_virtgpu_map m = { .handle = uchwyt };
     void *p;
@@ -209,8 +209,8 @@ static void wyswietlacz(void)
     if (obraz_rozmiar(&w, &h) != 0)
         return;
     dl = ((size_t)w * h * 4u + 4095u) & ~(size_t)4095u;
-    u = bufor(2, dl, &res);
-    p = u ? mapuj(u, dl) : NULL;
+    u = grafika_bufor(2, dl, &res);
+    p = u ? grafika_mapuj(u, dl) : NULL;
     e.handle = u;
     if (p == NULL || io(DRM_IOCTL_PRIME_HANDLE_TO_FD, &e) != 0) {
         loguj("grafika: bufor karty na wyświetlacz nieudany (%s)", strerror(errno));
@@ -239,8 +239,8 @@ static void uczciwie(void)
     long karta = getparam(4), ret;
     int zgodne = 1;
     loguj("grafika: prośba GETPARAM przez most — karta 0x%lx, numer %u", (unsigned long)karta, c32(wsp));
-    u = bufor(1, BUFOR_DL, &res);
-    p = u ? mapuj(u, BUFOR_DL) : NULL;
+    u = grafika_bufor(1, BUFOR_DL, &res);
+    p = u ? grafika_mapuj(u, BUFOR_DL) : NULL;
     if (p == NULL) {
         loguj("grafika: bufor karty nieudany (%s)", strerror(errno));
         return;
@@ -280,10 +280,10 @@ static void wrogo(void)
     loguj("grafika (zła): zalew %d prośbami — odpowiedzi %s", i, i == 500 ? "wszystkie" : "nie wszystkie");
     /* two of 400 MiB: both fit the host-visible region (1 GiB — the guest kernel gives the places), together more than
      * K1_POSR_PAMIEC: the broker refuses the second, so its mapping fails */
-    u1 = bufor(10, DUZY, &res);
-    p1 = u1 ? mapuj(u1, DUZY) : NULL;
-    u2 = bufor(11, DUZY, &res2);
-    p2 = u2 ? mapuj(u2, DUZY) : NULL;
+    u1 = grafika_bufor(10, DUZY, &res);
+    p1 = u1 ? grafika_mapuj(u1, DUZY) : NULL;
+    u2 = grafika_bufor(11, DUZY, &res2);
+    p2 = u2 ? grafika_mapuj(u2, DUZY) : NULL;
     loguj("grafika (zła): bufory ponad limit — pierwszy %s, drugi %s", p1 != NULL ? "przyjęty" : "ODRZUCONY",
           p2 == NULL ? "odrzucony" : "PRZYJĘTY");
     if (p1)
@@ -294,7 +294,7 @@ static void wrogo(void)
         zamknij_uchwyt(u1);
     if (u2)
         zamknij_uchwyt(u2);
-    u3 = bufor(12, 4096, &res3);
+    u3 = grafika_bufor(12, 4096, &res3);
     r = paczka(res3, ZAWIESZENIE, 0); /* "the card hangs": the broker ends */
     r = getparam(4);
     if (u3)
@@ -304,7 +304,7 @@ static void wrogo(void)
 
 void grafika(int zla)
 {
-    if (zacznij() != 0)
+    if (grafika_zacznij() != 0)
         return;
     if (zla)
         wrogo();

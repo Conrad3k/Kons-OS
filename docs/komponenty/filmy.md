@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.10.9 krok 2: usługa, format próśb, pytanie przy starcie; linia w Ustawieniach usunięta w kroku 6 — filmy kartą nie w 0.10.9, decyzja właściciela 2026-11-20: „może” później); PRZETESTOWANE na hoście (`test_filmy`, `fuzz_filmy`) i w systemie w QEMU (`t_filmy`: dekoder testowy, klatka, złośliwe prośby, pamięć). Rozpakowanie na prawdziwej karcie Intela — PLANOWANE do sprawdzenia przez właściciela na sprzęcie (QEMU nie udaje karty Intela). Strona strefy (VMM, Firefox) — krok 3 |
+| **Status** | ZAIMPLEMENTOWANE (0.10.9 krok 2: usługa, format próśb, pytanie przy starcie; linia w Ustawieniach usunięta w kroku 6 — filmy kartą nie w 0.10.9, decyzja właściciela 2026-11-20: „może” później; 0.13.2 krok 3, ADR 0063: dekoder strefy na prośbę VMM-a, klatka prosto do bufora karty strefy, kontekst filmów w VMM-ie); PRZETESTOWANE na hoście (`test_filmy`, `fuzz_filmy`, `test_gpu_most`, `fuzz_gpu_most`), w systemie w QEMU (`t_filmy`: dekoder testowy, klatka w oknie i w buforze, złośliwe prośby, pamięć) i z wnętrza strefy próbnej (`test-strefa.sh`, tryby 23 i 24). Rozpakowanie na prawdziwej karcie Intela i Firefox — PLANOWANE (krok 4 planu 0.13.2: sterownik VA strefy; sprawdza właściciel na IdeaPadzie — QEMU nie udaje karty Intela) |
 | **Pliki** | `src/filmy/main.c` (kanał, okno, prośby), `karta.c` + `karta_h264.c` (karta przez VA-API: libva + i965), `testowy.c` (dekoder testowy: szare klatki), `obce.c` + `obce.txt` (co obce biblioteki dostają od programu K1 bez ścieżek i bibliotek współdzielonych), `filmy.h`, `karta.h`; `src/wspolne/k1_filmy.{h,c}` (format próśb, tabela `K1_KODEKI`, sprawdzanie pole po polu), `k1_kom_filmy.c` (komunikaty); `src/nadzorca/filmy.c` (węzeł render, pytanie przy starcie, dekoder strefy), `profile.c` (`KLATKA_FILMY`); `src/zewnetrzne/va/zrodla.txt` + `scripts/zbuduj-va.sh` (biblioteki); Ustawienia `przegladarka.c` (linia o karcie) |
 | **Decyzje** | ADR 0049 (pkt 1–3; plan 0.10.9 T1–T3, T6–T8, S10–S17, S26) |
 
@@ -30,7 +30,7 @@ otwarcia sesji — T6).
 ## Uprawnienia
 | Proces | UID | seccomp (poza bazą) | Landlock | cgroup i limity | deskryptory |
 |---|---|---|---|---|---|
-| pytanie przy starcie (wiersz `FILMY`) | 109 | `getuid`, `geteuid` (libva porównuje je przed czytaniem środowiska); `ioctl` tylko typu DRM (`'d'`) | brak ścieżek | `filmy`: `K1_FILMY_PAMIEC` (512 MiB) + 96 MiB, 1 proces, `RLIMIT_FSIZE` 0 | fd 3: kanał do nadzorcy, fd 4: węzeł render karty |
+| pytanie przy starcie (wiersz `FILMY`) | 109 | `getuid`, `geteuid` (libva porównuje je przed czytaniem środowiska); `ioctl` tylko typu DRM (`'d'`) i od 0.13.2 `DMA_BUF_IOCTL_SYNC` (zapis klatki do bufora strefy — jak ekran przy odczycie) | brak ścieżek | `filmy`: `K1_FILMY_PAMIEC` (512 MiB) + 96 MiB, 1 proces, `RLIMIT_FSIZE` 0 | fd 3: kanał do nadzorcy, fd 4: węzeł render karty |
 | dekoder strefy *nr* | 400 + *nr* | jak wyżej | brak ścieżek | `filmy-<nr>`, jak wyżej | fd 3: kanał do klienta, fd 4: węzeł render (dekoder testowy: `/dev/null`) |
 
 Węzeł render (`/dev/dri/renderD*`) otwiera tylko nadzorca i tylko sterownika **i915** (`/sys/class/drm/renderD*/device/driver`);
@@ -72,9 +72,15 @@ odpowiada `FILMY_UMIE` i kończy. Nadzorca podaje wynik Ustawieniom (`FILMY_KART
 → stan „błąd” z kodem wyjścia.
 
 **Dekoder strefy** (`filmy_dla_strefy`): nadzorca uruchamia go dla strefy *nr* (karta: tylko gdy pytanie dało „umie”),
-klient dostaje drugi koniec kanału. Krok 3: razem z VMM-em strefy przy włączonym przełączniku, koniec z VMM-em
-(`filmy_strefa_koniec`). Krok 2: prosi o niego tylko program testowy (`TEST_FILMY`). Dekoder kończy się, gdy klient
-zamknie kanał.
+klient dostaje drugi koniec kanału. Od 0.13.2 krok 3 (ADR 0063 pkt 4) **na prośbę VMM-a** (`filmy_dla_vmm`):
+`STREFA_POLACZ` c = `K1_STREFA_FILMY` na fd 7 → `STREFA_GNIAZDO` a = `K1_STREFA_FILMY` z kanałem albo `STREFA_ODMOWA`
+(obiekt 0 — to nie połączenie; wszystkie 255 numerów typów `k1_komunikat` są zajęte, więc filmy idą istniejącą parą
+z nowym rodzajem). Warunki: sesja z pośrednikiem grafiki (jej przełącznik), karta „umie” (strefa próbna w trybach 23,
+24 — dekoder testowy), dekoder tej sesji nie zakończył się błędem i nie działa już. VMM pyta raz przy swoim starcie
+(odczytuje `FILMY_UMIE` i zamyka kanał — to zbiór możliwości filmów dla gościa) i potem przy pierwszym filmie; zamyka
+kanał, gdy nie zostanie żaden kontekst filmów — dekoder kończy się sam (kod 0) i oddaje pamięć. Dekoder zakończony
+inaczej (awaria, sygnał): do końca sesji odmowa, filmy procesorem. Koniec z VMM-em (`filmy_strefa_koniec`). Program
+testowy prosi o dekoder sam (`TEST_FILMY`). Dekoder kończy się, gdy klient zamknie kanał.
 
 1. Dekoder → klient: `FILMY_UMIE` (co karta rozpakowuje).
 2. Klient → dekoder: `FILMY_OKNO` + memfd dokładnie `K1_FILMY_OKNO` bajtów z pieczęciami „bez zmniejszania i powiększania”
@@ -83,7 +89,12 @@ zamknie kanał.
 4. `FILMY_KLATKA` (film, klatka docelowa, długość prośby): kopia z okna, sprawdzenie, bufory VA (`VAPictureParameterBufferH264`,
    macierz, plastry, dane), obraz do karty.
 5. `FILMY_POBIERZ` (film, klatka): karta kopiuje powierzchnię do liniowego obrazu NV12, procesor przepisuje go do okna
-   (wiersze `k1_filmy_rzad`) → `FILMY_OBRAZ`.
+   (wiersze `k1_filmy_rzad`) → `FILMY_OBRAZ`. Od 0.13.2 krok 3 (ADR 0063 pkt 3) drugi sposób: `FILMY_OKNO` z numerem
+   filmu i klatki + **dma-buf bufora karty strefy** (od pośrednika grafiki tej strefy przez VMM; silnik testowy — memfd):
+   dekoder sprawdza rozmiar (`lseek` — dma-buf nie ma `st_size`) z `k1_filmy_bufor_bajty`, mapuje go tylko do zapisu,
+   na czas jednej klatki (nigdy wykonywalnie), wpisuje jasność od 0 i kolory od `k1_filmy_bufor_uv` (pełna strona za
+   jasnością), wokół zapisu `DMA_BUF_IOCTL_SYNC` (pamięć podręczna karty; memfd: ENOTTY, nic do zrobienia) → `FILMY_WYNIK`.
+   Firefox weźmie ten bufor jako dma-buf i złoży go kartą (krok 4); kopii w VMM-ie i w strefie nie ma.
 6. `FILMY_ZAMKNIJ`: bufory filmu wracają.
 Na każdą prośbę 2–6 (poza udanym `POBIERZ`) — `FILMY_WYNIK` (0 albo `K1_FILMY_BLAD_*`). Komunikat, który nie przejdzie
 sprawdzenia, jest odrzucany bez odpowiedzi (liczony w logu).
@@ -91,16 +102,18 @@ sprawdzenia, jest odrzucany bez odpowiedzi (liczony w logu).
 ## Komunikaty
 | Typ | Kierunek | Pola |
 |---|---|---|
-| `FILMY_OKNO` | klient → filmy | wszystko 0; + memfd okna |
+| `FILMY_OKNO` | klient → filmy | wszystko 0; + memfd okna. 0.13.2: obiekt = film, a = klatka 0…19, reszta 0; + dma-buf bufora strefy — klatka do niego |
 | `FILMY_OTWORZ` | klient → filmy | obiekt = film 1…4, a = kodek 1…`K1_KODEKI_MAKS`, b × c = 16…4096 × 16…2304, d = klatek 1…20 |
 | `FILMY_KLATKA` | klient → filmy | obiekt = film, a = klatka docelowa 0…19, b = długość prośby 32 B…9 MiB |
 | `FILMY_POBIERZ` | klient → filmy | obiekt = film, a = klatka |
 | `FILMY_ZAMKNIJ` | klient → filmy | obiekt = film |
 | `FILMY_UMIE` | filmy → klient | a = bity kodeków (tylko przy UMIE), b = `K1_FILMY_KARTA_BRAK`/`NIC`/`UMIE`, c = status VA 0…255 (NIC), d × e = największy rozmiar (UMIE) |
-| `FILMY_WYNIK` | filmy → klient | obiekt = film (OKNO: 0), a = typ prośby, b = 0 albo `K1_FILMY_BLAD_*` |
+| `FILMY_WYNIK` | filmy → klient | obiekt = film (OKNO: jego obiekt — 0 albo film), a = typ prośby, b = 0 albo `K1_FILMY_BLAD_*` |
 | `FILMY_OBRAZ` | filmy → klient | obiekt = film, a = klatka, b × c = wymiary, d = długość wiersza (`k1_filmy_rzad(b)`); klatka w oknie od 9 MiB |
 | `FILMY_KARTA` | nadzorca → Ustawienia (fd 4) | a = bity kodeków, b = `K1_FILMY_KARTA_*` (też `SPRAWDZA`, `BLAD`), c = kod (BLAD: kod wyjścia albo 128 + sygnał; NIC: status VA) |
 | `TEST_FILMY` | program testowy → nadzorca | a = strefa, b = 0 karta / 1 dekoder testowy → `TEST_GNIAZDO` + kanał klienta |
+| `STREFA_POLACZ` c = `K1_STREFA_FILMY` (0.13.2) | VMM → nadzorca (fd 7) | obiekt = 0, a = b = d = e = 0 — prośba o dekoder strefy |
+| `STREFA_GNIAZDO` a = `K1_STREFA_FILMY` / `STREFA_ODMOWA` obiekt 0 (0.13.2) | nadzorca → VMM | kanał do dekodera (+ fd) / odmowa (a = `K1_STREFA_ODM_BLAD`; `K1_STREFA_ODM_LIMIT` — poprzedni dekoder jeszcze się kończy, VMM pyta znowu do 2 s) |
 
 ## Ustawienia → Przeglądarka
 Do 0.10.9 krok 5 jedna cicha linia pod listą sesji mówiła, co rozpakowuje karta („Karta graficzna tego komputera
@@ -111,16 +124,19 @@ Usługa i pytanie przy starcie zostają (gotowe na później); Ustawienia tylko 
 ## Dekoder testowy (T7, S17)
 QEMU nie udaje karty Intela, więc drogę dekodera (okno, sprawdzanie, pamięć, klatka) testuje `testowy.c`: bez karty,
 klatka szara (jasność 16 + pierwszy bajt danych mod 220 — test widzi, która prośba ją zrobiła). Wybiera go nadzorca
-tylko na prośbę programu testowego (`TEST_FILMY` b = 1 — kanał testowy jest tylko w obrazie testowym), nigdy dla VMM-a:
-niczego nie rozpakowuje, więc i tak nie zastąpiłby karty.
+na prośbę programu testowego (`TEST_FILMY` b = 1, argument „t” — klient: UID 0) i od 0.13.2 krok 3 dla VMM-a strefy
+próbnej w trybach 23 i 24 (argument „s” — jak silnik testowy pośrednika: klient to UID strefy); kanał testowy i strefa
+próbna są tylko w obrazie testowym. Nigdy dla sesji przeglądarki: niczego nie rozpakowuje, więc nie zastąpiłby karty.
 
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| host `test_filmy`: dobra prośba H.264 (plaster P, odniesienie, macierz) przechodzi; każde pole poza zakresem, złe długości, przepełnienie przesunięcia, odniesienie do nierozpakowanej klatki, lista ponad aktywne, plaster I z odniesieniem — odmowa; otwieranie wg tabeli, pamięć filmów, nazwy w Ustawieniach; komunikaty `FILMY_*`, `TEST_FILMY` | jednostkowy / negatywny |
+| host `test_filmy`: dobra prośba H.264 (plaster P, odniesienie, macierz) przechodzi; każde pole poza zakresem, złe długości, przepełnienie przesunięcia, odniesienie do nierozpakowanej klatki, lista ponad aktywne, plaster I z odniesieniem — odmowa; otwieranie wg tabeli, pamięć filmów, nazwy w Ustawieniach; komunikaty `FILMY_*`, `TEST_FILMY`; 0.13.2: polecenie kontekstu filmów (`k1_kf_sprawdz`: każde pole, długość prośby w pamięci wspólnej, bez przepełnienia), układ klatki w buforze strefy, `FILMY_OKNO` z filmem | jednostkowy / negatywny |
+| host `test_gpu_most` (0.13.2): zbiór możliwości filmów tylko, gdy karta rozpakowuje; konteksty filmów obok DRM (nigdy ten sam numer, najwyżej 4); jedna pamięć wspólna (blob 0, tylko mapowalna, całe strony, 8 KiB…9 MiB + 4 KiB); polecenie dokładnie jednej struktury; cel klatki tylko bufor karty strefy; koniec kontekstu; `fuzz_gpu_most` z kontekstem filmów | jednostkowy / negatywny / fuzzing |
+| QEMU `test-strefa.sh` (0.13.2): tryb 16 — odmowa dekodera bez filmów; tryb 23 — VMM pyta przy starcie, gość widzi zbiór możliwości, otwarcie, klatka, klatka prosto do bufora karty strefy (szara w pamięci gościa), koniec dekodera z ostatnim kontekstem i nowy na prośbę; tryb 24 — krótkie i nieznane polecenia, zły kodek, prośba poza pamięcią, odniesienie do pustej klatki, cel spoza kart, piąty film strefy, zalew 300 poleceń — odrzucone, strefa i dekoder żyją | funkcjonalny / negatywny |
 | `fuzz_filmy` (prośba + stan filmu) | fuzzing |
 | host `test_pamiec_stref`: pamięć dekodera liczy się przy wyborze sesji do zamknięcia | jednostkowy |
-| w systemie `t_filmy` (QEMU): bez karty Intela nadzorca nie daje dekodera z kartą; dekoder testowy strefy próbnej: `FILMY_UMIE`, klatka (UID 401, cgroup `filmy-1`, seccomp, tylko przekazane deskryptory), okno złej wielkości odrzucone, film, obraz, klatka w oknie; zły kodek, rozmiar ponad tabelę, za dużo klatek, dane plastra poza prośbą, odniesienie do klatki, której nie ma, zła długość — odrzucone, dekoder żyje; zalew filmów — odmowa przy braku pamięci, zamknięte oddają pamięć; koniec z kanałem | funkcjonalny / negatywny |
+| w systemie `t_filmy` (QEMU): bez karty Intela nadzorca nie daje dekodera z kartą; dekoder testowy strefy próbnej: `FILMY_UMIE`, klatka (UID 401, cgroup `filmy-1`, seccomp, tylko przekazane deskryptory), okno złej wielkości odrzucone, film, obraz, klatka w oknie; zły kodek, rozmiar ponad tabelę, za dużo klatek, dane plastra poza prośbą, odniesienie do klatki, której nie ma, zła długość — odrzucone, dekoder żyje; zalew filmów — odmowa przy braku pamięci, zamknięte oddają pamięć; koniec z kanałem; 0.13.2: klatka do bufora (memfd), bufor za mały i klatka bez obrazu — odrzucone, bufor nietknięty | funkcjonalny / negatywny |
 | w systemie `t_proby`: próby w klatkach `filmy` i `filmy-1`…`filmy-5` | negatywny |
 | `test-m4` (QEMU): Ustawienia → Przeglądarka — linia „nie rozpakowuje” (stan 1 w logu) | funkcjonalny |
 | sprzęt (właściciel, obraz USB z PR-a): linia w Ustawieniach na X230 (H.264) i IdeaPadzie (H.264), pulpit z i915 | ręczny |

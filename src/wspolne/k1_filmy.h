@@ -235,4 +235,65 @@ enum k1_filmy_karta {
 /* The names the card decodes, without repeats ("H.264, HEVC"), from the bits of FILMY_KARTA a; the length. */
 size_t k1_filmy_nazwy(int32_t bity, char *buf, size_t n);
 
+/* --- 0.13.2 step 3 (ADR 0063 pkt 1, 3): the zone's way to its decoder ------------------------------------------------
+ * A frame into a buffer of the card of the zone (FILMY_OKNO with a film number + the buffer's dma-buf from the graphics
+ * broker): NV12, rows of k1_filmy_rzad(w) bytes, the chroma from the first whole page after the luma (the zone's driver
+ * hands Firefox both planes of one buffer — ADR 0063 L1). */
+static inline uint64_t k1_filmy_bufor_uv(uint32_t w, uint32_t h)
+{
+    return ((uint64_t)k1_filmy_rzad(w) * h + 4095u) & ~(uint64_t)4095u;
+}
+static inline uint64_t k1_filmy_bufor_bajty(uint32_t w, uint32_t h)
+{
+    return k1_filmy_bufor_uv(w, h) + (uint64_t)k1_filmy_rzad(w) * ((h + 1) / 2);
+}
+
+/* The film context: a virtio-gpu context of the zone with K1's own capset (the zone kernel takes ids 1..63, but builds
+ * its mask with an int shift — below 31: ADR 0063 L4). Offered only to a session with a graphics broker whose card
+ * decodes (the VMM asked its decoder once at its start). Its content (GET_CAPSET): what the card decodes — enough for
+ * Firefox's vaapitest, which only asks. */
+#define K1_FILMY_CAPSET 20
+#define K1_FILMY_CAPSET_WERSJA 1
+struct k1_filmy_zbior {
+    uint32_t wersja;       /* K1_FILMY_CAPSET_WERSJA */
+    uint32_t kodeki;       /* bit k-1: codec k of K1_KODEKI (FILMY_UMIE a) */
+    uint32_t maks_w, maks_h; /* the largest film of the card and K1 */
+};
+_Static_assert(sizeof(struct k1_filmy_zbior) == 16, "k1_filmy_zbior: size");
+
+/* The context's shared memory (its blob 0, K1_KF_WSPOLNA_MIN..MAKS bytes, whole pages, mapped in the guest): the VMM's
+ * answer at 0 (written before the command's fence is done), a request of K1_KF_KLATKA from K1_KF_PROSBA. A command is
+ * one struct k1_kf_polecenie in SUBMIT_3D, exactly; the VMM checks it (k1_kf_sprawdz), turns its film into the decoder's
+ * and copies the request into the decoder's window — the decoder checks the request (k1_filmy_sprawdz). */
+#define K1_KF_PROSBA 4096u
+#define K1_KF_WSPOLNA_MIN 8192u
+#define K1_KF_WSPOLNA_MAKS (K1_KF_PROSBA + K1_FILMY_PROSBA_MAKS)
+#define K1_KF_KONTEKSTY 4  /* film contexts of one zone at once (Firefox: vaapitest, the RDD process) */
+#define K1_KF_FILMY 4      /* films of one context, 1..4 (the zone's together at most K1_FILMY_FILMOW_MAKS) */
+enum { K1_KF_OTWORZ = 1,  /* film; a = codec, b × c = size, d = surfaces (as FILMY_OTWORZ) */
+       K1_KF_KLATKA = 2,  /* film; a = surface, b = the request's length (from K1_KF_PROSBA), c = d = 0 */
+       K1_KF_POBIERZ = 3, /* film; a = surface, b = the resource of a buffer of the card of the zone (DRM context), c = d = 0 */
+       K1_KF_ZAMKNIJ = 4  /* film; a..d = 0 */ };
+struct k1_kf_polecenie {
+    uint32_t typ, film;     /* K1_KF_*, 1..K1_KF_FILMY */
+    uint32_t a, b, c, d;
+    uint32_t numer;         /* the guest's own; the answer repeats it */
+    uint32_t zarezerwowane; /* 0 */
+};
+_Static_assert(sizeof(struct k1_kf_polecenie) == 32, "k1_kf_polecenie: size");
+struct k1_kf_odpowiedz {
+    uint32_t numer;         /* the command's */
+    int32_t wynik;          /* 0, K1_FILMY_BLAD_*, or K1_KF_BLAD_DEKODER */
+    uint32_t zarezerwowane[6];
+};
+_Static_assert(sizeof(struct k1_kf_odpowiedz) == 32, "k1_kf_odpowiedz: size");
+/* What the film contexts add to the VMM's memory (nadzorca adds it to a VMM with a graphics broker): the decoder's
+ * window and the shared memories of every context, at their largest. */
+#define K1_KF_PAMIEC_VMM ((uint64_t)K1_FILMY_OKNO + (uint64_t)K1_KF_KONTEKSTY * K1_KF_WSPOLNA_MAKS)
+#define K1_KF_BLAD_DEKODER (-9) /* no decoder for this zone (K1 refused one, or it ended): the film plays on the processor */
+
+/* A command of a film context whose shared memory has `wspolna` bytes: 0 when every field is in its range, else
+ * K1_FILMY_BLAD_PROSBA (the codec's row, the film's state and the resource are checked later — decoder, VMM). */
+int k1_kf_sprawdz(const struct k1_kf_polecenie *p, uint64_t wspolna);
+
 #endif

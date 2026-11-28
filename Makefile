@@ -410,9 +410,11 @@ $(OBJ)/test_wifi_polacz: testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c $(KOMUNIKAT) $(DOK_C)
 # 0.10.0 step 1 (ADR 0042): the zones' virtqueues and virtio-mmio, the start of the zone kernel (fuzzing: fuzz_virtq)
 # 0.10.9 step 6: the bridge of fast graphics in the VMM (fuzzing: fuzz_gpu_most)
+# 0.13.2 step 3: with the film context (gpu_filmy.c; k1_kf_sprawdz from k1_filmy.c)
 $(OBJ)/test_gpu_most: testy/host/test_gpu_most.c testy/host/gpu_most_falszywy.h src/strefa/gpu_most.c src/strefa/gpu_most.h \
-	$(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_gpu_most.c src/strefa/gpu_most.c
+	src/strefa/gpu_filmy.c src/wspolne/k1_filmy.c src/wspolne/k1_filmy.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_gpu_most.c src/strefa/gpu_most.c src/strefa/gpu_filmy.c \
+	    src/wspolne/k1_filmy.c
 # 0.12.0 step 3: the guest's sound card (virtio-snd) — its control requests and transfers (pure)
 $(OBJ)/test_virtio_dzwiek: testy/host/test_virtio_dzwiek.c src/strefa/dzwiek_prosby.c src/strefa/dzwiek.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_virtio_dzwiek.c src/strefa/dzwiek_prosby.c
@@ -690,7 +692,7 @@ FUZZ_ZR_filmy     := src/wspolne/k1_filmy.c
 FUZZ_DL_filmy     := 4500
 FUZZ_ZR_posrednik := src/wspolne/k1_posrednik.c
 FUZZ_DL_posrednik := 4200
-FUZZ_ZR_gpu_most  := src/strefa/gpu_most.c
+FUZZ_ZR_gpu_most  := src/strefa/gpu_most.c src/strefa/gpu_filmy.c src/wspolne/k1_filmy.c
 FUZZ_ZR_pliki_strefy := src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 FUZZ_DL_pliki_strefy := 200000
 FUZZ_ZR_schowek   := src/wspolne/k1_schowek.c

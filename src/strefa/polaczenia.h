@@ -43,5 +43,7 @@ void vsock_wyslij(void);                             /* vsock.c: what waits, int
 int pol_deskryptory(struct pollfd *p, int maks);     /* fills p: nadzorca, DNS, one per connection; their number */
 void pol_obsluz(const struct pollfd *p, int n);
 void pol_podsumowanie(void);                         /* counts in the log, at the end */
+void pol_od_nadzorcy(void);                          /* 0.13.2 step 3: nadzorca's messages now (before the main loop —
+                                                      * filmy_lacze.c at the start; takes mz.zamek) */
 
 #endif

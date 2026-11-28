@@ -26,6 +26,7 @@
 #include <linux/kvm.h>
 #include <linux/virtio_gpu.h>
 
+#include "filmy_lacze.h"
 #include "gpu_most.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
@@ -252,6 +253,25 @@ static void l_obraz_koniec(void *ja, uint32_t res)
     zamek_oddaj();
 }
 
+/* 0.13.2 step 3: the film contexts (filmy_lacze.c) */
+static int l_filmy_wspolna(void *ja, uint32_t k, uint64_t rozmiar, int *fd)
+{
+    (void)ja;
+    return filmy_lacze_wspolna(k, rozmiar, fd);
+}
+
+static void l_filmy(void *ja, uint32_t k, const struct k1_kf_polecenie *p, int fd, int blad)
+{
+    (void)ja;
+    filmy_lacze_polecenie(k, p, fd, blad);
+}
+
+static void l_filmy_koniec(void *ja, uint32_t k)
+{
+    (void)ja;
+    filmy_lacze_koniec(k);
+}
+
 static void l_odmapuj(void *ja, uint32_t slot, uint64_t gpa, uint64_t rozmiar)
 {
     struct kvm_userspace_memory_region r = { .slot = slot, .guest_phys_addr = gpa, .memory_size = 0 };
@@ -421,6 +441,11 @@ int gpu_lacze_jest(void)
     return gl.jest;
 }
 
+uint32_t gpu_lacze_capsety(void)
+{
+    return gl.jest ? most_capsety(&gl.m) : 0;
+}
+
 int gpu_lacze_zasob(uint32_t id)
 {
     return gl.jest && most_zasob_jest(&gl.m, id);
@@ -474,7 +499,8 @@ int gpu_lacze_start(void)
     double do_kiedy = k1_teraz() + CZEKAJ_S;
     static const struct most_lacze l = { NULL, NULL, l_prosby, l_wspolna, l_blob, l_bufor, l_zwolnij, l_plot,
                                          l_gosc_koniec, l_zamknij, l_mapuj, l_odmapuj, l_obraz,
-                                         l_obraz_koniec };
+                                         l_obraz_koniec, l_filmy_wspolna, l_filmy, l_filmy_koniec };
+    struct k1_filmy_zbior filmy;
     struct stat st;
     if (fstat(FD_POSREDNIK, &st) != 0 || !S_ISSOCK(st.st_mode))
         return 0; /* the session draws with the processor (main.c calls this before it opens a descriptor itself) */
@@ -503,6 +529,8 @@ int gpu_lacze_start(void)
     close(okno);
     most_start(&gl.m, &gl.l, (uint32_t)k.c, (uint32_t)k.d, (uint32_t)k.e);
     gl.m.okno_baza = most_okno_baza(strefa_koniec_pamieci()); /* 0.11.3: above a large guest's memory */
+    if (filmy_lacze_start(&filmy) == 0) /* 0.13.2 step 3 (ADR 0063): the film context, when the card decodes */
+        most_filmy(&gl.m, &filmy);
     if (pthread_create(&gl.watek, NULL, watek, NULL) != 0)
         return -1;
     gl.jest = 1;
@@ -519,4 +547,5 @@ void gpu_lacze_koniec(void)
     pthread_join(gl.watek, NULL);
     k1_log(TAG, "szybka grafika: polecenia 3D %lu (błędy %lu), płoty %lu, mapowania %lu, odrzucone komunikaty %lu%s",
            gl.m.polecenia, gl.m.bledy, gl.plotki, gl.mapowania, gl.odrzucone, gl.m.padl ? ", pośrednik zakończony" : "");
+    filmy_lacze_podsumowanie();
 }

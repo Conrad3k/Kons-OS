@@ -127,7 +127,7 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
 {
     const struct k1_strefa_opis *z = k1_strefa(nr);
     struct usluga *u = z != NULL ? usluga_profilu(z->profil) : NULL;
-    int fd[8] = { -1, -1, -1, -1, -1, -1, -1, -1 }, powod, i, d, test_grafiki;
+    int fd[8] = { -1, -1, -1, -1, -1, -1, -1, -1 }, powod, i, d, test_grafiki, test_filmow;
     struct k1_profil p;
     uint32_t granica;
     if (u == NULL)
@@ -150,13 +150,15 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         snprintf(u->argument3, sizeof u->argument3, "%u", granica);
         snprintf(u->argument4, sizeof u->argument4, "%s", z->okno ? sesja_nazwa(nr) : cel_pobierania); /* D1; ADR 0046 */
         d = dysk(z, fd);
-        test_grafiki = z_testu && (tryb == K1_STREFA_TRYB_GRAFIKA || tryb == K1_STREFA_TRYB_GRAFIKA_ZLA);
+        test_filmow = z_testu && (tryb == K1_STREFA_TRYB_FILMY || tryb == K1_STREFA_TRYB_FILMY_ZLE); /* 0.13.2 step 3 */
+        test_grafiki = test_filmow || (z_testu && (tryb == K1_STREFA_TRYB_GRAFIKA || tryb == K1_STREFA_TRYB_GRAFIKA_ZLA));
         if (test_grafiki || (z->okno && sesja_grafika(nr) && posrednik_karta_umie())) /* 0.10.9 step 6 */
             fd[7] = posrednik_dla_strefy(nr, test_grafiki ? 2 : 0); /* 2: the test engine for the VMM */
+        filmy_strefa_start(nr, fd[7] >= 0, test_filmow); /* 0.13.2 step 3: the VMM may ask for its film decoder */
         if (fd[7] >= 0) {
             if (d == 0)
                 fd[5] = dup(zero), fd[6] = dup(zero), d = -2; /* places of the disk: none (dane.c sees /dev/null) */
-            p.pamiec += K1_POSR_PAMIEC;
+            p.pamiec += K1_POSR_PAMIEC + K1_KF_PAMIEC_VMM; /* 0.13.2 step 3: + the film contexts (k1_filmy.h) */
         }
         zdarzenia_start(nr);
         if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, fd[7] >= 0 ? 8 : 5 + d) > 0 &&

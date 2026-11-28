@@ -35,7 +35,9 @@ static const long sc_siec[] = { SYS_getrandom, SYS_memfd_create }; /* 0.9.1: mem
 
 /* filmy (0.10.9 step 2, ADR 0049 pkt 3): the card through DRM ioctls on its render node (the only device it gets — the type
  * 'd' is enough, as for ekran; a render node takes no ioctl of the display); getuid/geteuid — libva compares them before
- * it reads its environment (va.c). Its window from the client (mmap, base). No open, no memfd, no socket. */
+ * it reads its environment (va.c). Its window from the client (mmap, base). No open, no memfd, no socket. Since 0.13.2
+ * step 3 also DMA_BUF_IOCTL_SYNC alone (wa_ekranu, as ekran) — around its writes of a frame into a buffer of the card of
+ * the zone (a dma-buf from the VMM). */
 static const long sc_filmy[] = { SYS_getuid, SYS_geteuid };
 /* posrednik (0.10.9 step 5, ADR 0049 pkt 7): the card through DRM ioctls on its render node (type 'd', as filmy: wa_ekran;
  * the narrower list of numbers — the "wrapping" of T15, RYZYKA R100). Its window and the shared memory from the client
@@ -140,7 +142,7 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 /* the film decoder (k1_filmy.h, T8): the card's buffers up to K1_FILMY_PAMIEC (counted in its cgroup: i915 charges them
  * to the process that fills them, mm/shmem.c — S26) + 96 MiB: the code with i965 and libva, the window (25 MiB), its copy
  * of a request (9 MiB), the driver's own buffers. RLIMIT_FSIZE 0: it grows no file. */
-#define KLATKA_FILMY .wywolania = sc_filmy, .n_wywolan = N(sc_filmy), .warunki = wa_ekran, .n_warunkow = N(wa_ekran), \
+#define KLATKA_FILMY .wywolania = sc_filmy, .n_wywolan = N(sc_filmy), .warunki = wa_ekranu, .n_warunkow = N(wa_ekranu), \
                      .pamiec = K1_FILMY_PAMIEC + (96u << 20), .pliki = 16, .rozmiar_pliku = 0
 
 /* the graphics broker (k1_posrednik.h, T14): the card's buffers up to K1_POSR_PAMIEC (charged to the cgroup of the

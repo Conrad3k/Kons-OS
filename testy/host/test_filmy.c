@@ -155,7 +155,11 @@ static void nazwy(void)
 static void komunikaty(void)
 {
     const enum k1_kanal_kierunek DO = K1_KIER_DO_FILMOW, OD = K1_KIER_OD_FILMOW;
-    EXPECT(ok(K(K1_KOM_FILMY_OKNO, 0, 0, 0, 0, 0, 0), DO) && !ok(K(K1_KOM_FILMY_OKNO, 1, 0, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_FILMY_OKNO, 0, 0, 0, 0, 0, 0), DO) && !ok(K(K1_KOM_FILMY_OKNO, 0, 1, 0, 0, 0, 0), DO));
+    /* 0.13.2 step 3: with a film — a frame into a buffer of the zone (a surface, nothing else) */
+    EXPECT(ok(K(K1_KOM_FILMY_OKNO, 1, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_FILMY_OKNO, 4, 19, 0, 0, 0, 0), DO));
+    EXPECT(!ok(K(K1_KOM_FILMY_OKNO, 5, 0, 0, 0, 0, 0), DO) && !ok(K(K1_KOM_FILMY_OKNO, 1, 20, 0, 0, 0, 0), DO));
+    EXPECT(!ok(K(K1_KOM_FILMY_OKNO, 1, -1, 0, 0, 0, 0), DO) && !ok(K(K1_KOM_FILMY_OKNO, 1, 0, 1, 0, 0, 0), DO));
     EXPECT(!ok(K(K1_KOM_FILMY_OKNO, 0, 0, 0, 0, 0, 0), OD));
     EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_FILMY_OKNO, DO) && !k1_komunikat_z_deskryptorem(K1_KOM_FILMY_KLATKA, DO));
     EXPECT(ok(K(K1_KOM_FILMY_OTWORZ, 1, 3, 1920, 1088, 20, 0), DO));
@@ -179,7 +183,8 @@ static void komunikaty(void)
     EXPECT(!ok(K(K1_KOM_FILMY_KARTA, 0, 7, K1_FILMY_KARTA_UMIE, 0, 4096, 0), K1_KIER_OD_NADZORCY));
     /* results and frames */
     EXPECT(ok(K(K1_KOM_FILMY_WYNIK, 0, K1_KOM_FILMY_OKNO, K1_FILMY_BLAD_OKNO, 0, 0, 0), OD));
-    EXPECT(!ok(K(K1_KOM_FILMY_WYNIK, 1, K1_KOM_FILMY_OKNO, 0, 0, 0, 0), OD) && !ok(K(K1_KOM_FILMY_WYNIK, 0, K1_KOM_FILMY_KLATKA, 0, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_FILMY_WYNIK, 1, K1_KOM_FILMY_OKNO, 0, 0, 0, 0), OD)); /* 0.13.2 step 3: a frame into a buffer */
+    EXPECT(!ok(K(K1_KOM_FILMY_WYNIK, 5, K1_KOM_FILMY_OKNO, 0, 0, 0, 0), OD) && !ok(K(K1_KOM_FILMY_WYNIK, 0, K1_KOM_FILMY_KLATKA, 0, 0, 0, 0), OD));
     EXPECT(ok(K(K1_KOM_FILMY_WYNIK, 2, K1_KOM_FILMY_KLATKA, K1_FILMY_BLAD_ODNIES, 0, 0, 0), OD));
     EXPECT(!ok(K(K1_KOM_FILMY_WYNIK, 2, K1_KOM_FILMY_KLATKA, K1_FILMY_BLAD_MIN - 1, 0, 0, 0), OD));
     EXPECT(ok(K(K1_KOM_FILMY_OBRAZ, 1, 3, 1921, 1080, 1984, 0), OD) && !ok(K(K1_KOM_FILMY_OBRAZ, 1, 3, 1921, 1080, 1921, 0), OD));
@@ -188,11 +193,66 @@ static void komunikaty(void)
     EXPECT(!ok(K(K1_KOM_TEST_FILMY, 0, 1, 2, 0, 0, 0), K1_KIER_DO_NADZORCY));
 }
 
+/* 0.13.2 step 3 (ADR 0063 pkt 1, 3): a command of a film context, a frame's layout in a buffer of the zone */
+static void kontekst(void)
+{
+    const uint64_t S = K1_KF_WSPOLNA_MIN;
+    struct k1_kf_polecenie c = { K1_KF_OTWORZ, 1, K1_KODEK_H264_GLOWNY, 1920, 1088, 20, 7, 0 };
+    EXPECT(k1_kf_sprawdz(&c, S) == 0);
+    c.film = 0;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.film = K1_KF_FILMY + 1;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.film = 1, c.zarezerwowane = 1;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c = (struct k1_kf_polecenie){ K1_KF_OTWORZ, 1, K1_KODEKI_MAKS + 1, 1920, 1088, 20, 0, 0 };
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.a = 1, c.b = K1_FILMY_MAKS_W + 1;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.b = 1920, c.d = K1_FILMY_KLATEK_MAKS + 1;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    /* a request: its length within the shared memory after K1_KF_PROSBA, and within the window */
+    c = (struct k1_kf_polecenie){ K1_KF_KLATKA, 2, 19, (uint32_t)(S - K1_KF_PROSBA), 0, 0, 0, 0 };
+    EXPECT(k1_kf_sprawdz(&c, S) == 0);
+    c.b++;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.b = K1_FILMY_PROSBA_MAKS;
+    EXPECT(k1_kf_sprawdz(&c, K1_KF_WSPOLNA_MAKS) == 0 && k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.b = 31;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.b = 32, c.a = K1_FILMY_KLATEK_MAKS;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.a = 0, c.c = 1;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    EXPECT(k1_kf_sprawdz(&c, 0) == K1_FILMY_BLAD_PROSBA); /* no room at all: no underflow */
+    c = (struct k1_kf_polecenie){ K1_KF_POBIERZ, 3, 5, 77, 0, 0, 0, 0 };
+    EXPECT(k1_kf_sprawdz(&c, S) == 0);
+    c.b = 0;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c = (struct k1_kf_polecenie){ K1_KF_ZAMKNIJ, 4, 0, 0, 0, 0, 0, 0 };
+    EXPECT(k1_kf_sprawdz(&c, S) == 0);
+    c.d = 1;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c = (struct k1_kf_polecenie){ 0, 1, 0, 0, 0, 0, 0, 0 };
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    c.typ = 5;
+    EXPECT(k1_kf_sprawdz(&c, S) == K1_FILMY_BLAD_PROSBA);
+    /* the frame in a buffer: the chroma from a whole page after the luma, everything inside */
+    EXPECT(k1_filmy_bufor_uv(1920, 1080) == 2076672u && k1_filmy_bufor_uv(1920, 1080) % 4096 == 0);
+    EXPECT(k1_filmy_bufor_uv(64, 64) == 4096 && k1_filmy_bufor_bajty(64, 64) == 4096 + 64 * 32);
+    EXPECT(k1_filmy_bufor_bajty(1921, 1081) == k1_filmy_bufor_uv(1921, 1081) + 1984ull * 541);
+    EXPECT(k1_filmy_bufor_bajty(4096, 2304) < (16ull << 20)); /* a 4K frame: well inside a buffer of the broker */
+    /* the capset and the VMM's memory */
+    EXPECT(K1_FILMY_CAPSET >= 7 && K1_FILMY_CAPSET < 31 && sizeof(struct k1_filmy_zbior) == 16);
+    EXPECT(K1_KF_WSPOLNA_MAKS % 4096 == 0 && K1_KF_PAMIEC_VMM < (100ull << 20));
+}
+
 int main(void)
 {
     prosby();
     otwieranie();
     nazwy();
     komunikaty();
+    kontekst();
     return K1_TEST_KONIEC("test_filmy");
 }

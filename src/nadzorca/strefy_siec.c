@@ -62,6 +62,10 @@ static int gniazdo(int nr, const struct k1_komunikat *k, int *fd)
     uint32_t nasz, router, dns;
     int prefiks, typ = k->c == K1_STREFA_DNS ? SOCK_DGRAM : SOCK_STREAM;
     double t = k1_teraz();
+    if (k->c == K1_STREFA_FILMY) { /* 0.13.2 step 3 (ADR 0063 pkt 4): the zone's film decoder (filmy.c) */
+        *fd = filmy_dla_vmm(nr);
+        return *fd >= 0 ? 0 : *fd == -2 ? K1_STREFA_ODM_LIMIT : K1_STREFA_ODM_BLAD; /* LIMIT: still ending, ask again */
+    }
     if (k->c == K1_STREFA_POBRANE) { /* 0.10.5 step 2b: the download zone's end to the writing program, once */
         *fd = k1_strefa(nr)->okno ? -1 : akt_gniazdo();
         return *fd >= 0 ? 0 : K1_STREFA_ODM_BLAD;
@@ -131,10 +135,10 @@ static void obsluz(int nr)
             k1_log(TAG, "strefa %d: odrzucono prośbę VMM", nr);
             continue;
         }
-        licznik[nr].wszystkie++;
+        licznik[nr].wszystkie += k.c != K1_STREFA_FILMY; /* the film decoder (0.13.2) is not a connection */
         powod = gniazdo(nr, &k, &fd);
         if (powod != 0) {
-            if (licznik[nr].odmowy++ == 0)
+            if (k.c != K1_STREFA_FILMY && licznik[nr].odmowy++ == 0)
                 k1_log(TAG, "strefa %d: pierwsza odmowa połączenia (powód %d)", nr, powod);
             o = k1_komunikat_nowy(K1_KOM_STREFA_ODMOWA, k.obiekt, powod, 0, 0, 0, 0);
         } else {

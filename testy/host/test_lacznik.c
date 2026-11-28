@@ -168,7 +168,18 @@ static void t_komunikaty(void)
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, (int32_t)IP(1, 2, 3, 4), 80, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, K1_STREFA_DNS, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, K1_STREFA_POBRANE, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
-    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, 3, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, K1_STREFA_FILMY, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, K1_STREFA_FILMY + 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    /* 0.13.2 step 3 (ADR 0063 pkt 4): the zone's film decoder — obiekt 0, nothing else; the answers with obiekt 0 */
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 0, 0, 0, K1_STREFA_FILMY, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, 0, 0, K1_STREFA_FILMY, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 0, 1, 0, K1_STREFA_FILMY, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 0, 0, 0, K1_STREFA_FILMY, 1, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 0, 0, 0, K1_STREFA_DNS, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 0, 0, 0, K1_STREFA_FILMY, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 0, K1_STREFA_FILMY, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 0, K1_STREFA_TCP, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_ODMOWA, 0, K1_STREFA_ODM_BLAD, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     /* 0.10.5 step 2b: the download zone's way to the writing program — no address, no port */
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, 0, 0, K1_STREFA_POBRANE, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, 0, 1, K1_STREFA_POBRANE, 0, 0), K1_KIER_DO_NADZORCY));

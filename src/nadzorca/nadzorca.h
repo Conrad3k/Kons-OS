@@ -392,6 +392,8 @@ void filmy_wyslij_ustawieniom(void);
 void filmy_nowy_kanal_ustawien(void);
 int filmy_dla_strefy(int nr, int test); /* the client's end of a new decoder of zone nr, or -1 */
 void filmy_strefa_koniec(int nr);       /* the zone's VMM ended: its decoder too */
+void filmy_strefa_start(int nr, int posrednik, int test); /* 0.13.2 step 3: may this start's VMM ask for a decoder */
+int filmy_dla_vmm(int nr);              /* 0.13.2 step 3: the VMM asks (STREFA_POLACZ c=FILMY): its channel, or -1 */
 int32_t filmy_pamiec_mib(int nr);       /* T8: its decoder's memory, MiB */
 
 /* posrednik.c — the graphics broker (0.10.9 step 5, ADR 0049 pkt 7): the render node of the i915 card for it */

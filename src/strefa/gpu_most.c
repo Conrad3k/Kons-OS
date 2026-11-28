@@ -22,6 +22,17 @@ static uint32_t blad(struct most *m, uint8_t *odp, uint32_t typ)
     return (uint32_t)sizeof(struct virtio_gpu_ctrl_hdr);
 }
 
+uint32_t most_blad(struct most *m, uint8_t *odp, uint32_t typ)
+{
+    return blad(m, odp, typ);
+}
+
+uint32_t most_ok(uint8_t *odp)
+{
+    naglowek(odp, VIRTIO_GPU_RESP_OK_NODATA);
+    return (uint32_t)sizeof(struct virtio_gpu_ctrl_hdr);
+}
+
 void most_start(struct most *m, const struct most_lacze *l, uint32_t pci, uint32_t rewizja, uint32_t wersja)
 {
     memset(m, 0, sizeof *m);
@@ -68,8 +79,12 @@ int most_zasob_jest(const struct most *m, uint32_t res)
 static uint32_t kontekst(struct most *m, const struct virtio_gpu_ctx_create *c, uint8_t *odp)
 {
     uint32_t capset = c->context_init & VIRTIO_GPU_CONTEXT_INIT_CAPSET_ID_MASK, g;
-    if (c->hdr.ctx_id == 0 || (c->context_init & ~(uint32_t)VIRTIO_GPU_CONTEXT_INIT_CAPSET_ID_MASK) != 0)
+    if (c->hdr.ctx_id == 0 || (c->context_init & ~(uint32_t)VIRTIO_GPU_CONTEXT_INIT_CAPSET_ID_MASK) != 0 ||
+        most_filmy_kontekst(m, c->hdr.ctx_id) != 0)
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    if (capset == K1_FILMY_CAPSET) /* 0.13.2 step 3: a film context (gpu_filmy.c) */
+        return gosc(m, c->hdr.ctx_id) != 0 ? blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER)
+                                           : most_filmy_kontekst_nowy(m, c->hdr.ctx_id, odp);
     if (capset != 0 && (capset != VIRTIO_GPU_CAPSET_DRM || gosc(m, c->hdr.ctx_id) != 0 || m->padl))
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
     for (g = 1; capset != 0 && g <= K1_POSR_GOSCIE && m->ctx[g] != 0; g++)
@@ -101,6 +116,8 @@ static void usun(struct most *m, uint32_t res)
         m->l->zamknij(m->l->ja, z->fd);
     if (z->rodzaj == MOST_BUFOR && !m->padl)
         m->l->zwolnij(m->l->ja, res);
+    if (z->rodzaj == MOST_FILMY && m->wspolna_filmow[z->gosc] == res) /* 0.13.2 step 3 */
+        m->wspolna_filmow[z->gosc] = 0;
     memset(z, 0, sizeof *z);
     z->fd = -1;
 }
@@ -117,11 +134,15 @@ static int zglos(struct most *m, const uint8_t *p, uint64_t n, uint8_t *odp, uin
                  const char **powod)
 {
     STRUKTURA(struct virtio_gpu_cmd_submit, s)
-    uint32_t g = gosc(m, s.hdr.ctx_id);
+    uint32_t g = gosc(m, s.hdr.ctx_id), k = most_filmy_kontekst(m, s.hdr.ctx_id);
     int r;
     if (n - sizeof s < s.size) {
         *powod = "virtio-gpu: strumień SUBMIT_3D dłuższy niż polecenie";
         return -1;
+    }
+    if (k != 0) { /* 0.13.2 step 3: a command of a film context (gpu_filmy.c), answered at once */
+        *dl = most_filmy_zglos(m, k, p + sizeof s, s.size, odp);
+        return 0;
     }
     if (g == 0 || m->padl || s.size < sizeof(struct k1_posr_naglowek) || s.size > K1_POSR_PROSBY_BAJTY ||
         s.size % 4 != 0) {
@@ -154,6 +175,8 @@ static uint32_t nowy(struct most *m, const struct virtio_gpu_resource_create_blo
     uint32_t g = gosc(m, b->hdr.ctx_id), res = b->resource_id;
     struct most_zasob *z;
     int r, fd = -1;
+    if (g == 0 && most_filmy_kontekst(m, b->hdr.ctx_id) != 0) /* 0.13.2 step 3: its shared memory (gpu_filmy.c) */
+        return most_filmy_wspolna(m, most_filmy_kontekst(m, b->hdr.ctx_id), b, odp);
     if (g == 0)
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_CONTEXT_ID);
     if (res == 0 || res >= K1_POSR_ZASOBY_MAKS || m->zasoby[res].rodzaj != MOST_BRAK)
@@ -202,7 +225,7 @@ static uint32_t mapuj(struct most *m, const struct virtio_gpu_resource_map_blob 
             slot = MOST_SLOT_PIERWSZY + i;
     if (slot == 0)
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY);
-    if (z->rodzaj == MOST_WSPOLNA) {
+    if (z->rodzaj != MOST_BUFOR) { /* a shared memory (of a DRM context or a film context): our memfd */
         fd = z->fd;
     } else {
         int r = m->l->bufor(m->l->ja, b->resource_id, &fd, &mapa);
@@ -277,17 +300,22 @@ static uint32_t capset(struct most *m, const uint8_t *p, uint8_t *odp, uint32_t 
     if (typ == VIRTIO_GPU_CMD_GET_CAPSET_INFO) { /* (the length was checked: most_polecenie) */
         struct virtio_gpu_resp_capset_info r;
         memcpy(&i, p, sizeof i);
-        if (i.capset_index != 0)
+        if (i.capset_index >= most_capsety(m))
             return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
         memset(&r, 0, sizeof r);
         r.hdr.type = VIRTIO_GPU_RESP_OK_CAPSET_INFO;
-        r.capset_id = VIRTIO_GPU_CAPSET_DRM;
+        r.capset_id = i.capset_index == 0 ? VIRTIO_GPU_CAPSET_DRM : K1_FILMY_CAPSET; /* 1: films (0.13.2 step 3) */
         r.capset_max_version = 0;
-        r.capset_max_size = sizeof m->caps;
+        r.capset_max_size = i.capset_index == 0 ? sizeof m->caps : sizeof m->filmy;
         memcpy(odp, &r, sizeof r);
         return (uint32_t)sizeof r;
     }
     memcpy(&c, p, sizeof c);
+    if (c.capset_id == K1_FILMY_CAPSET && most_capsety(m) == 2 && c.capset_version == 0) {
+        naglowek(odp, VIRTIO_GPU_RESP_OK_CAPSET);
+        memcpy(odp + sizeof(struct virtio_gpu_ctrl_hdr), &m->filmy, sizeof m->filmy);
+        return (uint32_t)(sizeof(struct virtio_gpu_ctrl_hdr) + sizeof m->filmy);
+    }
     if (c.capset_id != VIRTIO_GPU_CAPSET_DRM || c.capset_version != 0)
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
     naglowek(odp, VIRTIO_GPU_RESP_OK_CAPSET);
@@ -335,6 +363,7 @@ int most_polecenie(struct most *m, const uint8_t *p, uint64_t n, uint8_t *odp, u
         uint32_t g = gosc(m, h.ctx_id);
         if (g != 0)
             koniec_goscia(m, g);
+        most_filmy_koniec(m, most_filmy_kontekst(m, h.ctx_id)); /* 0.13.2 step 3 (0: not a film context) */
         naglowek(odp, VIRTIO_GPU_RESP_OK_NODATA); /* a context without a capset: nothing was there */
         *odp_dl = (uint32_t)sizeof(struct virtio_gpu_ctrl_hdr);
         return 0;
@@ -375,6 +404,8 @@ void most_reset(struct most *m)
     for (uint32_t g = 1; g <= K1_POSR_GOSCIE; g++)
         if (m->ctx[g] != 0)
             koniec_goscia(m, g);
+    for (uint32_t k = 1; k <= K1_KF_KONTEKSTY; k++)
+        most_filmy_koniec(m, m->ctx_filmy[k] != 0 ? k : 0);
     for (uint32_t r = 1; r < K1_POSR_ZASOBY_MAKS; r++)
         if (m->zasoby[r].rodzaj != MOST_BRAK)
             usun(m, r);
