@@ -68,7 +68,9 @@ odrzuconych, te zmienia człowiek): nigdy równolegle z otwartym PR-em robota ze
 ---------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Mikrofon w K1: nagrywanie, Ustawienia → Dźwięk, znak   L1–L5            0.13.2      D2, D3, T1–T4    M        0065
+        [w toku: Claude, gałąź claude/dreamy-cray-0fpp2n]
 [ ]  2  Mikrofon w przeglądarce                               L6–L8            1           D1, T5, T6       M        —
+        [w toku: Claude, gałąź claude/dreamy-cray-0fpp2n]
 [ ]  3  Gładziki Apple, ładowanie baterii; test na laptopach;  L9–L12           2           T7, T8           M        —
         wydanie
 
