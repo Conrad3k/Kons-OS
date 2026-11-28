@@ -55,7 +55,7 @@ void filmy_od_nadzorcy(int fd)
 {
     pthread_mutex_lock(&skrzynka_zamek);
     if (skrzynka_stan == 0 && skrzynka_fd < 0) {
-        skrzynka_fd = fd >= 0 ? dup(fd) : -1;
+        skrzynka_fd = fd >= 0 ? fcntl(fd, F_DUPFD_CLOEXEC, 0) : -1; /* (dup is not in the sandbox) */
         skrzynka_stan = skrzynka_fd >= 0 ? 1 : 2;
     }
     pthread_cond_signal(&skrzynka_jest);
