@@ -20,6 +20,7 @@ static struct {
 static int zapytano, wezel_sprawdzony, wyslano = -1;
 static struct {
     int dozwolone, test, zablokowane; /* 0.13.2 step 3: what the VMM of this start of the zone may ask for */
+    int zabity; /* step 4: killed because its VMM ended — its end is no crash, whenever it is reaped (CI run 428) */
 } dla_vmm[K1_STREFY_MAKS + 1];
 
 static void ustaw(int stan, int bity, int kod)
@@ -91,6 +92,10 @@ void filmy_koniec(const struct usluga *u, int status)
     int nr = k1_profil_filmow(u->profil);
     if (u->profil == K1_PROFIL_FILMY && karta.stan == K1_FILMY_KARTA_SPRAWDZA)
         ustaw(K1_FILMY_KARTA_BLAD, 0, WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status));
+    if (nr >= 1 && nr <= K1_STREFY_MAKS && dla_vmm[nr].zabity) { /* ended with its VMM, maybe after the next start */
+        dla_vmm[nr].zabity = 0;
+        return;
+    }
     if (nr >= 1 && nr <= K1_STREFY_MAKS && !(WIFEXITED(status) && WEXITSTATUS(status) == 0) && !dla_vmm[nr].zablokowane) {
         dla_vmm[nr].zablokowane = 1; /* 0.13.2 step 3: a crash — the films of this session go to the processor */
         k1_log(TAG, "strefa %d: dekoder filmów zakończył się błędem (kod %d) — do końca sesji filmy procesorem", nr,
@@ -168,8 +173,10 @@ int filmy_dla_vmm(int nr)
 void filmy_strefa_koniec(int nr)
 {
     struct usluga *u = karta_usluga_strefy(K1_PROFIL_FILMY, nr);
-    if (u != NULL && u->pid > 0)
+    if (u != NULL && u->pid > 0 && nr >= 1 && nr <= K1_STREFY_MAKS) {
+        dla_vmm[nr].zabity = 1; /* the zone may start again before this one is reaped: it must not block that start */
         kill(u->pid, SIGKILL);
+    }
 }
 
 /* T8: the memory of zone nr's decoder (its cgroup), MiB; 0 when it does not run. */
