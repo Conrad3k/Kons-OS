@@ -76,12 +76,14 @@ static void nie_wolno(int rodzaj, struct k1_komunikat m, const char *co)
 void t_mikrofon(void)
 {
     struct k1_dzw_mik mik = { -1, -1, -1, -1, -1 };
-    int fd = t_dzw_kanal(0, 0), ring = t_dzw_pierscien(k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32)), ust;
-    check(fd >= 0 && stan_mikrofonu(fd, &mik, 15000) && mik.zrodlo == K1_DZW_ZRODLO_BRAK && !mik.slucha_k1,
+    int fd = t_dzw_kanal(0, 0), ring = t_dzw_pierscien(k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32)), ust, jest;
+    jest = fd >= 0 && stan_mikrofonu(fd, &mik, 15000); /* before the check: its details print mik */
+    check(jest && mik.zrodlo == K1_DZW_ZRODLO_BRAK && !mik.slucha_k1,
           "mikrofon: bez karty usługa mówi „brak mikrofonu” (DZWIEK_STAN e)", "źródło %d, poziom %d", mik.zrodlo,
           mik.poziom);
     t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_USTAW, 70, 1, 0, 0), -1);
-    check(stan_mikrofonu(fd, &mik, 3000) && mik.poziom == 70 && mik.wyciszony,
+    jest = stan_mikrofonu(fd, &mik, 3000);
+    check(jest && mik.poziom == 70 && mik.wyciszony,
           "mikrofon: klient sterujący ustawia poziom i wyciszenie (stan wraca)", "poziom %d, wyciszony %d", mik.poziom,
           mik.wyciszony);
     t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_MIKROFON, 0, K1_DZW_MIK_USTAW, K1_DZW_MIK_START, 0, 0, 0), -1);
