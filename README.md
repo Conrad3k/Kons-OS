@@ -40,6 +40,7 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.12 Dźwięk | karta dźwiękowa tylko dla usługi dźwięku K1, okienko „Dźwięk” (głośność, „Grają teraz”), klawisze głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji) | PRZETESTOWANE w QEMU (karta Intel HD Audio zapisuje dźwięk do pliku; ADR 0054); głośniki, słuchawki i Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.12.3 Dźwięk wysokiej jakości | czystszy dźwięk (liczenie z zapasem, 24 bity do karty, przeglądarka we własnym formacie), korektor systemowy (10 pasm, gotowe ustawienia), Kons Spatial Audio — dźwięk przestrzenny ze sceną do przeciągania, gotowymi scenami i „Posłuchaj” | PRZETESTOWANE w QEMU (karta zapisuje dźwięk do pliku: przezroczystość, korektor, pasma sceny; ADR 0055); odsłuch — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.13 Bezpieczny start | nowa wersja trafia do laptopa 20 minut po wydaniu (czas na zatrzymanie, gdyby ktoś przejął GitHuba), ogłoszenie z terminem, TPM 2.0 — starsza wersja nie otworzy danych, cofnięte dane wykryte, tryb ratunkowy (Esc przy starcie: poprzednia wersja, raport na pendrive), obraz wydania bez portu szeregowego i z ekranem awarii, nowa klawiatura lub mysz z USB czeka na „Pozwól”, Ctrl+Alt+Del — ekran zabezpieczeń K1 i hasło tylko tam | PRZETESTOWANE w QEMU z KVM i swtpm (ADR 0056–0062); Secure Boot, TPM i Esc przy starcie — na sprzęcie |
+| 0.13.2 Filmy kartą | film w przeglądarce rozpakowuje karta graficzna (H.264; sesja z przełącznikiem „Szybka grafika i filmy”, strony dostają prośbę o H.264), każdą prośbę strefy sprawdza dekoder filmów K1; filmy H.264 grają w każdej sesji | PRZETESTOWANE w QEMU ze strefą próbną i dekoderem testowym, sterownik VA na hoście (ADR 0063); film na karcie Intela — na sprzęcie |
 | 0.14 Aplikacje | Sklep w K1 (jedyna droga obcej aplikacji), aplikacje ze Sklepu w osobnych strefach — pierwsza: Discord z rozmowami głosowymi; mikrofon w K1 | PLANOWANE (`docs/PLAN-0.14.0.txt`) |
 | 0.15 | audyt końcowy → 1.0 | PLANOWANE |
 
@@ -47,7 +48,7 @@ Od 0.9 etapy to numery wersji (ADR 0035, 0053, 0064); wcześniejsze etapy M0–M
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.13.0):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.13.2):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, bateria — kliknięcie pokazuje czas i pobór
@@ -59,7 +60,8 @@ zaszyfrowane na partycji K1-DANE (pendrive albo dysk po instalacji). **Sieć** k
 z internetu, lista sieci, hasło wpisane raz; z zewnątrz nic w K1 nie odpowiada. **Przeglądarka**: Firefox w osobnej
 mikro-maszynie (strefie) w zaufanej ramce K1, sesje Ogólna / Bank / Prywatna, okno o dowolnym rozmiarze, **szybka
 grafika** (strony rysuje karta, obraz idzie z karty na ekran bez kopiowania, każdą prośbę strefy sprawdza K1; IdeaPad
-i nowsze karty zintegrowane Intela do Meteor / Arrow Lake — na X230 karta nie oddziela pracy stref), okno do krawędzi
+i nowsze karty zintegrowane Intela do Meteor / Arrow Lake — na X230 karta nie oddziela pracy stref), od 0.13.2 **filmy
+kartą** (w tej samej sesji film H.264 rozpakowuje karta, nie procesor — przełącznik „Szybka grafika i filmy”), okno do krawędzi
 i pełny ekran. **Pliki ze stref** (0.11.0): pobrane pliki w Plikach → Pobrane (za Twoją zgodą, z pochodzeniem),
 „Wyślij do” i „Otwórz za pomocą” sesji przeglądarki, zmieniony plik wraca tylko po „Zapisz”, przeciąganie plików między
 oknami (Ctrl — kopia) i na okno przeglądarki, schowek (Ctrl+C / Ctrl+V w Notatkach, polach K1 i przeglądarce).

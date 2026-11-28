@@ -1,9 +1,9 @@
 # 0063. Filmy kartą w strefie (0.13.2): kontekst filmów virtio-gpu, nasz sterownik VA, klatka w buforze karty strefy, dekoder na prośbę; X230 bez filmów kartą
 
-- Status: Przyjęty; wdrożenie w krokach 2–4 planu `docs/PLAN-0.13.2.txt`
+- Status: Przyjęty; wdrożony w 0.13.2 (kroki 2–4 planu `docs/archiwum/PLAN-0.13.2.txt`)
 - Data: 2026-11-27
 - Dotyczy: ADR 0049 (pkt 4–6 — **korekta tą decyzją**: droga w strefie, klatka, bramka zysku; pkt 3 — dekoder filmów
-  zostaje), ADR 0044 (pamięć dekodera w rozdzielaczu), ADR 0051 (bufory karty strefy); plan `docs/PLAN-0.13.2.txt`
+  zostaje), ADR 0044 (pamięć dekodera w rozdzielaczu), ADR 0051 (bufory karty strefy); plan `docs/archiwum/PLAN-0.13.2.txt`
   (krok 1, L1–L6, D3, D4, T1–T8); opisy: `docs/komponenty/filmy.md`, `docs/komponenty/strefa.md`,
   `docs/komponenty/posrednik.md`
 
