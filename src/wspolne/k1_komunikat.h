@@ -298,7 +298,9 @@ enum k1_komunikat_typ {
                                     * K1_DZW_SES_SLUCHA | K1_DZW_SES_MIK_WYCISZONY) — after every change */
     K1_KOM_DZWIEK_KANAL = 44,      /* all 0; + 1 fd: gui's end of its channel to dzwiek (again after the service restarts) */
     /* the test program → nadzorca (test image only) */
-    K1_KOM_TEST_DZWIEK = 45,       /* all 0 → TEST_GNIAZDO + 1 fd: a channel to dzwiek as the client TEST (its UID 0) */
+    K1_KOM_TEST_DZWIEK = 45,       /* a=0 → TEST_GNIAZDO + 1 fd: a channel to dzwiek as the client TEST (its UID 0); 0.13.5:
+                                    * a=another row of K1_DZW_KLIENCI — as that client (a zone: zone 1, b=1 it may hear the
+                                    * microphone), to see what the service refuses it; c..e=0 */
     K1_KOM_SCHOWEK = 249,             /* ekran → a client: obiekt=its window, a=bytes 1..K1_SCHOWEK_MAKS, b=where it was copied
                                        * (0 K1, a zone's number), c..e=0; + 1 sealed memfd — to an application: the answer to
                                        * SCHOWEK_DAJ; to a zone's VMM: right before Ctrl+V goes to its window (D5: A) */

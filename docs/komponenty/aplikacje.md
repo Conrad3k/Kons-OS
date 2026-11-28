@@ -156,8 +156,16 @@ pendrive'y, trwa, gotowe, błąd). Aktualizacja przez sieć — w kroku 2 tej we
 720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480; od 0.12.0 krok 2 trzynaście — mieszczą się). Dźwięk (0.12.0 krok 2,
 `dzwiek.c`; sekcja przed Informacjami): „Wyjście” — „Głośniki” albo „Słuchawki” (samo: karta mówi, co jest w gnieździe
 słuchawek; podpowiedź „Słuchawki przejmują dźwięk same po podłączeniu.”), okrągły przycisk „Wycisz”, suwak „Głośność”
-z procentami (ten sam `k1_suwak` co w okienku „Dźwięk” i pigułce), „Odtwórz próbę”, dopisek „K1 pamięta głośność
-głośników i słuchawek osobno.”; bez karty — jedno zdanie. Ustawienia są klientem sterującym usługi dźwięku jak gui
+z procentami (ten sam `k1_suwak` co w okienku „Dźwięk” i pigułce), „Odtwórz próbę” (do 0.13.5 pod nią dopisek „K1 pamięta
+głośność głośników i słuchawek osobno.” — jego miejsce wziął mikrofon); bez karty — jedno zdanie. **Mikrofon** (0.13.5
+krok 1, `mikrofon.c`, ADR 0065, D3: A) — pod kreską na zakładce „Głośność”: „Mikrofon” i źródło („Wbudowany” / „W
+słuchawkach”, podpowiedź „Mikrofon słuchawek przejmuje nagrywanie sam.”; karta bez wejścia — „Ta karta dźwiękowa nie ma
+mikrofonu.”), okrągły przycisk „Wycisz mikrofon”, suwak „Poziom mikrofonu” z procentami, przycisk „Powiedz coś” i pasek
+poziomu: póki włączony („Zatrzymaj”), usługa daje Ustawieniom sam poziom (`DZWIEK_MIKROFON` POZIOM) i pasek rośnie
+w kolorze akcentu; kończy się drugim kliknięciem, inną zakładką albo sekcją i z Ustawieniami. Log: „mikrofon: słucham
+poziomu”, raz „mikrofon: słychać (poziom ponad połowę)”, przy końcu „mikrofon: próba zakończona, najgłośniej N%” —
+nigdy poziomy w czasie. Opis ekranu: „Wycisz mikrofon”, „Poziom mikrofonu”, „Powiedz coś” / „Zatrzymaj”, „Pasek poziomu”
+(miejsce zmienne). Ustawienia są klientem sterującym usługi dźwięku jak gui
 (wspólny `k1_dzwiek_klient` w przyborniku): kanał od nadzorcy na fd 4 (`DZWIEK_KANAL`, od nowa po restarcie usługi albo
 Ustawień), stan, głośność wyjścia, które gra, próba we własnym pierścieniu. Głośność zapamiętuje gui (słyszy każdą zmianę).
 Od 0.12.3 krok 2 Dźwięk ma pod tytułem zakładki „Głośność | Korektor” (jak Sieć). **Korektor** (`korektor.c`, D2: A — szkic

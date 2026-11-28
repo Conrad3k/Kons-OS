@@ -131,6 +131,19 @@ void dzwiek_sesja_wycisz(int nr);  /* step 3: ekran's STREFA_WYCISZ (the speaker
 void dzwiek_okienko(struct k1_obraz *o, const struct k1_motyw *m);
 void dzwiek_okienko_wskaznik(const struct k1_komunikat *m);
 void dzwiek_okienko_otwarte(int tak);
+/* mikrofon.c — 0.13.5 step 1 (ADR 0065; D2: A): the sign "mikrofon włączony" on the bar and its popover "Mikrofon" */
+struct k1_dzw_polaczenie *dzwiek_pol(void); /* dzwiek.c: the channel to the sound service and what it said */
+int32_t mikrofon_szer(void);                /* its cell on the bar: 32 while anything hears the microphone, else 0 */
+void mikrofon_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
+void mikrofon_zmiana(void);                 /* the service said something of the microphone (DZWIEK_STAN e, SESJA e) */
+void mikrofon_wycisz(void);                 /* the popover's button, the key KEY_MICMUTE: mute / unmute */
+void mikrofon_zabezpieczenia(int otwarty);  /* the security screen opened / closed: silence to every listener */
+#define MIKROFON_OKIENKO_SZER 300
+int32_t mikrofon_okienko_wys(void);
+void mikrofon_okienko(struct k1_obraz *o, const struct k1_motyw *m);
+void mikrofon_okienko_wskaznik(const struct k1_komunikat *m);
+void mikrofon_okienko_otwarte(int tak);
+void okienko_mikrofonu_zamknij(void);       /* pasek_gorny.c: when the sign goes */
 #define OKIENKO_PASKA_SZER 300     /* the largest popover of the bar: the surface's size (the sound's width, */
 #define OKIENKO_PASKA_WYS 202      /* the battery's height — bateria.c) */
 void wskaznik_okienka_paska(const struct k1_komunikat *m);

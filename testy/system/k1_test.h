@@ -134,6 +134,15 @@ void t_posrednik(void);         /* 0.10.9 step 5 (ADR 0049): the graphics broker
 struct k1_opis_el;
 void t_dzwiek(void);            /* 0.12.0 step 1 (ADR 0054): the sound service (t_dzwiek.c) */
 void t_dzwiek_opis(const struct k1_opis_el *el, int n); /* …the scenario of scripts/test-dzwiek.sh */
+/* t_dzwiek.c for t_mikrofon.c (0.13.5): a channel to the service as the test program (`rodzaj` 0) or as a row of
+ * K1_DZW_KLIENCI (a zone: `mikrofon` 1 — it may hear), a message to it, the next message from it (1, 0 none, -1 closed),
+ * a sealed ring of n bytes */
+int t_dzw_kanal(int rodzaj, int mikrofon);
+void t_dzw_wyslij(int fd, struct k1_komunikat k, int z);
+int t_dzw_odbierz(int fd, struct k1_komunikat *k, int ms);
+int t_dzw_pierscien(size_t n);
+void t_mikrofon(void); /* 0.13.5 step 1 (ADR 0065): the microphone without a card, who may hear it (t_mikrofon.c) */
+void t_mikrofon_opis(const struct k1_opis_el *el, int n); /* …test-dzwiek.sh: the test tone into the microphone */
 int znak_dysku(const char *serial); /* a disk with this serial number: a test's mark (t_opis.c) */
 int tryb_opisu(void);           /* test-m4: the description for the script (t_opis_scenariusz) */
 int t_opis_scenariusz(void);

@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.12.0 krok 1: usługa, kanał klientów, okienko „Dźwięk” w gui); PRZETESTOWANE na hoście (`test_dzwiek`, `fuzz_dzwiek`, `test_uevent`, `test_komunikat`), w systemie w QEMU bez karty (`t_dzwiek`: klatka, „brak karty”, wrogi klient, restart) i w QEMU z kartą Intel HD Audio (`scripts/test-dzwiek.sh`: dźwięk zapisany do pliku WAV). Prawdziwy głośnik X230 i IdeaPada — sprawdza właściciel. Krok 3 (dźwięk stref): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`, `test_dzwiek`) i w `test-dzwiek.sh` (strefa próbna gra ton, głośnik na pasku, wyciszenie sesji, złośliwy gość); Firefox w strefie (ALSA) — stanowisko i właściciel na sprzęcie. Krok 2: słuchawki (gniazdo z kontrolek karty — ZAIMPLEMENTOWANE, test na hoście nazw gniazd; QEMU gniazda nie udaje: sprawdza właściciel), osobna głośność głośników i słuchawek, klient Ustawienia — PRZETESTOWANE w `test-dzwiek.sh` (klawisze, Ustawienia → Dźwięk, pamięć głośności po nowym pulpicie); dźwięk ze stref — krok 3; **0.12.3 krok 1** (ADR 0055, tor wysokiej jakości): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_dzw_tor` — pomiary, ogranicznik, dither, formaty karty; `test_virtio_dzwiek`, `fuzz_dzwiek`, `fuzz_virtio_dzwiek`), w systemie (`t_dzwiek`: pierścień F32) i w `test-dzwiek.sh` (karta QEMU — 16 bitów, przezroczystość próby, ton strefy w S32); 24 bity i odsłuch — właściciel na X230 i IdeaPadzie; **0.12.3 krok 2** (korektor): ZAIMPLEMENTOWANE, PRZETESTOWANE (`test_korektor`, `fuzz_korektor`, `t_dzwiek`, `test-dzwiek.sh`); **krok 3** (Kons Spatial Audio — silnik i gotowe sceny): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_przestrzen` — zwrotnice, model głowy, głośniki, poziom, przejścia; `fuzz_przestrzen`, `test_dzwiek`), w systemie (`t_dzwiek`) i w `test-dzwiek.sh` (głośniki: pasma z lewej w pliku WAV); słuchawki i odsłuch („z tyłu”, „szerzej”) — właściciel na sprzęcie; **krok 4** (scena do przeciągania, „Własna”, „Posłuchaj”): ZAIMPLEMENTOWANE, PRZETESTOWANE (`test_przestrzen`, `test_dzwiek`, `t_dzwiek`, `test-dzwiek.sh`, `test-wzorce.sh`) |
-| **Pliki** | `src/dzwiek/main.c` (kanały, klienci i ich strumienie, mieszanie, stan), `karta.c` (węzeł odtwarzania: ALSA bez alsa-lib), `kontrolki.c` (wyjścia kodeka na 0 dB, nazwa karty do logu), `dzwiek.h`; `src/wspolne/k1_dzwiek.{h,c}` (formaty pierścienia `K1_DZW_FORMATY`, tabela klientów `K1_DZW_KLIENCI`, liczenie pierścienia, próba), `k1_dzw_tor.{h,c}` (0.12.3: tor dźwięku — mieszanie, głośność, ogranicznik, dither, format karty), `k1_korektor.{h,c}` (krok 2: korektor), `k1_przestrzen.{h,c}` + `k1_prz_licz.c` (krok 3: Kons Spatial Audio) + `k1_prz_proba.c` (krok 4: „Posłuchaj”), `k1_kom_dzwiek.c` (komunikaty); `src/dzwiek/korektor.c`, `przestrzen.c` (korektor i scena w usłudze); `src/nadzorca/dzwiek.c` (karta z sysfs i zdarzeń jądra, kanały klientów), `profile.c` (`KLATKA_DZWIEK`); `src/gui/dzwiek.c` (ikona na pasku, okienko „Dźwięk”, próba); `jadro/k1.config` (sekcja „0.12.0 Dźwięk”) |
-| **Decyzje** | ADR 0054 (plan 0.12.0: T1–T4, T7, T8; właściciel: D1 = A, D2 = B, D3 = A; krok 2: D4 = A, D5 = A; krok 3: D6 = A, T5, T6 = A); ADR 0055 (plan 0.12.3 krok 1: T1–T5, T8 — tor wysokiej jakości; krok 2: D1 = A, D2 = A, T6 — korektor; krok 3: D3 = A, D5 = cała lista, D7 = A, T7 — Kons Spatial Audio; krok 4: D4 = A, D6 = A — scena do przeciągania) |
+| **Status** | ZAIMPLEMENTOWANE (0.12.0 krok 1: usługa, kanał klientów, okienko „Dźwięk” w gui); PRZETESTOWANE na hoście (`test_dzwiek`, `fuzz_dzwiek`, `test_uevent`, `test_komunikat`), w systemie w QEMU bez karty (`t_dzwiek`: klatka, „brak karty”, wrogi klient, restart) i w QEMU z kartą Intel HD Audio (`scripts/test-dzwiek.sh`: dźwięk zapisany do pliku WAV). Prawdziwy głośnik X230 i IdeaPada — sprawdza właściciel. Krok 3 (dźwięk stref): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`, `test_dzwiek`) i w `test-dzwiek.sh` (strefa próbna gra ton, głośnik na pasku, wyciszenie sesji, złośliwy gość); Firefox w strefie (ALSA) — stanowisko i właściciel na sprzęcie. Krok 2: słuchawki (gniazdo z kontrolek karty — ZAIMPLEMENTOWANE, test na hoście nazw gniazd; QEMU gniazda nie udaje: sprawdza właściciel), osobna głośność głośników i słuchawek, klient Ustawienia — PRZETESTOWANE w `test-dzwiek.sh` (klawisze, Ustawienia → Dźwięk, pamięć głośności po nowym pulpicie); dźwięk ze stref — krok 3; **0.12.3 krok 1** (ADR 0055, tor wysokiej jakości): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_dzw_tor` — pomiary, ogranicznik, dither, formaty karty; `test_virtio_dzwiek`, `fuzz_dzwiek`, `fuzz_virtio_dzwiek`), w systemie (`t_dzwiek`: pierścień F32) i w `test-dzwiek.sh` (karta QEMU — 16 bitów, przezroczystość próby, ton strefy w S32); 24 bity i odsłuch — właściciel na X230 i IdeaPadzie; **0.12.3 krok 2** (korektor): ZAIMPLEMENTOWANE, PRZETESTOWANE (`test_korektor`, `fuzz_korektor`, `t_dzwiek`, `test-dzwiek.sh`); **krok 3** (Kons Spatial Audio — silnik i gotowe sceny): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_przestrzen` — zwrotnice, model głowy, głośniki, poziom, przejścia; `fuzz_przestrzen`, `test_dzwiek`), w systemie (`t_dzwiek`) i w `test-dzwiek.sh` (głośniki: pasma z lewej w pliku WAV); słuchawki i odsłuch („z tyłu”, „szerzej”) — właściciel na sprzęcie; **krok 4** (scena do przeciągania, „Własna”, „Posłuchaj”): ZAIMPLEMENTOWANE, PRZETESTOWANE (`test_przestrzen`, `test_dzwiek`, `t_dzwiek`, `test-dzwiek.sh`, `test-wzorce.sh`); **0.13.5 krok 1** (mikrofon, ADR 0065): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_mikrofon`, `fuzz_mikrofon`, `test_dzwiek`), w systemie bez karty (`t_mikrofon`: kto może słuchać — testy negatywne) i w QEMU z drugim kodekiem z wejściem (`test-dzwiek.sh`: ton testowy, pasek poziomu Ustawień, znak na pasku, wyciszenie, cisza przy ekranie zabezpieczeń); prawdziwy mikrofon (wbudowany, w słuchawkach) — właściciel na X230 i IdeaPadzie |
+| **Pliki** | `src/dzwiek/main.c` (pętla, nadzorca, karta, okres), `klienci.c` (0.13.5: kanały klientów, ich komunikaty i strumienie, głośność, mieszanie — wydzielone z `main.c`), `karta.c` (węzeł odtwarzania: ALSA bez alsa-lib), `kontrolki.c` (wyjścia i — od 0.13.5 — nagrywanie kodeka na 0 dB, gniazda słuchawek i mikrofonu, nazwa karty do logu), `nagrywanie.c` + `mikrofon.c` (0.13.5: węzeł nagrywania, słuchacze mikrofonu), `dzwiek.h`; `src/wspolne/k1_mikrofon.{h,c}` (0.13.5: tor mikrofonu — czysty); `src/wspolne/k1_dzwiek.{h,c}` (formaty pierścienia `K1_DZW_FORMATY`, tabela klientów `K1_DZW_KLIENCI`, liczenie pierścienia, próba), `k1_dzw_tor.{h,c}` (0.12.3: tor dźwięku — mieszanie, głośność, ogranicznik, dither, format karty), `k1_korektor.{h,c}` (krok 2: korektor), `k1_przestrzen.{h,c}` + `k1_prz_licz.c` (krok 3: Kons Spatial Audio) + `k1_prz_proba.c` (krok 4: „Posłuchaj”), `k1_kom_dzwiek.c` (komunikaty); `src/dzwiek/korektor.c`, `przestrzen.c` (korektor i scena w usłudze); `src/nadzorca/dzwiek.c` (karta z sysfs i zdarzeń jądra, kanały klientów), `profile.c` (`KLATKA_DZWIEK`); `src/gui/dzwiek.c` (ikona na pasku, okienko „Dźwięk”, próba); `jadro/k1.config` (sekcja „0.12.0 Dźwięk”) |
+| **Decyzje** | ADR 0065 (0.13.5: mikrofon — D1 = A, D2 = A, D3 = A, T1–T6); ADR 0054 (plan 0.12.0: T1–T4, T7, T8; właściciel: D1 = A, D2 = B, D3 = A; krok 2: D4 = A, D5 = A; krok 3: D6 = A, T5, T6 = A); ADR 0055 (plan 0.12.3 krok 1: T1–T5, T8 — tor wysokiej jakości; krok 2: D1 = A, D2 = A, T6 — korektor; krok 3: D3 = A, D5 = cała lista, D7 = A, T7 — Kons Spatial Audio; krok 4: D4 = A, D6 = A — scena do przeciągania) |
 
 ## Cel
 Laptop gra dźwięk K1 i (od kroku 3) przeglądarki, a kartę dźwiękową — jak obraz — ma tylko jeden mały proces w klatce.
@@ -27,7 +27,7 @@ nigdy próbki.
 ## Uprawnienia
 | UID | seccomp (poza bazą) | Landlock | cgroup i limity | deskryptory |
 |---|---|---|---|---|
-| 111 | `ioctl` tylko 14 numerów ALSA: PCM — INFO, HW_PARAMS, HW_FREE, SW_PARAMS, PREPARE, WRITEI_FRAMES, DROP; kontrolki — CARD_INFO, ELEM_LIST, ELEM_INFO, ELEM_READ, ELEM_WRITE, TLV_READ, SUBSCRIBE_EVENTS (krok 2: zdarzenia gniazda słuchawek) | brak ścieżek | `dzwiek`: 16 MiB, 1 proces, 24 deskryptory, `RLIMIT_FSIZE` 0 | fd 3: kanał od nadzorcy (jednokierunkowy); od nadzorcy: węzeł odtwarzania `pcmC<k>D<u>p` i kontrolki `controlC<k>` karty, końce kanałów klientów |
+| 111 | `ioctl` tylko 15 numerów ALSA: PCM — INFO, HW_PARAMS, HW_FREE, SW_PARAMS, PREPARE, WRITEI_FRAMES, READI_FRAMES (0.13.5: mikrofon), DROP; kontrolki — CARD_INFO, ELEM_LIST, ELEM_INFO, ELEM_READ, ELEM_WRITE, TLV_READ, SUBSCRIBE_EVENTS (krok 2: zdarzenia gniazda słuchawek) | brak ścieżek | `dzwiek`: 16 MiB, 1 proces, 24 deskryptory, `RLIMIT_FSIZE` 0 | fd 3: kanał od nadzorcy (jednokierunkowy); od nadzorcy: węzeł odtwarzania `pcmC<k>D<u>p`, nagrywania `pcmC<k>D<u>c` (0.13.5) i kontrolki `controlC<k>` karty, końce kanałów klientów; pierścienie słuchaczy mikrofonu mapowane tylko do zapisu |
 
 Węzły `/dev/snd` otwiera tylko nadzorca i daje je tylko tej usłudze (rozszerzenie niezmiennika „jeden właściciel zasobu”,
 ADR 0054 pkt 1); swoje kopie zamyka od razu. Bez `open`, `socket`, `memfd_create` (pierścienie robią klienci).
@@ -76,6 +76,35 @@ ADR 0054 pkt 1); swoje kopie zamyka od razu. Bez `open`, `socket`, `memfd_create
 i kart sieciowych (usypianie urządzeń). Bez pomiaru na laptopach właściciela (kontener nie ma baterii) i przy zamrożonym
 zakresie wersji K1 zostaje bez `PM`: karta po 5 s ciszy nie gra (DROP + HW_FREE), kodek nie usypia. Pomiar i decyzja —
 w „Później” (`DO_ZROBIENIA.txt`).
+
+## Mikrofon (0.13.5 krok 1, ADR 0065; D2: A, D3: A)
+Nagrywa ta sama usługa (jeden właściciel karty). Nadzorca daje jej z kartą jej pierwszy węzeł nagrywania (`DZWIEK_KARTA`
+NAGRYWANIE, `O_RDONLY`); karta bez niego — „brak mikrofonu” (źródło BRAK w stanie). **Karta nagrywa tylko, gdy ktoś słucha**
+(`nagrywanie.c`): HW_PARAMS (48 kHz; S32_LE, inaczej S16_LE; stereo, inaczej mono), SW_PARAMS (start przy pierwszym
+odczycie), PREPARE i jeden odczyt, który ją uruchamia; potem okres po każdym `POLLIN` (`READI_FRAMES`); przepełnienie
+(EPIPE) — PREPARE i dalej (licznik w logu); nikt nie słucha — DROP i HW_FREE (log „mikrofon nie nagrywa”).
+- **Kto może słuchać** — kolumna `K1_DZW_KLIENCI` (`k1_dzw_klient_slucha`): pulpit — nigdy (rysuje znak, wycisza), Ustawienia —
+  tylko poziom (`DZWIEK_MIKROFON` POZIOM: 0…100 co 107 ms w `DZWIEK_NAGRANO` c, nigdy próbka), program testowy — próbki,
+  strefa — próbki, tylko gdy nadzorca pozwolił (`DZWIEK_KLIENT` d = 1 — krok 2: sesja z przełącznikiem „Mikrofon”). Klient,
+  który prosi o więcej, traci kanał.
+- **Próbki** (`DZWIEK_OTWORZ` b = SŁUCHA): pierścień klienta jak przy odtwarzaniu (dokładny rozmiar, pieczęcie przeciw
+  zmniejszaniu i powiększaniu), ale mapowany **tylko do zapisu**; po każdym okresie usługa pisze 1024 ramki od swojej pozycji
+  (zawija na końcu) i mówi `DZWIEK_NAGRANO` a = 1024, c = poziom. Pozycji od klienta nie bierze: wolny słuchacz traci swoje
+  najstarsze ramki. `DZWIEK_ZAMKNIJ` b = SŁUCHA (a = OD_RAZU) — koniec.
+- **Tor** (`k1_mikrofon.c`, czysty): ramki karty → liczby zmiennoprzecinkowe (mono do obu kanałów) → ton testowy (tylko na
+  prośbę programu testowego, `TESTOWY`: 1 kHz, −12 dB — karta QEMU nagrywa ciszę) → × poziom mikrofonu (0…100: 50 = 0 dB,
+  100 = +20 dB, 0 = cisza) → w granicach ±1,0 → cisza, gdy wyciszony albo wstrzymany → poziom paska (0…100 = −60…0 dBFS,
+  0,6 dB na krok) → pierścienie słuchaczy (S16 zaokrąglone, F32 jak są).
+- **Kontrolki** (`kontrolki.c`): „Capture Switch” włączony, „Capture Volume” na 0 dB (jak wyjścia); wzmocnienia „… Boost”
+  zostają, jak ustawi jądro (NIEPEWNE na laptopach). Mikrofon w słuchawkach przełącza samo jądro (auto-mic parsera HDA);
+  usługa czyta jego gniazdo (`k1_dzw_gniazdo_mikrofonu`: „Mic Jack”, „Headset Mic Jack”…, nigdy „… Phantom Jack”) i mówi
+  źródło: „Wbudowany” albo „W słuchawkach” (log „wyjście: …, mikrofon: …”).
+- **Stan** dla klientów sterujących — `DZWIEK_STAN` e (`k1_dzw_mik_pole`): źródło, poziom, wyciszony, wstrzymany, „K1
+  słucha” (Ustawienia albo program testowy); innym klientom e = 0. Poziom i wyciszenie ustawia klient sterujący
+  (`DZWIEK_MIKROFON` USTAW), pamięta je pulpit (rekord „K1G5”).
+- **T4 — prywatność:** pulpit, gdy jego ekran zabezpieczeń (Ctrl+Alt+Del) jest na wierzchu, mówi `WSTRZYMAJ` b = 1 — usługa
+  daje wszystkim słuchaczom ciszę (log „mikrofon: wstrzymany (ekran zabezpieczeń)”); koniec kanału pulpitu zdejmuje
+  wstrzymanie. W logu kto słucha i liczba przepełnień — nigdy próbki ani poziomy w czasie.
 
 ## Korektor (0.12.3 krok 2, ADR 0055 pkt 9–13; D1: A, D2: A)
 Korektor systemowy zmienia barwę całego dźwięku K1: **dziesięć pasm** co oktawę (31, 62, 125, 250, 500 Hz, 1, 2, 4, 8,
@@ -134,23 +163,25 @@ każdym przeciągnięciu) i mówi wszystkim klientom sterującym (nowemu — obu
 Typy i pola: `k1_komunikat.h` (sekcja „0.12.0 step 1”), sprawdzanie: `k1_kom_dzwiek.c`; obiekt zawsze 0.
 | Typ | Kierunek | Pola |
 |---|---|---|
-| `DZWIEK_KARTA` | nadzorca → usługa (+ fd) | a = węzeł (ODTWARZANIE / KONTROLKI), b = karta 0…31, c = urządzenie 0…31 (kontrolki: 0) |
-| `DZWIEK_KLIENT` | nadzorca → usługa (+ fd) | a = wiersz `K1_DZW_KLIENCI`, b = UID klienta, c = strefa (tylko klient `STREFA`, krok 3) |
+| `DZWIEK_KARTA` | nadzorca → usługa (+ fd) | a = węzeł (ODTWARZANIE / KONTROLKI / — 0.13.5 — NAGRYWANIE), b = karta 0…31, c = urządzenie 0…31 (kontrolki: 0) |
+| `DZWIEK_KLIENT` | nadzorca → usługa (+ fd) | a = wiersz `K1_DZW_KLIENCI`, b = UID klienta, c = strefa (tylko klient `STREFA`, krok 3), d = 1 może słuchać mikrofonu (0.13.5 krok 2: tylko `STREFA` z przełącznikiem „Mikrofon”) |
 | `DZWIEK_BEZ_KARTY` | nadzorca → usługa | wszystko 0 |
-| `DZWIEK_OTWORZ` | klient → usługa (+ fd pierścienia) | a = format pierścienia `K1_DZW_FORMAT_*` (0.12.3: 0 S16, 1 F32), reszta 0 |
+| `DZWIEK_OTWORZ` | klient → usługa (+ fd pierścienia) | a = format pierścienia `K1_DZW_FORMAT_*` (0.12.3: 0 S16, 1 F32), b = `K1_DZW_KIER_GRA` / `SLUCHA` (0.13.5: mikrofon do pierścienia), reszta 0 |
 | `DZWIEK_ZAPISANO` | klient → usługa | a = nowe ramki 1…16384 |
-| `DZWIEK_ZAMKNIJ` | klient → usługa | a = 0 po odegraniu / 1 od razu |
+| `DZWIEK_ZAMKNIJ` | klient → usługa | a = 0 po odegraniu / 1 od razu, b = kierunek (0.13.5: SŁUCHA — tylko a = 1) |
+| `DZWIEK_MIKROFON` (0.13.5) | klient → usługa | a = co: USTAW (sterujący: b = poziom 0…100, c = wyciszony), POZIOM (kto może słuchać: b = 1 słucham poziomu / 0), WSTRZYMAJ (tylko pulpit: b = 1 ekran zabezpieczeń na wierzchu / 0), SESJA (krok 2, sterujący: b = strefa, c = jej mikrofon wyciszony), TESTOWY (tylko program testowy: b = 1 ton w mikrofonie / 0); reszta 0 |
 | `DZWIEK_GLOSNOSC` | klient sterujący → usługa | a = głośność 0…100, b = wyciszone 0/1, c = wyjście (krok 2; 0 — to, które gra), d = strefa (krok 3: głośność i wyciszenie jej sesji; wtedy c = 0) |
-| `DZWIEK_SESJA` (krok 3) | usługa → klient sterujący | a = strefa, b = 1 jej sesja gra (ramki w ostatniej sekundzie), c = głośność sesji, d = wyciszona; po każdej zmianie, nowemu klientowi — każda inna niż na starcie |
+| `DZWIEK_SESJA` (krok 3) | usługa → klient sterujący | a = strefa, b = 1 jej sesja gra (ramki w ostatniej sekundzie), c = głośność sesji, d = wyciszona, e = mikrofon sesji (0.13.5 krok 2: 1 słucha, 2 wyciszony); po każdej zmianie, nowemu klientowi — każda inna niż na starcie |
 | `DZWIEK_KOREKTOR` (0.12.3 krok 2) | klient sterujący → usługa | a = wyjście (Głośniki / Słuchawki), b, c, d = dziesięć pasm w półdecybelach −24…24, po cztery na pole (bajt na pasmo, `k1_kor_do_pol`; nieużyte bajty 0) |
-| `DZWIEK_KOREKTOR_STAN` (0.12.3 krok 2) | usługa → klient sterujący | jak `DZWIEK_KOREKTOR`; nowemu klientowi obu wyjść, potem po każdej zmianie |
+| `DZWIEK_KOREKTOR` od usługi (0.12.3 krok 2; do 0.13.5 osobny typ `KOREKTOR_STAN`) | usługa → klient sterujący | te same pola — stan; nowemu klientowi obu wyjść, potem po każdej zmianie |
 | `DZWIEK_SCENA` (0.12.3 krok 3) | klient sterujący → usługa | a = wyjście (Głośniki / Słuchawki), b = 1 Kons Spatial Audio włączone / 0, c = kierunki czterech pasm, d = ich szerokości (bajt na pasmo w krokach 2°: −90…90 i 0…90), e = ich odległości (bajt 0…100) — `k1_prz_do_pol` |
-| `DZWIEK_SCENA_STAN` (0.12.3 krok 3) | usługa → klient sterujący | jak `DZWIEK_SCENA`; nowemu klientowi obu wyjść, potem po każdej zmianie |
-| `DZWIEK_SCENA` / `DZWIEK_SCENA_STAN` z a = wyjście + 16 (0.12.3 krok 4) | jak wyżej | „Własna” wyjścia (`K1_DZW_SCENA_WLASNA`): b = 1 jest, 0 jeszcze nie ma, c–e jak w scenie; usługa ją trzyma i mówi, nie gra |
-| `DZWIEK_STAN` | usługa → klient | a = karta (SZUKA, BRAK, JEST, BLAD), b = głośność, c = wyciszone (wyjścia, które gra), d = wyjście (tylko z kartą: Głośniki albo — krok 2 — Słuchawki) |
+| `DZWIEK_SCENA` od usługi (0.12.3 krok 3; do 0.13.5 osobny typ `SCENA_STAN`) | usługa → klient sterujący | te same pola — stan; nowemu klientowi obu wyjść, potem po każdej zmianie |
+| `DZWIEK_SCENA` z a = wyjście + 16 (0.12.3 krok 4) | w obie strony | „Własna” wyjścia (`K1_DZW_SCENA_WLASNA`): b = 1 jest, 0 jeszcze nie ma, c–e jak w scenie; usługa ją trzyma i mówi, nie gra |
+| `DZWIEK_STAN` | usługa → klient | a = karta (SZUKA, BRAK, JEST, BLAD), b = głośność, c = wyciszone (wyjścia, które gra), d = wyjście (tylko z kartą: Głośniki albo — krok 2 — Słuchawki), e = mikrofon (0.13.5, `k1_dzw_mik_pole`: źródło, poziom, wyciszony, wstrzymany, K1 słucha; tylko klientom sterującym, innym 0) |
+| `DZWIEK_NAGRANO` (0.13.5) | usługa → słuchacz mikrofonu | a = nowe ramki w jego pierścieniu 0…16384 (0: słucha tylko poziomu), b = 1 już nie słucha (odmowa, brak mikrofonu, koniec; wtedy a = 0), c = poziom 0…100 ostatnich okresów |
 | `DZWIEK_ODTWORZONO` | usługa → klient | a = ramki zabrane 0…16384, b = 1 strumień się skończył (wtedy a może być 0) |
 | `DZWIEK_KANAL` | nadzorca → gui (fd 5), Ustawienia (fd 4; krok 2), VMM strefy z oknem (fd 7; krok 3) (+ fd) | wszystko 0 |
-| `TEST_DZWIEK` | program testowy → nadzorca | wszystko 0 → `TEST_GNIAZDO` z kanałem |
+| `TEST_DZWIEK` | program testowy → nadzorca | a = 0 → `TEST_GNIAZDO` z kanałem; 0.13.5: a = inny wiersz `K1_DZW_KLIENCI` — kanał jako ten klient (strefa: strefa 1, b = 1 może słuchać), żeby sprawdzić, czego usługa mu odmawia |
 
 ## gui: ikona i okienko „Dźwięk” (D2 = B, część górna)
 Ikona na górnym pasku: głośnik z dwiema falami (głośno, od 50 %), z jedną (ciszej), z ×  (wyciszony albo 0 %), blady
@@ -246,5 +277,16 @@ zapisuje ją w skarbcu (`gui.md`) i daje każdej nowej usłudze.
   gotowa scena tak samo głośna jak bez niej (szum różowy, waga K liczona w teście, ±0,5 dB); granica i ton w zapasie;
   `test_dzwiek` — rekordy „K1G1”, „K1G2” dają Koncert włączony; `test-dzwiek.sh` — przełącznik w okienku domyślnie
   włączony (wyłączany przed próbami), szósta próba w proporcji nowego poziomu, siódma: moc obu kanałów jak w piątej.
+- 0.13.5 krok 1 (mikrofon, ADR 0065): `test_mikrofon` — kolumna „słucha”, stan mikrofonu w polu e (wszystkie wartości tam
+  i z powrotem, bity spoza — odrzucone), gniazda mikrofonu (nigdy „Phantom”, nigdy słuchawek), komunikaty (MIKROFON
+  każdego rodzaju, NAGRANO, OTWORZ/ZAMKNIJ b, KLIENT d, KARTA NAGRYWANIE — zakresy i kierunki), wzmocnienie poziomu
+  (50 = 0 dB, 100 = +20 dB, rośnie), ramki karty S16/S32/mono, poziom paska (−6 dB, −12 dB, −60 dB), ton testowy,
+  pierścień (zawija, S16 w granicach, F32 bez zmian); `test_dzwiek` — rekord „K1G5” (i „K1G4”…); `fuzz_mikrofon` (dowolne
+  bajty karty w każdym formacie: próbki skończone, w ±1,0, poziom 0…100, pierścień tylko w sobie); `t_mikrofon` (bez karty:
+  „brak mikrofonu”, poziom i wyciszenie wracają w stanie, słuchanie kończy się od razu; NEGATYWNE: pulpit, Ustawienia
+  (próbki) i strefa bez przełącznika tracą kanał, WSTRZYMAJ nie od pulpitu, TESTOWY nie od programu testowego);
+  `test-dzwiek.sh` — drugi kodek QEMU z wejściem (`hda-micro`, `-audiodev none`): węzeł nagrywania u usługi, „Powiedz coś”
+  w Ustawieniach (pasek ponad połowę z tonem), znak na górnym pasku i jego okienko, „Wycisz mikrofon”, Ctrl+Alt+Del —
+  wstrzymany, „Zatrzymaj” — karta nie nagrywa, znak znika.
 - Na sprzęcie (właściciel): próba słychać na X230 i IdeaPadzie; log z nazwami karty i kodeka; krok 2 — klawisze (log
   wejścia: „z klawiszami głośności”), słuchawki w gnieździe (log „gniazdo słuchawek: …”, „wyjście: Słuchawki”).

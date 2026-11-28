@@ -159,6 +159,14 @@ void dzwiek_pokazany(void); /* the section was opened (the tests: its state in t
  * PRZESTRZEN) */
 void dzwiek_miejsce(int miejsce);
 void dzwiek_klawisz(unsigned kod, int wartosc, unsigned mody); /* step 4: the keys of the scene */
+void dzwiek_ukryty(void); /* 0.13.5: another section shown — "Powiedz coś" stops */
+/* mikrofon.c (0.13.5 step 1, ADR 0065; D3: A): the part "Mikrofon" of Dźwięk → Głośność, under the volume, from MIK_Y */
+#define MIK_Y (ZAKLADKI_Y + 238)
+struct k1_dzw_polaczenie;
+void mikrofon_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dzw_polaczenie *dz);
+int mikrofon_wskaznik(struct k1_dzw_polaczenie *dz, int rodzaj, int32_t x, int32_t y, int przycisk); /* 1 = redraw */
+void mikrofon_poziom(const struct k1_dzw_polaczenie *dz); /* a new level came (K1_DZWK_POZIOM) */
+void mikrofon_stop(struct k1_dzw_polaczenie *dz);         /* "Powiedz coś" off (another tab, section) */
 
 /* korektor.c (0.12.3 step 2, D2: A): Dźwięk → Korektor — the ten bands of an output, the ready settings */
 struct k1_dzw_polaczenie;

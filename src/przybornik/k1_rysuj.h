@@ -84,6 +84,8 @@ enum k1_ikona {
     K1_IK_KARTA,        /* 0.10.9 step 6 (D7, the owner's choice: a chip) — a zone draws with the card (its frame's mark) */
     K1_IK_GLOSNIK_CICHO,     /* 0.12.0 step 1: the speaker with one wave (the volume under 50 %) */
     K1_IK_GLOSNIK_WYCISZONY, /* the speaker with a × (muted, or the volume 0) */
+    K1_IK_MIKROFON,          /* 0.13.5 step 1 (D2: A): a microphone on its stand — the sign "mikrofon włączony" */
+    K1_IK_MIKROFON_WYCISZONY, /* the microphone crossed out (muted) */
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

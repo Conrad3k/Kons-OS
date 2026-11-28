@@ -70,8 +70,10 @@ static void loguj(void);
 
 void zab_otworz(int na_hasle)
 {
-    if (!otwarty)
+    if (!otwarty) {
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_ZABEZPIECZENIA, 1, 0, 0, 0, 0));
+        mikrofon_zabezpieczenia(1); /* 0.13.5 (T4): nobody hears the microphone while it is on top */
+    }
     otwarty = 1;
     tryb = na_hasle ? Z_HASLO : Z_MENU;
     wybrany = dostepny(M_ZABLOKUJ) ? M_ZABLOKUJ : M_HASLO;
@@ -93,6 +95,7 @@ static void zamknij(void)
     haslo_formularz(HF_BRAK); /* wipes what was typed */
     otwarty = 0;
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_ZABEZPIECZENIA, 0, 0, 0, 0, 0));
+    mikrofon_zabezpieczenia(0);
     k1_log(TAG, "ekran zabezpieczeń zamknięty");
 }
 

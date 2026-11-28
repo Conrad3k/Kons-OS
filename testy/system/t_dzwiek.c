@@ -15,20 +15,22 @@
 
 static int wezly_karty(int *dzwiek);
 
-static int kanal(void)
+/* A channel to the service as the test program (`rodzaj` 0), or — 0.13.5 — as another row (t_mikrofon.c). */
+int t_dzw_kanal(int rodzaj, int mikrofon)
 {
     int fd = -1;
-    return zapytaj(k1_komunikat_nowy(K1_KOM_TEST_DZWIEK, 0, 0, 0, 0, 0, 0), &fd, 10) == 0 && fd >= 0 ? fd : -1;
+    return zapytaj(k1_komunikat_nowy(K1_KOM_TEST_DZWIEK, 0, rodzaj, mikrofon, 0, 0, 0), &fd, 10) == 0 && fd >= 0 ? fd
+                                                                                                                 : -1;
 }
 
-static void wyslij(int fd, struct k1_komunikat k, int z)
+void t_dzw_wyslij(int fd, struct k1_komunikat k, int z)
 {
     if (k1_kanal_wyslij(fd, &k, sizeof k, z) != 0)
         k1_log(TAG, "dźwięk: wysłanie: %s", strerror(errno));
 }
 
 /* The next message from the service within `ms`: 1 and *k; 0 nothing; -1 the channel closed. */
-static int odbierz(int fd, struct k1_komunikat *k, int ms)
+int t_dzw_odbierz(int fd, struct k1_komunikat *k, int ms)
 {
     for (int i = 0; i < ms / 20; i++) {
         struct k1_odebrane o;
@@ -53,7 +55,7 @@ static int stan(int fd, int s, int *glosnosc)
 {
     struct k1_komunikat k;
     for (int i = 0; i < s * 4; i++) {
-        int r = odbierz(fd, &k, 250);
+        int r = t_dzw_odbierz(fd, &k, 250);
         if (r < 0)
             return -1;
         if (r == 1 && k.typ == K1_KOM_DZWIEK_STAN && k.a != K1_DZW_KARTA_SZUKA) {
@@ -65,7 +67,7 @@ static int stan(int fd, int s, int *glosnosc)
     return -1;
 }
 
-static int pierscien(size_t n)
+int t_dzw_pierscien(size_t n)
 {
     int fd = (int)syscall(SYS_memfd_create, "t-dzwiek", MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
     if (fd >= 0 && (ftruncate(fd, (off_t)n) != 0 || fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW) != 0)) {
@@ -79,9 +81,9 @@ static int pierscien(size_t n)
 static int od_razu_koniec(int fd, int ring, int format)
 {
     struct k1_komunikat k;
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 0, format, 0, 0, 0, 0), ring);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 0, format, 0, 0, 0, 0), ring);
     for (int i = 0; i < 10; i++)
-        if (odbierz(fd, &k, 500) == 1 && k.typ == K1_KOM_DZWIEK_ODTWORZONO)
+        if (t_dzw_odbierz(fd, &k, 500) == 1 && k.typ == K1_KOM_DZWIEK_ODTWORZONO)
             return k.a == 0 && k.b == 1;
     return 0;
 }
@@ -91,7 +93,7 @@ static int zamkniety(int fd, int s)
 {
     struct k1_komunikat k;
     for (int i = 0; i < s * 5; i++)
-        if (odbierz(fd, &k, 200) < 0)
+        if (t_dzw_odbierz(fd, &k, 200) < 0)
             return 1;
     return 0;
 }
@@ -101,7 +103,7 @@ static int korektor_stan(int fd, int wyjscie, int8_t *p, int ms)
 {
     struct k1_komunikat k;
     for (int i = 0; i < 20; i++) {
-        int r = odbierz(fd, &k, ms);
+        int r = t_dzw_odbierz(fd, &k, ms);
         int32_t f[3] = { k.b, k.c, k.d };
         if (r <= 0)
             return 0;
@@ -118,16 +120,16 @@ static void korektor(int fd)
     int32_t f[3];
     k1_kor_gotowe_pasma(K1_KOR_WIECEJ_BASU, p);
     k1_kor_do_pol(p, f);
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), -1);
     memset(q, 0, sizeof q);
     int ok = korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000) && memcmp(p, q, sizeof p) == 0; /* before its name */
     check(ok, "dźwięk: korektor głośników ustawiony (0.12.3) — usługa mówi go klientom sterującym", "%s", k1_kor_nazwa(q));
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 25, 0, 0, 0), -1); /* +12.5 dB */
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0x10000, 0), -1); /* band 10 */
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 25, 0, 0, 0), -1); /* +12.5 dB */
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0x10000, 0), -1); /* band 10 */
     check(!korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000),
           "NEGATYWNY: pasmo korektora ponad +12 dB i nieistniejące pasmo — odrzucone, nic się nie zmienia", "");
     memset(p, 0, sizeof p);
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), -1);
     check(korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000) && k1_kor_plaski(q),
           "dźwięk: korektor z powrotem płaski, kanał po złych komunikatach działa", "");
 }
@@ -137,7 +139,7 @@ static int scena_stan(int fd, int wyjscie, struct k1_prz_scena *s, int ms)
 {
     struct k1_komunikat k;
     for (int i = 0; i < 20; i++) {
-        int r = odbierz(fd, &k, ms);
+        int r = t_dzw_odbierz(fd, &k, ms);
         int32_t f[4] = { k.b, k.c, k.d, k.e };
         if (r <= 0)
             return 0;
@@ -151,7 +153,7 @@ static void wyslij_scene(int fd, int wyjscie, const struct k1_prz_scena *s)
 {
     int32_t f[4];
     k1_prz_do_pol(s, f);
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, wyjscie, f[0], f[1], f[2], f[3]), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, wyjscie, f[0], f[1], f[2], f[3]), -1);
 }
 
 /* 0.12.3 step 3: the headphones' scene set by a steering client, told back; out of range — refused; off again. */
@@ -163,9 +165,9 @@ static void scena(int fd)
     memset(&t, 0, sizeof t);
     check(scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && k1_prz_rowne(&s, &t),
           "dźwięk: scena słuchawek ustawiona (0.12.3) — usługa mówi ją klientom sterującym", "%s", k1_prz_nazwa(&t));
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 2, 0, 0, 0), -1);  /* on: 2 */
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 1, 91, 0, 0), -1); /* 182° */
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 1, 0, 0, 101), -1); /* 101 % */
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 2, 0, 0, 0), -1);  /* on: 2 */
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 1, 91, 0, 0), -1); /* 182° */
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 1, 0, 0, 101), -1); /* 101 % */
     check(!scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000),
           "NEGATYWNY: scena poza zakresem (włączona = 2, kierunek 182°, odległość 101 %) — odrzucona, nic się nie zmienia",
           "");
@@ -181,7 +183,7 @@ static void scena(int fd)
     check(scena_stan(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && t.wlaczona &&
               t.pasma[2].kierunek == -60 && k1_prz_rozpoznaj(&t) < 0,
           "dźwięk: „Własna” słuchawek zapamiętana w usłudze (0.12.3 krok 4) — mówi ją klientom sterującym", "");
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS + 1, 1, 0, 0, 0), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS + 1, 1, 0, 0, 0), -1);
     check(!scena_stan(fd, K1_DZW_SCENA_WLASNA + K1_DZW_WYJSCIE_MAKS + 1, &t, 1000) &&
               !scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 300),
           "NEGATYWNY: „Własna” nieistniejącego wyjścia — odrzucona", "");
@@ -193,8 +195,8 @@ static void scena(int fd)
 
 static void wrogi_klient(long pid)
 {
-    int fd = kanal(), ring = pierscien(K1_DZW_PIERSCIEN_BAJTY), maly = pierscien(4096), g = 0, r;
-    int f32 = pierscien(k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32));
+    int fd = t_dzw_kanal(0, 0), ring = t_dzw_pierscien(K1_DZW_PIERSCIEN_BAJTY), maly = t_dzw_pierscien(4096), g = 0, r;
+    int f32 = t_dzw_pierscien(k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32));
     r = fd >= 0 ? stan(fd, 15, &g) : -1;
     check(r == K1_DZW_KARTA_BRAK, "dźwięk: usługa mówi programowi testowemu „brak karty”", "kanał %d, głośność %d", fd, g);
     check(od_razu_koniec(fd, maly, K1_DZW_FORMAT_S16), "NEGATYWNY: pierścień innej wielkości — odrzucony, strumień od razu koniec",
@@ -206,18 +208,18 @@ static void wrogi_klient(long pid)
           "%zu B", k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32));
     check(od_razu_koniec(fd, ring, K1_DZW_FORMAT_S16), "dźwięk: bez karty strumień kończy się od razu (klient o tym wie)", "%u B",
           K1_DZW_PIERSCIEN_BAJTY);
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, 30, 0, 0, 0, 0), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, 30, 0, 0, 0, 0), -1);
     r = stan(fd, 5, &g);
     check(r == K1_DZW_KARTA_BRAK && g == 30, "dźwięk: klient sterujący zmienia głośność (stan wraca do wszystkich)",
           "głośność %d", g);
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, K1_DZW_GLOSNOSC_START, 0, 0, 0, 0), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, K1_DZW_GLOSNOSC_START, 0, 0, 0, 0), -1);
     korektor(fd);
     scena(fd);
-    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_ZAPISANO, 0, 100, 0, 0, 0, 0), -1);
+    t_dzw_wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_ZAPISANO, 0, 100, 0, 0, 0, 0), -1);
     check(zamkniety(fd, 5) && find_process("dzwiek") == pid,
           "NEGATYWNY: ramki bez strumienia — klient traci kanał, usługa działa", "pid %ld", pid);
     close(fd);
-    fd = kanal();
+    fd = t_dzw_kanal(0, 0);
     for (int i = 0; i < 200 && fd >= 0; i++) {
         struct k1_komunikat z = k1_komunikat_nowy(K1_KOM_DZWIEK_ZAPISANO, 0, 0, 0, 0, 0, 0); /* a = 0: not valid */
         z.wersja = (uint8_t)(i & 1 ? 9 : K1_KOMUNIKAT_WERSJA);
@@ -246,11 +248,13 @@ void t_dzwiek(void)
         check(!dz && inni == 0, "dźwięk: bez karty nikt nie trzyma węzłów /dev/snd", "usługa %d, inni %d", dz, inni);
     }
     wrogi_klient(pid);
+    t_mikrofon(); /* 0.13.5 step 1 */
+    pid = find_process("dzwiek");
     check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "dźwięk: usługa dźwięku zabita (SIGKILL)", "pid %ld", pid);
     /* the old process may still be there a moment after SIGKILL (nadzorca has not collected it yet: CI with KVM) */
     for (int i = 0; i < 100 && ((nowy = find_process("dzwiek")) <= 0 || nowy == pid); i++)
         msleep(100);
-    fd = nowy > 0 && nowy != pid ? kanal() : -1;
+    fd = nowy > 0 && nowy != pid ? t_dzw_kanal(0, 0) : -1;
     check(fd >= 0 && stan(fd, 15, NULL) == K1_DZW_KARTA_BRAK,
           "dźwięk: nadzorca uruchamia usługę od nowa, nowy kanał działa", "pid %ld → %ld", pid, nowy);
     if (fd >= 0)
@@ -359,7 +363,7 @@ static void scena_z_lewej(const struct k1_opis_el *el, int n)
     s.wlaczona = 1;
     for (int i = 0; i < K1_PRZ_PASMA_N; i++)
         s.pasma[i] = (struct k1_prz_miejsce){ -90, 0, 0 };
-    fd = kanal();
+    fd = t_dzw_kanal(0, 0);
     if (fd >= 0 && stan(fd, 5, NULL) >= 0) { /* the service has the channel (as wrogi_klient), then the scene, told back */
         struct k1_prz_scena t;
         wyslij_scene(fd, K1_DZW_WYJSCIE_GLOSNIKI, &s);
@@ -377,6 +381,7 @@ void t_dzwiek_opis(const struct k1_opis_el *el, int n)
     int wyciszone = -1;
     strefy(el, n, pigulka(el, n));
     scena_z_lewej(el, n);
+    t_mikrofon_opis(el, n); /* 0.13.5 step 1 */
     for (int i = 0; i < n; i++)
         if (strncmp(el[i].nazwa, "Wycisz", sizeof el[i].nazwa) == 0)
             wyciszone = (el[i].stan & K1_EL_WYBRANY) != 0;

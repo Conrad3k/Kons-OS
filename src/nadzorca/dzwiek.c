@@ -131,10 +131,11 @@ static int wyslij_karte(void)
     return 0;
 }
 
-/* A new channel of client `rodzaj` (K1_DZW_KLIENT_*) with UID `uid`: the service gets its end, we return the client's. */
-static int kanal_klienta(int rodzaj, int uid, int strefa)
+/* A new channel of client `rodzaj` (K1_DZW_KLIENT_*) with UID `uid` (a zone's: its number, `mikrofon` 1 — it may hear
+ * the microphone, 0.13.5 step 2): the service gets its end, we return the client's. */
+static int kanal_klienta(int rodzaj, int uid, int strefa, int mikrofon)
 {
-    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KLIENT, 0, rodzaj, uid, strefa, 0, 0);
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KLIENT, 0, rodzaj, uid, strefa, mikrofon, 0);
     int para[2], tak = 1;
     if (dzwiek_kanal < 0 || k1_kanal_utworz(para) != 0) /* para[0] checks its sender: the service's end */
         return -1;
@@ -149,10 +150,12 @@ static int kanal_klienta(int rodzaj, int uid, int strefa)
     return para[1];
 }
 
-/* TEST_DZWIEK: the test program as a client (its UID 0), or -1 without the service. */
-int dzwiek_dla_testu(void)
+/* TEST_DZWIEK: the test program as a client (its UID 0) — as itself (`rodzaj` 0), or, 0.13.5, as another row, to see
+ * what the service refuses it (a zone: zone 1, `mikrofon` as nadzorca would say); -1 without the service. */
+int dzwiek_dla_testu(int rodzaj, int mikrofon)
 {
-    return kanal_klienta(K1_DZW_KLIENT_TEST, 0, 0);
+    int strefa = rodzaj == K1_DZW_KLIENT_STREFA;
+    return kanal_klienta(rodzaj ? rodzaj : K1_DZW_KLIENT_TEST, 0, strefa, strefa ? mikrofon : 0);
 }
 
 /* A client's channel in DZWIEK_KANAL on `kanal` (ours to it): 1 when sent (or the client is not there to get one). */
@@ -162,7 +165,7 @@ static int dla_klienta(int kanal, int rodzaj, int uid, int strefa)
     int fd;
     if (kanal < 0)
         return 0;
-    fd = kanal_klienta(rodzaj, uid, strefa);
+    fd = kanal_klienta(rodzaj, uid, strefa, 0);
     if (fd < 0)
         return 0;
     if (k1_kanal_wyslij(kanal, &k, sizeof k, fd) != 0)

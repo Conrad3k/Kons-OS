@@ -4,7 +4,8 @@
  * on fd 4 (DZWIEK_KANAL; again after the service starts anew). gui remembers the volume (D5): it hears every change.
  * 0.12.3 step 2: two tabs, "Głośność" (the above) and "Korektor" (korektor.c); the row "Korektor" of gui's popover opens
  * the second (nadzorca's USTAWIENIA_MIEJSCE). Step 3: the third, "Kons Spatial Audio" (przestrzen.c). Part of Ustawienia
- * (ustawienia.h). */
+ * (ustawienia.h). 0.13.5 step 1 (D3: A): the part "Mikrofon" under the volume (mikrofon.c) — the note under "Odtwórz
+ * próbę" gave it its place. */
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -44,6 +45,8 @@ void dzwiek_dane(void)
     int r = k1_dzwk_odbierz(&dz);
     if (r & K1_DZWK_KONIEC)
         apl.kanaly[3].fd = -1; /* nadzorca gives the next one */
+    if (r & K1_DZWK_POZIOM) /* 0.13.5: the microphone's level (only while "Powiedz coś" is on) */
+        mikrofon_poziom(&dz);
     if (r & (K1_DZWK_GRA | K1_DZWK_PROBA)) /* step 4: frames taken — redraw only when "Posłuchaj" changed its band */
         r = (r & ~K1_DZWK_GRA) | (przestrzen_gra(&dz) && zakladka == Z_PRZESTRZEN ? K1_DZWK_GRA : 0);
     if (r && sekcja == S_DZWIEK)
@@ -94,8 +97,7 @@ void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     k1_tekst(o, K1_CZ_TEKST_MOCNA, SUWAK_X + SUWAK_W + 20, WIERSZ_Y + 24, proc,
              k1_kolor(dz.wyciszone ? m->tekst3 : m->tekst, 255), 0);
     k1_przycisk(o, m, &p, K1_CZ_TEKST, hover == C_PROBA, !dz.gra);
-    k1_tekst(o, K1_CZ_MALA, TRESC_X, PROBA_Y + 36 + 32, "K1 pamięta głośność głośników i słuchawek osobno.",
-             k1_kolor(m->tekst3, 255), 0);
+    mikrofon_rysuj(o, m, &dz);
 }
 
 static int pod(int32_t x, int32_t y)
@@ -128,6 +130,7 @@ static int zakladki_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk, int
     hover_zakladki = z;
     if (z >= 0 && rodzaj == K1_WSK_PUSZCZENIE && przycisk == K1_PRZYCISK_LEWY && z != zakladka) {
         zakladka = z;
+        mikrofon_stop(&dz); /* 0.13.5: the test of the microphone is on Głośność only */
         k1_log(TAG, "dźwięk: zakładka %s", zakladki[z]);
         if (z == Z_KOREKTOR)
             korektor_pokazany(&dz);
@@ -154,6 +157,8 @@ int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     int zz, c, zmiana;
     if (zakladki_wskaznik(rodzaj, x, y, przycisk, &zz))
         return zz;
+    if (mikrofon_wskaznik(&dz, rodzaj, x, y, przycisk))
+        zz = 1; /* 0.13.5: the part "Mikrofon" (its own controls; never under the volume's) */
     c = rodzaj == K1_WSK_WYJSCIE ? -1 : pod(x, y);
     zmiana = c != hover || zz;
     hover = c;
@@ -190,6 +195,11 @@ void dzwiek_klawisz(unsigned kod, int wartosc, unsigned mody)
         k1_apl_odswiez(&apl);
 }
 
+void dzwiek_ukryty(void)
+{
+    mikrofon_stop(&dz);
+}
+
 void dzwiek_pokazany(void)
 {
     hover = wcisniete = hover_zakladki = -1;
@@ -197,6 +207,7 @@ void dzwiek_pokazany(void)
         korektor_pokazany(&dz);
     if (zakladka == Z_PRZESTRZEN)
         przestrzen_pokazany(&dz);
-    k1_log(TAG, "dźwięk: karta %d, wyjście %d, głośność %d%%%s", dz.karta, dz.wyjscie, dz.glosnosc,
-           dz.wyciszone ? ", wyciszone" : "");
+    k1_log(TAG, "dźwięk: karta %d, wyjście %d, głośność %d%%%s; mikrofon: %s, poziom %d%%%s", dz.karta, dz.wyjscie,
+           dz.glosnosc, dz.wyciszone ? ", wyciszone" : "", dz.mik.zrodlo ? k1_dzw_zrodlo_nazwa(dz.mik.zrodlo) : "brak",
+           dz.mik.poziom, dz.mik.wyciszony ? ", wyciszony" : "");
 }

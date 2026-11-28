@@ -138,8 +138,9 @@ int k1_kom_sprawdz_dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek k
         return kier == K1_KIER_OD_DZWIEKU && od_dzwieku(k);
     case K1_KOM_DZWIEK_KANAL:
         return kier == K1_KIER_OD_NADZORCY && zera(k, 0);
-    case K1_KOM_TEST_DZWIEK:
-        return kier == K1_KIER_DO_NADZORCY && zera(k, 0);
+    case K1_KOM_TEST_DZWIEK: /* 0.13.5: a = 0 itself, or a row to be (b: a zone that may hear the microphone) */
+        return kier == K1_KIER_DO_NADZORCY && w(k->a, 0, K1_DZW_KLIENCI_MAKS) && w(k->b, 0, 1) &&
+               (k->b == 0 || k->a == K1_DZW_KLIENT_STREFA) && zera(k, 2);
     default:
         return 0;
     }
