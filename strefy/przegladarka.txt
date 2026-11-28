@@ -1,6 +1,6 @@
 # Pakiety Debiana 13 obrazu strefy przeglądarki (0.10.0 krok 2, ADR 0043). Nie edytuj ręcznie:
 # python3 -I scripts/odswiez-strefe.py. Budowa: scripts/zbuduj-strefe.sh (suma każdego pliku).
-# migawka 20261125T172510Z (zapasowe źródło: snapshot.debian.org/archive/<archiwum>/20261125T172510Z/)
+# migawka 20261128T105110Z (zapasowe źródło: snapshot.debian.org/archive/<archiwum>/20261128T105110Z/)
 # pakiet wersja archiwum sha256 plik
 adwaita-icon-theme 48.1-1 debian f60b0577aee314d43d6908ca7f0b8f07dc48e2bb766e7e25035330817e0e827c pool/main/a/adwaita-icon-theme/adwaita-icon-theme_48.1-1_all.deb
 at-spi2-common 2.56.2-1+deb13u2 debian a2a7b53c9925ec33a471d56dd60f5effe35cece109ec4296cc8d98a1250213b4 pool/main/a/at-spi2-core/at-spi2-common_2.56.2-1+deb13u2_all.deb
@@ -8,8 +8,8 @@ ca-certificates 20250419+deb13u1 debian-security c10585ac22c7f617a73d394eea29ba7
 curl 8.14.1-2+deb13u7 debian-security 135636bd8b713c582d33e50ec4e36ea55cc3c5da3f12bbeb6b87d2bcbd3a0649 pool/updates/main/c/curl/curl_8.14.1-2+deb13u7_amd64.deb
 dconf-gsettings-backend 0.40.0-5 debian 393e8deffcc78d4396e860f10cb5e7d0aab448d6e0965add62941fcd27be00fb pool/main/d/dconf/dconf-gsettings-backend_0.40.0-5_amd64.deb
 dconf-service 0.40.0-5 debian 4a1feeda4605be8561ec32fb4d0655fbe2313e62e457107168f528d959b530b8 pool/main/d/dconf/dconf-service_0.40.0-5_amd64.deb
-firefox-esr 153.7.0esr-1~deb13u1 debian-security 2d5086d360294ada3f323bdd701f0572811747db5207cc6e6d5826f59390a4eb pool/updates/main/f/firefox-esr/firefox-esr_153.7.0esr-1~deb13u1_amd64.deb
-firefox-esr-l10n-pl 153.7.0esr-1~deb13u1 debian-security 69bf1304c017e23a50a54d5ddddb18170253b5c8523aea91ddbba8cc7cadc0ab pool/updates/main/f/firefox-esr/firefox-esr-l10n-pl_153.7.0esr-1~deb13u1_all.deb
+firefox-esr 153.8.0esr-1~deb13u1 debian-security 617eb4cb88a9b9cdb4960de96ef6312cfe8bb79c634ac4cc6b5ee89e5c1079cb pool/updates/main/f/firefox-esr/firefox-esr_153.8.0esr-1~deb13u1_amd64.deb
+firefox-esr-l10n-pl 153.8.0esr-1~deb13u1 debian-security 41924991295edd3244baefb49e1d3e6c61d3e4d3e55fa75641e53fcc3fa005a6 pool/updates/main/f/firefox-esr/firefox-esr-l10n-pl_153.8.0esr-1~deb13u1_all.deb
 fontconfig 2.15.0-2.3 debian 09794b188e042c90b4a89fcb5afeb276bc231b74ddf8a3efbbc7dfb6f0eac4cb pool/main/f/fontconfig/fontconfig_2.15.0-2.3_amd64.deb
 fontconfig-config 2.15.0-2.3 debian 0475c00d02660c07a15085051818625331bb502e053242106aaaa1f2ddb41225 pool/main/f/fontconfig/fontconfig-config_2.15.0-2.3_amd64.deb
 fonts-dejavu-core 2.37-8 debian 86635b3d25b3655fc11cb3ecc3af59f0bf19643b02b94f2de48bd10253cdba12 pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb

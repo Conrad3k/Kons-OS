@@ -3,6 +3,14 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.13.1] — 2026-11-28
+
+<!-- k1: poprawki -->
+**Poprawki** (robot, ADR 0047): nowe wersje tego, co K1 bierze z zewnątrz — bez zmian w kodzie K1.
+
+### Zmienione
+- **Przeglądarka: Firefox ESR 153.8.0esr-1~deb13u1** i biblioteki z Debiana 13 — poprawki bezpieczeństwa (pakietów zmienionych: 2).
+
 ## [0.13.0] — 2026-11-27
 
 **Bezpieczny start** (wersja 0.13, plan napisany z przeglądu bezpieczeństwa — zgłoszenia #230–#238). K1 jest odporny na
