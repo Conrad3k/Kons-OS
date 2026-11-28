@@ -440,3 +440,7 @@ Krok 3 (2026-11-28):
     prośba poza pamięcią, odniesienie do pustej klatki, cel spoza kart, piąty film strefy, zalew 300) — gosc/filmy.c.
   - Nie pokryte testem: zabicie dekodera w trakcie filmu (strefa próbna nie umie go zabić) — ścieżka
     K1_KF_BLAD_DEKODER sprawdzona tylko czytaniem kodu; do sprawdzenia przy sterowniku VA (krok 4) albo w 0.15.
+  - Z CI (przebiegi 408, 414): VMM nie ma `dup` w klatce — kopia kanału od nadzorcy przez fcntl(F_DUPFD_CLOEXEC); dekoder
+    testowy dla VMM-a strefy próbnej ma argument „s” (klient: UID strefy), jak silnik testowy pośrednika — z „t” przyjmował
+    tylko UID 0. Drugi film zaraz po zamknięciu ostatniego kontekstu: nadzorca może jeszcze nie zauważyć końca starego
+    dekodera — odpowiada STREFA_ODMOWA a = K1_STREFA_ODM_LIMIT, VMM pyta znowu (do 2 s). Przebieg 416: wszystko zielone.
