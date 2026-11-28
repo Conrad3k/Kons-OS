@@ -1,0 +1,8 @@
+# FFmpeg dla strefy przeglądarki — filmy H.264 (0.13.2 krok 2, ADR 0049 pkt 8, ADR 0063 pkt 7; docs/ZALEZNOSCI.md) — jedna
+# tabela. scripts/zbuduj-ffmpeg.sh pobiera archiwum raz z deb.debian.org (wersja z Debiana 13 „trixie” — ta, którą Debian
+# łata w poprawkach bezpieczeństwa), sprawdza sumę i buduje tylko libavcodec + libavutil: dekoder i parser H.264 oraz
+# VA-API (h264_vaapi), LGPL (bez części GPL), bez programów. Suma jak w pliku .dsc Debiana (ffmpeg_7.1.5-0+deb13u1).
+# Firefox ESR 153 ładuje libavcodec.so.62 … .53 (dom/media/platforms/ffmpeg/FFmpegRuntimeLinker.cpp) — FFmpeg 7.1 daje 61.
+# Kolumny: adres | SHA-256. Nowa wersja: nowy wiersz (stary usunąć), nowa suma z .dsc, zbuduj-ffmpeg.sh (opcje, nazwy
+# bibliotek), pełne testy. Robot tej tabeli nie zmienia (zmienia ją człowiek — jak Mesa i musl).
+https://deb.debian.org/debian/pool/main/f/ffmpeg/ffmpeg_7.1.5.orig.tar.xz de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f

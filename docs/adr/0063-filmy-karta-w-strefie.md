@@ -92,9 +92,9 @@ pytana: plan zadaje ją tylko, gdy L2 wyjdzie „da się”, a wyszło „nie da
 6. **Bramka zysku (D3: A — korekta ADR 0049 pkt 6).** Pomiar na IdeaPadzie (procesor sesji w Zasobach, bateria) to dowód
    w raporcie kroku 4, nie warunek: filmy kartą wchodzą, chyba że są gorsze niż procesorem (więcej procesora, zacinanie,
    błędy obrazu, rozjechany dźwięk) — wtedy krok 4 zostaje bez prefów filmów do poprawki.
-7. **Prefy i biblioteki (T4, T6).** FFmpeg w strefie — własna mała budowa (ADR 0049 pkt 8), `libavcodec.so.62` (FFmpeg
-   8.x, LGPL, bez części GPL), dekoder H.264 i `h264_vaapi`; libva z pakietów Debiana (`libva.so.2`, `libva-drm.so.2`,
-   z `vaExportSurfaceHandle`). Sesja z filmami kartą (VMM: `k1.filmy=1` w linii poleceń gościa, jak `k1.grafika=1`)
+7. **Prefy i biblioteki (T4, T6).** FFmpeg w strefie — własna mała budowa (ADR 0049 pkt 8): `libavcodec.so.61` (FFmpeg
+   7.1 z Debiana 13 — krok 2; Firefox bierze każdą od .62 w dół, L6), LGPL bez części GPL, dekoder H.264 i `h264_vaapi`;
+   libva z pakietów Debiana (`libva.so.2`, `libva-drm.so.2`, z `vaExportSurfaceHandle`). Sesja z filmami kartą (VMM: `k1.filmy=1` w linii poleceń gościa, jak `k1.grafika=1`)
    dostaje w `user.js` `media.hardware-video-decoding.enabled` = `true` oraz `media.mediasource.vp9.enabled` i
    `media.av1.enabled` = `false` (D2: YouTube daje wtedy H.264); bez filmów — odwrotnie, zapis przy każdym starcie w obie
    strony. `media.ffmpeg.enabled` zostaje domyślne (`true`); martwy `media.ffmpeg.vaapi.enabled` wypada z `k1.js`.

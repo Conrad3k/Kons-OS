@@ -107,7 +107,7 @@ jobs:
       # build (runs 83 and 87 of PR #119 waited an hour on git.kernel.org). The key: the tables of what is downloaded.
       - name: Klucz pamięci podręcznej pobranych plików
         id: klucz-pobranych
-        run: echo "klucz=k1-pobrane-${{ hashFiles('scripts/wspolne.sh', 'jadro/oprogramowanie-kart.txt', 'strefy/przegladarka.txt', 'src/zewnetrzne/va/zrodla.txt') }}" >> "$GITHUB_OUTPUT"
+        run: echo "klucz=k1-pobrane-${{ hashFiles('scripts/wspolne.sh', 'jadro/oprogramowanie-kart.txt', 'strefy/przegladarka.txt', 'src/zewnetrzne/va/zrodla.txt', 'src/zewnetrzne/ffmpeg/zrodla.txt') }}" >> "$GITHUB_OUTPUT"
 
       - name: Przywróć pobrane pliki (pamięć podręczna)
         id: pobrane

@@ -32,7 +32,7 @@ asystentów — skill `kons-dev`, §3.
 | `src/czytnik/`, `src/dekoder/` | pendrive dla Plików (FAT, tylko odczyt) i jeden obraz → piksele, oba w klatce (`czytnik.md`, `dekoder.md`) |
 | `src/filmy/` | dekoder filmów (0.10.9 krok 2): film ze strefy → karta graficzna (VA-API, i965) → klatki NV12, jeden na strefę, w klatce (`filmy.md`) |
 | `src/posrednik/` | pośrednik grafiki (0.10.9 krok 5): prośby mostu native context ze strefy → sprawdzone pole po polu → karta graficzna (i915), jeden na strefę, w klatce (`posrednik.md`) |
-| `src/zewnetrzne/` | Monocypher, Wuffs i fortify-headers, a od 0.10.9 sumy źródeł bibliotek dekodera filmów (`va/zrodla.txt`: libva, i965, libdrm — budowane przez `zbuduj-va.sh`) i Mesy dla strefy (`mesa/zrodla.txt`, `zbuduj-mese.sh` — w obrazie strefy, nie w K1) — jedyny obcy kod w programach K1 (`docs/ZALEZNOSCI.md`) |
+| `src/zewnetrzne/` | Monocypher, Wuffs i fortify-headers, a od 0.10.9 sumy źródeł bibliotek dekodera filmów (`va/zrodla.txt`: libva, i965, libdrm — budowane przez `zbuduj-va.sh`) Mesy dla strefy (`mesa/zrodla.txt`, `zbuduj-mese.sh`) i od 0.13.2 FFmpeg dla strefy (`ffmpeg/zrodla.txt`, `zbuduj-ffmpeg.sh`) — oba w obrazie strefy, nie w K1 — jedyny obcy kod w programach K1 (`docs/ZALEZNOSCI.md`) |
 | `jadro/` | wersja jądra (`wersja.env`, zmienia ją też robot), fragmenty konfiguracji (`k1.config`, `k1-zamkniete.config`, `strefa.config`), listy opcji świadomie odrzuconych, pliki od producentów kart, klucze PGP (`jadro/README.md`, `docs/komponenty/jadro.md`) |
 | `musl/` | biblioteka C programów K1: wersja i suma, klucz PGP, łatki (`musl/README.md`) |
 | `strefy/` | obraz strefy przeglądarki i pobierania: tabela pakietów Debiana z sumami (`przegladarka.txt`, zmienia ją też robot), ustawienia Firefoksa, klucze archiwum (`strefy/README.md`) |
@@ -51,9 +51,10 @@ asystentów — skill `kons-dev`, §3.
 | Skrypt | Co robi |
 |---|---|
 | `przygotuj-srodowisko.sh` | instaluje pakiety Ubuntu potrzebne do budowy i testów |
-| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh`, `zbuduj-musl.sh`, `zbuduj-obraz.sh` (z nim `zbuduj-mese.sh` i `zbuduj-strefe.sh`), `zbuduj-k1efi.sh`, `zbuduj-iso.sh`, `zbuduj-usb.sh`, od 0.13.0 krok 4 także `zbuduj-iso.sh --test` i `zbuduj-usb.sh --test` (kopia testowa wydania: obrazy z `k1-test.efi`) |
+| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh`, `zbuduj-musl.sh`, `zbuduj-obraz.sh` (z nim `zbuduj-mese.sh`, `zbuduj-ffmpeg.sh` i `zbuduj-strefe.sh`), `zbuduj-k1efi.sh`, `zbuduj-iso.sh`, `zbuduj-usb.sh`, od 0.13.0 krok 4 także `zbuduj-iso.sh --test` i `zbuduj-usb.sh --test` (kopia testowa wydania: obrazy z `k1-test.efi`) |
 | `zbuduj-musl.sh` | musl dla programów K1: pobranie (suma, podpis PGP), łatki, budowa → `build/musl` |
 | `zbuduj-mese.sh` | Mesa dla strefy przeglądarki (0.10.9 krok 6, szybka grafika): źródła i meson z sumami w `src/zewnetrzne/mesa/zrodla.txt`; etap 1 — `mesa_clc` z LLVM 18 (tylko budowa), etap 2 — iris z `intel-virtio-experimental`, EGL, GBM, bez LLVM → `build/mesa/inst`; pomija budowę przy tym samym znaku (CI na PR-ze: pamięć podręczna) |
+| `zbuduj-ffmpeg.sh` | FFmpeg dla strefy przeglądarki (0.13.2 krok 2, ADR 0063 pkt 7): źródła z sumą w `src/zewnetrzne/ffmpeg/zrodla.txt`; tylko `libavcodec.so.61` i `libavutil.so.59` (H.264, VA-API, LGPL, bez programów) → `build/ffmpeg/inst`; ok. 1–2 min, pomija budowę przy tym samym znaku |
 | `zbuduj-va.sh` | biblioteki dekodera filmów (0.10.9 krok 2): libdrm, libva, i965 z pakietów Debiana (sumy w `src/zewnetrzne/va/zrodla.txt`), statycznie z naszym musl → `build/va`; woła go `make` |
 | `zbuduj-strefe.sh` | obraz strefy przeglądarki i pobierania z pakietów Debiana z `strefy/przegladarka.txt` (sumy) |
 | `odswiez-strefe.py` | odświeża tabelę pakietów strefy (`strefy/przegladarka.txt`) — najnowsze wersje z Debiana; używa go też robot |

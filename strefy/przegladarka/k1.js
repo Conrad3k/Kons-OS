@@ -55,7 +55,9 @@ pref("browser.uitour.enabled", false);
 pref("gfx.webrender.software", true);
 pref("widget.dmabuf.force-enabled", false);
 pref("media.hardware-video-decoding.enabled", false);
-pref("media.ffmpeg.vaapi.enabled", false);
+// Filmy H.264 (0.13.2 krok 2, ADR 0063 pkt 7): Firefox rozpakowuje je naszym FFmpeg z obrazu strefy (libavcodec.so.61) —
+// procesorem; media.ffmpeg.enabled jest na Linuksie domyślnie włączone. Kartą (VA-API) — tylko w sesji z filmami kartą
+// (krok 4: user.js od gosc).
 // Pamięć strefy (0.10.0 krok 3, S26): „dysk” przeglądarki w strefie to pamięć (katalog domowy na tmpfs), więc pamięć
 // podręczna stron na dysku zajmowała do kilkuset MB pamięci strefy na stałe — zostaje tylko pamięć podręczna w pamięci
 // (sama się zmniejsza). Zamknięcie ostatniej karty nie zamyka przeglądarki (koniec przeglądarki = koniec strefy);
