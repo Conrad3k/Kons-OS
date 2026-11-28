@@ -124,8 +124,9 @@ Usługa i pytanie przy starcie zostają (gotowe na później); Ustawienia tylko 
 ## Dekoder testowy (T7, S17)
 QEMU nie udaje karty Intela, więc drogę dekodera (okno, sprawdzanie, pamięć, klatka) testuje `testowy.c`: bez karty,
 klatka szara (jasność 16 + pierwszy bajt danych mod 220 — test widzi, która prośba ją zrobiła). Wybiera go nadzorca
-tylko na prośbę programu testowego (`TEST_FILMY` b = 1 — kanał testowy jest tylko w obrazie testowym), nigdy dla VMM-a:
-niczego nie rozpakowuje, więc i tak nie zastąpiłby karty.
+na prośbę programu testowego (`TEST_FILMY` b = 1, argument „t” — klient: UID 0) i od 0.13.2 krok 3 dla VMM-a strefy
+próbnej w trybach 23 i 24 (argument „s” — jak silnik testowy pośrednika: klient to UID strefy); kanał testowy i strefa
+próbna są tylko w obrazie testowym. Nigdy dla sesji przeglądarki: niczego nie rozpakowuje, więc nie zastąpiłby karty.
 
 ## Testy
 | Test | Rodzaj |
